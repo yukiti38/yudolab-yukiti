@@ -208,7 +208,9 @@ const FOAL_A = ["ハル","ユキ","ソラ","カゼ","ホシ","ツキ","ウミ","
 const FOAL_B = ["ノカゼ","ノヒカリ","ノソラ","ダンサー","ランナー","クイーン","キング","ハート","ドリーム","スター","ウィング","リバー","マウンテン","フィールド","ブライト","グローリー"];
 /* 産駒名はゲーム内の全馬（候補・セール・贈呈待ち含む）と重複させない（WS5b・2026-11-13）。
    衝突したら引き直し、プールが埋まっていれば決定的な順序で空きを探し、最終手段は連番サフィックス */
-/* 産駒の名前（v0.34）：冠名が設定されていれば頭に付ける。重複は避ける */
+/* 仮名（v0.35・Terai発案）：生まれた時は「母名のYY」で、正式な名前は2歳までに付ける */
+function provisionalName(damName, year){ return damName + "の" + String(year % 100).padStart(2, "0"); }
+/* 自動命名（v0.34）：冠名が設定されていれば頭に付ける。重複は避ける。2歳で未命名の馬への自動付与と、命名候補の提示に使う */
 function farmFoalName(){
   const k = (S.kanmuri || "").trim();
   if(!k) return foalName();
@@ -904,7 +906,7 @@ function onNewYear(){
       const width = Math.max(500, ((st.dist[1]-st.dist[0]) + (h.distMax-h.distMin))/2);
       const r50 = v => clamp(Math.round(v/50)*50, 1000, 4000);
       const sireCoat = (S.horses.find(x=>x.status==="stallion" && x.name===st.name) || {}).coat || st.coat;
-      const foal = newHorse({ name: farmFoalName(), sex, birthYear:S.year, sire:st.name, dam:h.name, bms:h.sire,
+      const foal = newHorse({ name: provisionalName(h.name, S.year), sex, birthYear:S.year, sire:st.name, dam:h.name, bms:h.sire,
         status:"foal", surface: surf, coat: inheritCoat(sireCoat, h.coat),
         distMin: r50(centre - width/2), distMax: r50(centre + width/2),
         growth: G_DISP[foalGt], gtype: foalGt, ability: 70 });
@@ -918,14 +920,17 @@ function onNewYear(){
       chron("【誕生】"+h.name+" が "+st.name+" の"+sex+"馬を出産。名前は「"+foal.name+"」");
       ensureMile();
       if(!S.mile.fh3 && isFullHomebred3(foal)){ S.mile.fh3 = true; chron("【初】"+foal.name+"：3代前まで全て自家生産の産駒が初めて誕生した"); topic("🌟 "+foal.name+" は3代前まで全て自家生産の血統です"); }
-      topic("🐴 "+foal.name+"（父"+st.name+"）が誕生しました");
+      topic("🐴 "+foal.name+"（父"+st.name+"）が誕生しました。2歳までに名前を付けてください");
       h.pregnant = null;
     }
   }
   // 成長段階の更新
   for(const h of S.horses){
     if(h.status==="foal" && ageOf(h)>=1) h.status="yearling";
-    else if(h.status==="yearling" && ageOf(h)>=2){ h.status="racehorse"; chron(h.name+" は2歳になり、現役馬に編入された"); }
+    else if(h.status==="yearling" && ageOf(h)>=2){
+      if(h.unnamed){ const oldName = h.name; h.name = farmFoalName(); h.unnamed = false; chron("【命名】"+oldName+" は2歳になるまでに名前が決まらなかったため、「"+h.name+"」と自動で命名された"); }
+      h.status="racehorse"; chron(h.name+" は2歳になり、現役馬に編入された");
+    }
   }
   // 種牡馬ロスターは固定：世代交代・補充は行わない（WS4b・2026-11-13）
   // 年末表彰っぽい年表
@@ -937,6 +942,10 @@ function weeklyEvents(){
   if(S.month===3 && S.week===1) topic("🐴 春の出産シーズンです（昨年の種付け分は年始に誕生済み）");
   if(S.month===6 && S.week===1) topic("🏇 2歳馬のデビューが始まる時期です");
   if(S.month===12 && S.week===4) topic("📅 年末です。週を進めると年が替わり、出産が起きます");
+  if(S.month>=11){
+    const unn = S.horses.filter(h=>h.unnamed && h.status==="yearling");
+    if(unn.length) topic("🍼 まだ仮名の1歳馬がいます："+unn.map(h=>h.name).join("、")+"（2歳になる前に名前を付けてください）");
+  }
   if(S.month===11 && S.week===1 && S.salePool && S.salePool.length) topic("🐴 繁殖牝馬セールが始まりました（11〜12月、「繁殖」タブ）。最初に選ばなかった候補も出ています");
   if(S.year===2026 && S.month===4 && S.week===1 && !S.giftAprDone){ S.giftAprDone = true; S.giftQueue.push(makeGift("2yo")); topic("🎁 初年度の支援で2歳馬が贈られます。名前を付けて迎えるか、辞退もできます"); }
   if(S.year===2026 && S.month===12 && S.week===1 && !S.giftDecDone){ S.giftDecDone = true; S.giftQueue.push(makeGift("1yo")); topic("🎁 初年度の支援で1歳馬が贈られます。名前を付けて迎えるか、辞退もできます"); }
@@ -1142,7 +1151,7 @@ function viewHorses(){
     : hh.retired;
   const list = S.horses.filter(match);
   const rows = list.map(h =>
-    "<tr><td><span class='horse-link' data-horse='"+h.id+"'>"+h.name+"</span></td><td>"+h.sex+"</td><td>"+ageOf(h)+"歳</td><td>"+statusJa(h)+"</td><td>"+growthStage(h)+"</td><td>"+(h.status==="racehorse" && !h.retired ? horseClass(h) : "―")+"</td><td>"+h.wins+"勝 / "+man(h.earnings)+"</td><td>"+evalComment(h)+"</td><td>状態"+Math.round(h.condition)+" 疲労"+Math.round(h.fatigue)+"</td></tr>").join("");
+    "<tr><td><span class='horse-link' data-horse='"+h.id+"'>"+h.name+"</span>"+(h.unnamed ? " <span class='sub'>（仮名）</span>" : "")+"</td><td>"+h.sex+"</td><td>"+ageOf(h)+"歳</td><td>"+statusJa(h)+"</td><td>"+growthStage(h)+"</td><td>"+(h.status==="racehorse" && !h.retired ? horseClass(h) : "―")+"</td><td>"+h.wins+"勝 / "+man(h.earnings)+"</td><td>"+evalComment(h)+"</td><td>状態"+Math.round(h.condition)+" 疲労"+Math.round(h.fatigue)+"</td></tr>").join("");
   const opts = [["active","現役＋若馬（既定）"],["racehorse","現役のみ"],["young","若馬のみ"],["breeding","繁殖・種牡馬"],["retired","引退馬"],["all","すべて"]]
     .map(o=>"<option value='"+o[0]+"'"+(horseFilter===o[0]?" selected":"")+">"+o[1]+"</option>").join("");
   setTimeout(()=>{ const el = $("#horseFilterSel"); if(el) el.onchange = () => { horseFilter = el.value; render(); }; }, 0);
@@ -1600,6 +1609,13 @@ function openHorse(id){
       + "<div class='sub'>提示額は <b>"+man(youngPrice(h))+"</b> です（秘めた素質＝将来の上限で決まります。見える評価が低くても高く売れることがあります）</div>"
       + "<button id='sellYoungBtn'>この金額で売却する</button></div></details>";
   }
+  /* 命名（v0.35）：仮名の間だけ、馬ページから正式な名前を付けられる。2歳で現役編入されると自動で名前が付く */
+  let nameSuggest = null;
+  if(h.unnamed && (h.status==="foal" || h.status==="yearling")){
+    nameSuggest = farmFoalName();
+    actions += "<div class='sellmenu'><div class='sub'>この馬はまだ仮名（"+h.name+"）です。2歳になるまでに名前を決めてください（過ぎると自動で名前が付きます）</div>"
+      + "<div class='sellmenu-body'><input type='text' id='nameInput' size='16' placeholder='名前を入力'><button id='nameBtn'>この名前で登録</button><button id='nameSuggestBtn' class='ghost'>候補："+nameSuggest+"</button></div></div>";
+  }
   $("#horseModalBox").innerHTML = "<div class='flex' style='justify-content:space-between;'><h2 style='margin:0;'>"+h.name+"</h2><button onclick='document.querySelector(\"#horseModal\").style.display=\"none\"'>閉じる</button></div>"
     + "<dl class='kv'><dt>性・年齢</dt><dd>"+h.sex+"・"+ageOf(h)+"歳</dd><dt>状態</dt><dd>"+statusJa(h)+"</dd>"
     + "<dt>血統</dt><dd>父 "+h.sire+" ／ 母 "+h.dam+" ／ 母父 "+h.bms+"</dd>"
@@ -1619,6 +1635,17 @@ function openHorse(id){
     + "<h3>戦績・履歴</h3><table><tr><th>時期</th><th>レース</th><th>条件</th><th>着順</th><th>タイム</th><th></th><th>賞金</th></tr>"+res+"</table>";
   $("#horseModal").style.display = "block";
   const ps = $("#policySel"); if(ps) ps.onchange = () => { h.policy = ps.value; save(); };
+  const nsb = $("#nameSuggestBtn"); if(nsb) nsb.onclick = () => { const ni = $("#nameInput"); if(ni) ni.value = nameSuggest; };
+  const nb = $("#nameBtn"); if(nb) nb.onclick = () => {
+    const v = ($("#nameInput") ? $("#nameInput").value : "").trim();
+    if(!v){ alert("名前を入力してください"); return; }
+    if(S.horses.some(x=>x.id!==h.id && x.name===v) || S.stallions.some(s=>s.name===v)){ alert("その名前は既に使われています"); return; }
+    const oldName = h.name;
+    h.name = v; h.unnamed = false;
+    chron("【命名】"+oldName+" を「"+v+"」と命名した");
+    topic("✏️ "+oldName+" を「"+v+"」と命名しました");
+    $("#horseModal").style.display = "none"; save(); render();
+  };
   const rb = $("#retireBtn"); if(rb) rb.onclick = () => {
     h.retired = true;
     if(canEnterStud(h)){
@@ -1733,6 +1760,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>競馬シミュレーター（趣味） v0.34</footer>
+<footer>競馬シミュレーター（趣味） v0.35</footer>
 </body>
 </html>
