@@ -46,6 +46,9 @@
   .hdrmenu summary::-webkit-details-marker { display:none; }
   .hdrmenu-body { position:absolute; right:0; top:calc(100% + 6px); background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px; z-index:30; min-width:220px; box-shadow:0 8px 24px rgba(0,0,0,.5); }
   footer { margin:26px 4px 10px; padding-top:10px; border-top:1px solid var(--line); color:var(--sub); font-size:12.5px; text-align:right; }
+  .sellmenu { margin:10px 0; border:1px solid var(--line); border-radius:10px; padding:8px 10px; background:var(--panel2); }
+  .sellmenu summary { cursor:pointer; font-size:14px; }
+  .sellmenu-body { margin-top:8px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
 </style>
 </head>
 <body>
@@ -1431,11 +1434,18 @@ function openHorse(id){
       + ["train","spd","sta","gut","pasture","rest"].map(p=>"<option value='"+p+"'"+(h.policy===p?" selected":"")+">"+({train:"調教（バランス）",spd:"スピード調教",sta:"スタミナ調教",gut:"根性調教",pasture:"放牧",rest:"休養"})[p]+"</option>").join("")
       + "</select><button id='retireBtn'>引退させる</button></div>";
   }
+  /* 売却はプルダウン方式（v0.31）：開く→金額を見て中のボタンを押す、の2手間にし、確認ダイアログは出さない。誤タップ・押し間違い防止（データ削除と同じ考え方） */
+  let marePriceShown = null;
   if(h.status==="broodmare"){
-    actions = "<div class='flex' style='margin:10px 0;'><button id='sellMareBtn'>💴 この繁殖牝馬を売却する</button><span class='sub'>価格は能力で決まります（確認画面で金額を提示）。いつでも売却できます</span></div>";
+    const mp = marePrice(h); marePriceShown = mp;
+    actions = "<details class='sellmenu'><summary>💴 この繁殖牝馬を売却する</summary><div class='sellmenu-body'>"
+      + "<div class='sub'>売却額は <b>"+man(mp)+"</b> です（能力で決まります）"+(h.pregnant ? "。<span class='bad'>受胎中です。お腹の仔も一緒に手放します</span>" : "")+"</div>"
+      + "<button id='sellMareBtn'>この金額で売却する</button></div></details>";
   }
   if(canSellYoung(h)){
-    actions += "<div class='flex' style='margin:10px 0;'><button id='sellYoungBtn'>💴 この若馬を売却する</button><span class='sub'>提示額は秘めた素質（将来の上限）で決まります。見える評価が低くても高く売れることがあります</span></div>";
+    actions += "<details class='sellmenu'><summary>💴 この若馬を売却する</summary><div class='sellmenu-body'>"
+      + "<div class='sub'>提示額は <b>"+man(youngPrice(h))+"</b> です（秘めた素質＝将来の上限で決まります。見える評価が低くても高く売れることがあります）</div>"
+      + "<button id='sellYoungBtn'>この金額で売却する</button></div></details>";
   }
   $("#horseModalBox").innerHTML = "<div class='flex' style='justify-content:space-between;'><h2 style='margin:0;'>"+h.name+"</h2><button onclick='document.querySelector(\"#horseModal\").style.display=\"none\"'>閉じる</button></div>"
     + "<dl class='kv'><dt>性・年齢</dt><dd>"+h.sex+"・"+ageOf(h)+"歳</dd><dt>状態</dt><dd>"+statusJa(h)+"</dd>"
@@ -1468,9 +1478,7 @@ function openHorse(id){
     $("#horseModal").style.display = "none"; save(); render();
   };
   const sb = $("#sellMareBtn"); if(sb) sb.onclick = () => {
-    const price = marePrice(h);
-    const warn = h.pregnant ? "（受胎中です。お腹の仔も一緒に手放します）" : "";
-    if(!confirm(h.name+" を "+man(price)+" で売却しますか？"+warn)) return;
+    const price = marePriceShown != null ? marePriceShown : marePrice(h);
     S.funds += price;
     S.horses = S.horses.filter(x=>x.id!==h.id);
     chron("【売却】繁殖牝馬 "+h.name+" を "+man(price)+" で売却した");
@@ -1479,7 +1487,6 @@ function openHorse(id){
   };
   const sy = $("#sellYoungBtn"); if(sy) sy.onclick = () => {
     const price = youngPrice(h);
-    if(!confirm(h.name+"（"+ageOf(h)+"歳・未出走）に "+man(price)+" の買い手が付いています。売却しますか？")) return;
     S.funds += price;
     S.horses = S.horses.filter(x=>x.id!==h.id);
     chron("【売却】若馬 "+h.name+"（"+ageOf(h)+"歳）を "+man(price)+" で売却した");
@@ -1556,6 +1563,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>NKC / WHC 競馬ゲーム試作 v0.30</footer>
+<footer>NKC / WHC 競馬ゲーム試作 v0.31</footer>
 </body>
 </html>
