@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Build prototype/index.html from template.html + data files in ../data/."""
+"""Build prototype/index.html from template.html + data files in ../data/.
+v0.26 (2026-11-13): weight_type（負担重量区分）と labels（路線／トライアル）を
+レースデータに載せるようになった。"""
 import json, re, math, datetime, os
 
 BASE = os.path.dirname(os.path.abspath(__file__))
@@ -13,6 +15,64 @@ st = json.load(open(os.path.join(DATA, "stallions_draft.json")))
 def wom_from_day(d):
     return min(4, math.ceil(d / 7))
 
+# ===== レースのラベル（SPEC.md「レースのラベル」） =====
+ROUTES_DOM = {
+    "牡馬三冠": ["皐月賞", "日本ダービー", "菊花賞"],
+    "牝馬三冠": ["桜花賞", "オークス", "秋華賞"],
+    "ダート三冠": ["羽田盃", "東京ダービー", "ジャパンダートクラシック"],
+    "春古馬三冠": ["大阪杯", "天皇賞（春）", "宝塚記念"],
+    "秋古馬三冠": ["天皇賞（秋）", "ジャパンC", "有馬記念"],
+    "春秋マイル": ["安田記念", "マイルチャンピオンシップ"],
+    "春秋スプリント": ["高松宮記念", "スプリンターズS"],
+    "春秋グランプリ": ["宝塚記念", "有馬記念"],
+}
+# 対象レース -> そのトライアル（国内確定分。宝塚・有馬・ジャパンC・2歳G1には付けない）
+TRIALS_DOM = {
+    "フェブラリーS": ["プロキオンS", "根岸S"],
+    "高松宮記念": ["阪急杯", "オーシャンS"],
+    "大阪杯": ["中山記念", "金鯱賞"],
+    "桜花賞": ["チューリップ賞", "フィリーズレビュー", "アネモネステークス"],
+    "皐月賞": ["弥生賞", "スプリングS", "若葉ステークス"],
+    "天皇賞（春）": ["阪神大賞典", "日経賞"],
+    "NHKマイルC": ["ニュージーランドT", "チャーチルダウンズC"],
+    "ヴィクトリアマイル": ["阪神牝馬S", "福島牝馬S"],
+    "オークス": ["フローラS", "スイートピーステークス"],
+    "日本ダービー": ["青葉賞", "プリンシパルステークス"],
+    "安田記念": ["マイラーズC", "京王杯スプリングC"],
+    "スプリンターズS": ["キーンランドC", "セントウルS"],
+    "秋華賞": ["紫苑S", "ローズS"],
+    "菊花賞": ["セントライト記念", "神戸新聞杯"],
+    "天皇賞（秋）": ["オールカマー", "毎日王冠", "京都大賞典"],
+    "エリザベス女王杯": ["アイルランドT"],
+    "マイルチャンピオンシップ": ["富士S", "スワンS"],
+    "チャンピオンズC": ["みやこS", "武蔵野S"],
+}
+def dom_labels(name):
+    labs = [route for route, names in ROUTES_DOM.items() if name in names]
+    labs += ["トライアル：" + t for t, trials in TRIALS_DOM.items() if name in trials]
+    return labs
+
+import unicodedata
+def _norm(s):
+    # NFKCで全角英字（Ｓ・Ｃ・Ａ等）を半角へ揃えてから空白を除く
+    return unicodedata.normalize("NFKC", s or "").replace(" ", "").replace("　", "")
+# 海外の路線（SPEC: G1路線のみ。国と正規化名の完全一致で照合する）
+OV_ROUTES = [
+    ("アメリカクラシック三冠", "アメリカ", ["ケンタッキーダービー", "プリークネスS", "ベルモントS"]),
+    ("アメリカ芝三冠", "アメリカ", ["ベルモントダービー招待S", "サラトガダービー招待S", "ジョッキークラブダービー招待S"]),
+    ("アメリカ牝馬三冠", "アメリカ", ["エイコーンS", "CCAオークス招待S", "アラバマS"]),
+    ("アメリカ芝牝馬三冠", "アメリカ", ["ベルモントオークス招待S", "サラトガオークス招待S", "ジョッキークラブオークス"]),
+    ("イギリス三冠", "イギリス", ["2000ギニーS", "ダービーS", "セントレジャーS"]),
+    ("イギリス牝馬三冠", "イギリス", ["1000ギニーS", "オークス", "セントレジャーS"]),
+    ("アイルランド三冠", "アイルランド", ["アイリッシュ2000ギニー", "アイリッシュダービー", "アイリッシュセントレジャーS"]),
+    ("香港三冠", "香港", ["スチュワーズカップ", "香港ゴールドカップ", "チャンピオンズアンドチェイターカップ"]),
+    ("豪州2歳三冠", "オーストラリア", ["ゴールデンスリッパー", "サイヤーズプロデュースS", "シャンパンS"]),
+]
+def ov_labels(r):
+    n = _norm(r["name"])
+    return [route for route, country, names in OV_ROUTES
+            if r["country"] == country and n in [_norm(x) for x in names]]
+
 dom_out = []
 for r in dom:
     dt = datetime.date.fromisoformat(r["date"])
@@ -21,6 +81,8 @@ for r in dom:
         "name": r["name"], "grade": r["grade"], "sector": r["sector"], "category": r["category"],
         "racecourse": r["racecourse"], "surface": r["surface"], "distance_m": r["distance_m"],
         "conditions": cond, "month": dt.month, "wom": wom_from_day(dt.day),
+        "weight_type": r.get("weight_type") or "定量",
+        "labels": dom_labels(r["name"]),
     })
 
 def parse_dist(r):
@@ -66,6 +128,8 @@ for r in ov:
         "racecourse": (r["racecourse"] or "") + "（" + r["country"] + "）", "surface": r["surface"],
         "distance_m": parse_dist(r), "conditions": parse_cond(r),
         "prize_first": r.get("prize_first_jpy"),
+        "weight_type": r.get("weight_type") or "定量",
+        "labels": ov_labels(r),
         "month": r["month"], "wom": min(4, r["week_of_month"]),
     })
 
@@ -77,3 +141,20 @@ open(out, "w").write(html)
 print("domestic", len(dom_out), "overseasG1", len(ov_out),
       "withDist", sum(1 for r in ov_out if r["distance_m"]), "stallions", len(st["stallions"]))
 print("index.html bytes", len(html))
+# ラベル付与の検証：SPECの全レッグがデータに存在するか
+dom_names = {r["name"] for r in dom}
+for route, names in ROUTES_DOM.items():
+    miss = [n for n in names if n not in dom_names]
+    if miss: print("WARN domestic route", route, "missing", miss)
+for t, trials in TRIALS_DOM.items():
+    if t not in dom_names: print("WARN trial target missing", t)
+    miss = [n for n in trials if n not in dom_names]
+    if miss: print("WARN trials of", t, "missing", miss)
+ov_shipped = {(r["country"], _norm(r["name"])) for r in ov_out}
+for route, country, names in OV_ROUTES:
+    miss = [n for n in names if (country, _norm(n)) not in ov_shipped]
+    if miss: print("WARN overseas route", route, "missing", miss)
+print("labels: domestic", sum(1 for r in dom_out if r["labels"]), "races labelled;",
+      "overseas", sum(1 for r in ov_out if r["labels"]), "races labelled;",
+      "weight ハンデ domestic", sum(1 for r in dom_out if r["weight_type"]=="ハンデ"),
+      "/ overseas", sum(1 for r in ov_out if r["weight_type"]=="ハンデ"))
