@@ -59,7 +59,7 @@
     <button class="primary" id="nextWeekBtn">週を進める ▶</button>
     <button id="nextEventBtn">次のイベントまで ⏩</button>
     <button class="ghost" id="debugHorseBtn">🐛 デバッグ馬を作成</button>
-    <details class="hdrmenu"><summary>⚙ その他</summary><div class="hdrmenu-body"><button id="resetBtn">最初から（データ削除）</button><div class="sub">セーブデータを消して最初からやり直します</div></div></details>
+    <details class="hdrmenu"><summary>⚙ その他</summary><div class="hdrmenu-body"><button id="resetBtn">最初から（データ削除）</button><div class="sub">セーブデータを消して最初からやり直します</div><div class="sub" style="margin-top:10px;">冠名（任意）：<span id="kanmuriNow">（なし）</span></div><div class="flex"><input type="text" id="kanmuriInput" size="10" placeholder="例：シロチャン"><button id="kanmuriBtn">設定</button></div><div class="sub">設定すると、これから生まれる産駒の名前の頭に付きます。空欄で設定すると解除されます</div></div></details>
     <button class="ghost" id="exportBtn">💾 書き出し</button>
     <button class="ghost" id="importBtn">📥 読み込み</button>
     <input type="file" id="importFile" accept="application/json,.json" style="display:none;">
@@ -208,6 +208,16 @@ const FOAL_A = ["ハル","ユキ","ソラ","カゼ","ホシ","ツキ","ウミ","
 const FOAL_B = ["ノカゼ","ノヒカリ","ノソラ","ダンサー","ランナー","クイーン","キング","ハート","ドリーム","スター","ウィング","リバー","マウンテン","フィールド","ブライト","グローリー"];
 /* 産駒名はゲーム内の全馬（候補・セール・贈呈待ち含む）と重複させない（WS5b・2026-11-13）。
    衝突したら引き直し、プールが埋まっていれば決定的な順序で空きを探し、最終手段は連番サフィックス */
+/* 産駒の名前（v0.34）：冠名が設定されていれば頭に付ける。重複は避ける */
+function farmFoalName(){
+  const k = (S.kanmuri || "").trim();
+  if(!k) return foalName();
+  const used = new Set(S.horses.map(h=>h.name));
+  let n = k + foalName();
+  for(let i=0;i<80 && used.has(n);i++) n = k + foalName();
+  if(used.has(n)){ let c=2; while(used.has(n+c)) c++; n = n + c; }
+  return n;
+}
 function foalName(){
   const used = new Set();
   if(typeof S !== "undefined" && S){
@@ -553,7 +563,7 @@ function makeMare(sts){
 function initState(){
   S = { year:2026, month:1, week:1, funds:30000, horses:[], stallions: JSON.parse(JSON.stringify(DATA.stallions)),
         chronicle:[], topics:[], yearEndDone:false, phase:"choose", candidates:[], salePool:[], firstMatingDone:false,
-        giftQueue:[], giftAprDone:false, giftDecDone:false, favs:[], mile:null, farmWins:0, farmPrize:0 };
+        giftQueue:[], giftAprDone:false, giftDecDone:false, favs:[], mile:null, farmWins:0, farmPrize:0, kanmuri:"" };
   const sts = S.stallions;
   // 種牡馬ロスターは固定（約50頭・引退／世代交代なし。WS4b・2026-11-13）。
   // 自家生産の牡馬が引退時に種牡馬入りすることはある（そちらは従来どおり）。
@@ -589,6 +599,7 @@ function migrateV029(){
      マイルストーン状態を既存の戦績から復元する（達成済みの初制覇などが遡って発火しないように） */
   if(S.chronicle) S.chronicle = S.chronicle.filter(c=>!/^【(レース|成長|スキップ)】/.test(c.text));
   ensureMile();
+  if(S.kanmuri == null) S.kanmuri = "";
 }
 /* ================= マイルストーン（v0.33・Terai方針） =================
    年表にはビッグイベントだけを残す。通常のレース結果・成長メモ・スキップ記録は年表に書かない。
@@ -893,7 +904,7 @@ function onNewYear(){
       const width = Math.max(500, ((st.dist[1]-st.dist[0]) + (h.distMax-h.distMin))/2);
       const r50 = v => clamp(Math.round(v/50)*50, 1000, 4000);
       const sireCoat = (S.horses.find(x=>x.status==="stallion" && x.name===st.name) || {}).coat || st.coat;
-      const foal = newHorse({ name: foalName(), sex, birthYear:S.year, sire:st.name, dam:h.name, bms:h.sire,
+      const foal = newHorse({ name: farmFoalName(), sex, birthYear:S.year, sire:st.name, dam:h.name, bms:h.sire,
         status:"foal", surface: surf, coat: inheritCoat(sireCoat, h.coat),
         distMin: r50(centre - width/2), distMax: r50(centre + width/2),
         growth: G_DISP[foalGt], gtype: foalGt, ability: 70 });
@@ -1088,6 +1099,7 @@ function viewChoose(){
 let currentTab = "horses";
 function raceLabel(r){ return (r.name||"")+"（"+(r.grade||"")+"・"+(r.racecourse||"")+" "+(r.surface||"")+(r.distance_m?r.distance_m+"m":"")+" "+(r.conditions||"")+"）"; }
 function render(){
+  const kn = $("#kanmuriNow"); if(kn) kn.textContent = S.kanmuri ? "「"+S.kanmuri+"」" : "（なし）";
   $("#dateLabel").textContent = S.year+"年 "+S.month+"月 第"+S.week+"週";
   $("#fundsLabel").textContent = "資金 "+man(S.funds);
   $("#topics").innerHTML = (debugOpen ? debugPanel() : "") + (S.topics.length ? S.topics.map(t=>'<div class="topic">'+t+"</div>").join("") : '<div class="sub">今週は特にありません。眺めるだけでも大丈夫です。</div>');
@@ -1689,6 +1701,7 @@ $("#nextEventBtn").onclick = () => { nextEvent(); };
   });
 })();
 $("#resetBtn").onclick = () => { if(confirm("最初からやり直しますか？")){ localStorage.removeItem(SAVE_KEY); initState(); render(); } };
+$("#kanmuriBtn").onclick = () => { const v = $("#kanmuriInput").value.trim(); S.kanmuri = v; topic(v ? "冠名を「"+v+"」に設定しました。これから生まれる産駒に付きます" : "冠名を解除しました"); save(); render(); };
 $("#exportBtn").onclick = () => {
   const blob = new Blob([JSON.stringify(S)], { type:"application/json" });
   const a = document.createElement("a");
@@ -1720,6 +1733,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>競馬シミュレーター（趣味） v0.33</footer>
+<footer>競馬シミュレーター（趣味） v0.34</footer>
 </body>
 </html>
