@@ -1453,7 +1453,7 @@ function viewStallions(){
     document.querySelectorAll("[data-fav]").forEach(btn => btn.onclick = () => toggleFav(btn.getAttribute("data-fav")));
   }, 0);
   const list = sortedStallions();
-  const rows = list.map(st=>"<tr><td><button data-fav='"+st.name+"' class='ghost' title='お気に入り'>"+((S.favs||[]).includes(st.name)?"★":"☆")+"</button> "+st.name+(isHomebredStallion(st)?" <span class='ok'>自家製</span>":"")+(st.fresh?" <span class='ok'>NEW</span>":"")+(st.sire?" <span class='sub'>父 "+st.sire+"</span>":"")+"</td><td>"+(st.region==="overseas"?"海外":"国内")+"</td><td>"+st.surface+"</td><td>"+st.dist[0]+"-"+st.dist[1]+"m</td><td>"+st.growth+"</td><td>"+st.fee_tier+"</td><td>"+stallionTendency(st)+"</td><td>"+fee(st.fee_tier)+"</td></tr>").join("");
+  const rows = list.map(st=>"<tr><td><button data-fav='"+st.name+"' class='ghost' title='お気に入り'>"+((S.favs||[]).includes(st.name)?"★":"☆")+"</button> "+st.name+(isHomebredStallion(st)?" <span class='ok'>自家製</span>":"")+(st.fresh?" <span class='ok'>NEW</span>":"")+(st.sire?" <span class='sub'>父 "+st.sire+"</span>":"")+"</td><td>"+(st.region==="overseas"?"海外":"国内")+"</td><td>"+st.surface+"</td><td>"+st.dist[0]+"-"+st.dist[1]+"m</td><td>"+st.growth+"</td><td>"+st.fee_tier+"</td><td>"+stallionTendency(st)+"</td><td>"+(stallionFee(st)===0 ? "無料" : fee(st.fee_tier))+"</td></tr>").join("");
   const fsel = (id, cur, pairs) => "<select id='"+id+"'>" + pairs.map(p=>"<option value='"+p[0]+"'"+(cur===p[0]?" selected":"")+">"+p[1]+"</option>").join("") + "</select>";
   return "<div class='sub'>プールは固定の約50頭です（引退・世代交代はありません。自家生産の牡馬が重賞勝ちで引退すると種牡馬入りします）。現在"+S.stallions.length+"頭。種付け料はティア別の設計値です。</div>"
     + "<div class='flex' style='margin:6px 0;'><span>並び替え：</span><select id='sortSel'>"+opts+"</select><span>絞込み：</span>"
@@ -1783,6 +1783,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>競馬シミュレーター（趣味） v0.38</footer>
+<footer>競馬シミュレーター（趣味） v0.39</footer>
 </body>
 </html>
