@@ -81,7 +81,7 @@
     <button class="ghost" data-milestone="breed">次の繁殖シーズン（2月）</button>
     <button class="ghost" data-milestone="yearend">年末（12月第4週）</button>
   </div>
-  <div class="sub">試作 v0.26 ／ 目標なし・週刻み・過程を見つめるゲーム。開始時に繁殖牝馬を1頭選ぶところから始まります。初年度は4月に2歳馬、12月に1歳馬の贈呈があります（辞退も可）。能力は設計用の仮数値、海外レースの1着賞金は2025年の実額（racedb調べ・固定レート換算）です。スキップは「かんたんスキップ」のボタンでも進められます。「🐛 デバッグ馬を作成」ではステータスを指定して馬を作れます（動作確認用）。</div>
+  <div class="sub">試作 v0.28 ／ 目標なし・週刻み・過程を見つめるゲーム。開始時に繁殖牝馬を1頭選ぶところから始まります。初年度は4月に2歳馬、12月に1歳馬の贈呈があります（辞退も可）。能力は設計用の仮数値、海外レースの1着賞金は2025年の実額（racedb調べ・固定レート換算）です。スキップは「かんたんスキップ」のボタンでも進められます。「🐛 デバッグ馬を作成」ではステータスを指定して馬を作れます（動作確認用）。</div>
 </header>
 <main>
   <section class="panel" id="topicPanel"><h2>今週のトピック</h2><div id="topics"></div></section>
@@ -524,9 +524,11 @@ function absLabel(a){ return (Math.floor((a%48)/4)+1) + "月第" + ((a%4)+1) + "
 function eligibility(h, race){
   const age = ageOf(h);
   const c = race.conditions || "";
-  if(c.includes("2歳") && age!==2) return "2歳限定";
+  // 「2歳以上」は2歳限定と誤読しない（v0.28：海外データの2歳以上戦が parse_cond から来るようになった）
+  if(c.includes("2歳") && !c.includes("2歳以上") && age!==2) return "2歳限定";
   if(/(^|[^0-9])3歳以上/.test(c) && age<3) return "3歳以上限定";
   if(c.includes("4歳以上") && age<4) return "4歳以上限定";
+  if(/(^|[^0-9])4歳/.test(c) && !c.includes("4歳以上") && age!==4) return "4歳限定";
   if(/(^|[^0-9])3歳/.test(c) && !c.includes("3歳以上") && age!==3) return "3歳限定";
   // 性別条件（WS1a・2026-11-13）：「牡」を含む条件（牡・牝／牡馬・牝馬など）は牡馬も出走可。
   // 「牝」を含み「牡」を含まないものだけが牝馬限定。旧実装は「牡・牝」表記しか認めず、
@@ -881,7 +883,7 @@ function createDebugHorse(){
   h.quirk = q === "none" ? null : q;
   if(document.querySelector("#dbgMax") && document.querySelector("#dbgMax").checked) h.superMax = true;
   const rec = parseInt(gv("#dbgRecord", "0"), 10);
-  if(rec > 0){ h.wins = rec; h.gradedWin = true; h.earnings = 5000 * rec; }
+  if(rec > 0){ h.wins = rec; h.gradedWin = true; h.earnings = 5000 * rec; h.preStarts = rec; } // 付与勝ち数ぶんを通算出走数にも加える（戦績表の行は作らない）
   h.rankBase = { spd: effRank(h,"spd"), sta: effRank(h,"sta"), gut: effRank(h,"gut") };
   S.horses.push(h);
   chron("【デバッグ】"+name+"（"+age+"歳・"+h.sex+"、スピード"+spd+"／スタミナ"+sta+"／根性"+gut+"）を作成した");
@@ -1281,7 +1283,7 @@ function viewChron(){
       const yrs = h.results.map(r=>parseInt(r.when,10)).filter(y=>!isNaN(y));
       const span = yrs.length ? Math.min(...yrs)+"〜"+Math.max(...yrs)+"年" : "";
       const now = h.status==="broodmare" ? "繁殖牝馬" : h.status==="stallion" ? "種牡馬" : "引退";
-      return "<tr><td><span class='horse-link' data-horse='"+h.id+"'>"+h.name+"</span></td><td>"+h.sex+"</td><td>"+span+"</td><td>"+h.results.length+"戦"+h.wins+"勝</td><td>"+man(h.earnings)+"</td><td>"+(best?best.r.race+"（"+best.r.grade+"）":"―")+"</td><td>"+now+"</td></tr>";
+      return "<tr><td><span class='horse-link' data-horse='"+h.id+"'>"+h.name+"</span></td><td>"+h.sex+"</td><td>"+span+"</td><td>"+(h.results.length+(h.preStarts||0))+"戦"+h.wins+"勝</td><td>"+man(h.earnings)+"</td><td>"+(best?best.r.race+"（"+best.r.grade+"）":"―")+"</td><td>"+now+"</td></tr>";
     }).join("");
     html += "<table><tr><th>馬名</th><th>性</th><th>現役期間</th><th>成績</th><th>獲得賞金</th><th>代表勝ち鞍</th><th>現在</th></tr>"+rows+"</table>";
   } else {
@@ -1367,7 +1369,7 @@ function openHorse(id){
     + (h.temp != null ? "<dt>気性</dt><dd>"+tempBand(h.temp)+(h.quirk ? "<span class='sub'> ― スタッフ談："+QUIRK_HINT[h.quirk]+"</span>" : "")+"</dd>" : "")
     + "<dt>成長</dt><dd>"+growthStage(h)+" <span style='display:inline-block;vertical-align:middle;width:130px;height:9px;background:#10160f;border:1px solid var(--line);border-radius:5px;'><span style='display:block;height:100%;width:"+Math.round(maturity(h)*100)+"%;background:var(--acc);border-radius:5px;'></span></span> <span class='sub'>成熟度"+Math.round(maturity(h)*100)+"%</span></dd>"
     + "<dt>スタッフ評価</dt><dd>"+evalComment(h)+"</dd>"
-    + "<dt>成績</dt><dd>"+h.results.length+"戦"+h.wins+"勝・獲得賞金 "+man(h.earnings)+"</dd>"
+    + "<dt>成績</dt><dd>"+(h.results.length+(h.preStarts||0))+"戦"+h.wins+"勝・獲得賞金 "+man(h.earnings)+"</dd>"
     + "<dt>コンディション</dt><dd>状態"+Math.round(h.condition)+"／疲労"+Math.round(h.fatigue)+"</dd></dl>"
     + "<h3>血統表</h3>" + pedigreeTable(h)
     + actions
