@@ -1,0 +1,131 @@
+{
+ "kind": "index",
+ "index_url": "https://racedb.com/grade/2025/g2-uk.htm",
+ "races": [
+  {
+   "name": "サンダウンマイルＳ",
+   "grade": "G2",
+   "country": "イギリス"
+  },
+  {
+   "name": "ジョッキークラブＳ",
+   "grade": "G2",
+   "country": "イギリス"
+  },
+  {
+   "name": "ダンテＳ",
+   "grade": "G2",
+   "country": "イギリス"
+  },
+  {
+   "name": "ミドルトンＳ",
+   "grade": "G2",
+   "country": "イギリス"
+  },
+  {
+   "name": "ヨークシャーカップ",
+   "grade": "G2",
+   "country": "イギリス"
+  },
+  {
+   "name": "サンディレーンＳ",
+   "grade": "G2",
+   "country": "イギリス"
+  },
+  {
+   "name": "テンプルＳ",
+   "grade": "G2",
+   "country": "イギリス"
+  },
+  {
+   "name": "デュークオブケンブリッジＳ",
+   "grade": "G2",
+   "country": "イギリス"
+  },
+  {
+   "name": "リブルスデールＳ",
+   "grade": "G2",
+   "country": "イギリス"
+  },
+  {
+   "name": "キングエドワード七世Ｓ",
+   "grade": "G2",
+   "country": "イギリス"
+  },
+  {
+   "name": "ハードウィックＳ",
+   "grade": "G2",
+   "country": "イギリス"
+  },
+  {
+   "name": "ランカシャーオークス",
+   "grade": "G2",
+   "country": "イギリス"
+  },
+  {
+   "name": "ジュライＳ",
+   "grade": "G2",
+   "country": "イギリス"
+  },
+  {
+   "name": "ダッチェスオブケンブリッジＳ",
+   "grade": "G2",
+   "country": "イギリス"
+  },
+  {
+   "name": "サマーマイルＳ",
+   "grade": "G2",
+   "country": "イギリス"
+  },
+  {
+   "name": "ヨークＳ",
+   "grade": "G2",
+   "country": "イギリス"
+  },
+  {
+   "name": "キングジョージＳ",
+   "grade": "G2",
+   "country": "イギリス"
+  },
+  {
+   "name": "ハンガーフォードＳ",
+   "grade": "G2",
+   "country": "イギリス"
+  },
+  {
+   "name": "セレブレーションマイル",
+   "grade": "G2",
+   "country": "イギリス"
+  },
+  {
+   "name": "メイヒルＳ",
+   "grade": "G2",
+   "country": "イギリス"
+  },
+  {
+   "name": "シャンパンＳ",
+   "grade": "G2",
+   "country": "イギリス"
+  },
+  {
+   "name": "ジョエルＳ",
+   "grade": "G2",
+   "country": "イギリス"
+  },
+  {
+   "name": "ロックフェルＳ",
+   "grade": "G2",
+   "country": "イギリス"
+  },
+  {
+   "name": "ロイヤルロッジＳ",
+   "grade": "G2",
+   "country": "イギリス"
+  },
+  {
+   "name": "チャレンジＳ",
+   "grade": "G2",
+   "country": "イギリス"
+  }
+ ]
+}

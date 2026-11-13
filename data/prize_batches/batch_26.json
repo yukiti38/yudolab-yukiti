@@ -1,0 +1,26 @@
+{
+ "kind": "index",
+ "index_url": "https://racedb.com/grade/2025/g3-aus.htm",
+ "races": [
+  {
+   "name": "キングストンタウンＳ",
+   "grade": "G3",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "ビルリッチーＨ",
+   "grade": "G3",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "シドニーＳ",
+   "grade": "G3",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "クイーンエリザベスＳ",
+   "grade": "G3",
+   "country": "オーストラリア"
+  }
+ ]
+}

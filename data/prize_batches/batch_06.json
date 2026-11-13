@@ -1,0 +1,137 @@
+{
+ "kind": "direct",
+ "races": [
+  {
+   "name": "ブリーダーズカップクラシック",
+   "grade": "G1",
+   "country": "アメリカ",
+   "url": "https://racedb.com/k/10152025110109.html"
+  },
+  {
+   "name": "ブリーダーズカップスプリント",
+   "grade": "G1",
+   "country": "アメリカ",
+   "url": "https://racedb.com/k/10152025110106.html"
+  },
+  {
+   "name": "ブリーダーズカップターフスプリント",
+   "grade": "G1",
+   "country": "アメリカ",
+   "url": "https://racedb.com/k/10152025110105.html"
+  },
+  {
+   "name": "ブリーダーズカップダートマイル",
+   "grade": "G1",
+   "country": "アメリカ",
+   "url": "https://racedb.com/k/10152025110111.html"
+  },
+  {
+   "name": "ブリーダーズカップフィリーアンドメアターフ",
+   "grade": "G1",
+   "country": "アメリカ",
+   "url": "https://racedb.com/k/10152025110112.html"
+  },
+  {
+   "name": "ブリーダーズカップマイル",
+   "grade": "G1",
+   "country": "アメリカ",
+   "url": "https://racedb.com/k/10152025110110.html"
+  },
+  {
+   "name": "メルボルンカップ",
+   "grade": "G1",
+   "country": "オーストラリア",
+   "url": "https://racedb.com/k/10012025110407.html"
+  },
+  {
+   "name": "バイエルン大賞",
+   "grade": "G1",
+   "country": "ドイツ",
+   "url": "https://racedb.com/k/36042025110808.html"
+  },
+  {
+   "name": "ニュージーランド1000ギニー",
+   "grade": "G1",
+   "country": "ニュージーランド",
+   "url": "https://racedb.com/k/19952025110810.html"
+  },
+  {
+   "name": "ニュージーランド2000ギニー",
+   "grade": "G1",
+   "country": "ニュージーランド",
+   "url": "https://racedb.com/k/19952025111508.html"
+  },
+  {
+   "name": "ハリウッドダービー",
+   "grade": "G1",
+   "country": "アメリカ",
+   "url": "https://racedb.com/k/10152025112909.html"
+  },
+  {
+   "name": "メイトリアークＳ",
+   "grade": "G1",
+   "country": "アメリカ",
+   "url": "https://racedb.com/k/10152025113007.html"
+  },
+  {
+   "name": "ノーザリーＳ",
+   "grade": "G1",
+   "country": "オーストラリア",
+   "url": "https://racedb.com/k/10032025120608.html"
+  },
+  {
+   "name": "ムファサクラシック",
+   "grade": "G1",
+   "country": "ニュージーランド",
+   "url": "https://racedb.com/k/19022025120608.html"
+  },
+  {
+   "name": "香港カップ",
+   "grade": "G1",
+   "country": "香港",
+   "url": "https://racedb.com/k/29022025121408.html"
+  },
+  {
+   "name": "香港スプリント",
+   "grade": "G1",
+   "country": "香港",
+   "url": "https://racedb.com/k/29022025121405.html"
+  },
+  {
+   "name": "香港マイル",
+   "grade": "G1",
+   "country": "香港",
+   "url": "https://racedb.com/k/29022025121407.html"
+  },
+  {
+   "name": "香港ヴァーズ",
+   "grade": "G1",
+   "country": "香港",
+   "url": "https://racedb.com/k/29022025121404.html"
+  },
+  {
+   "name": "ザビールクラシック",
+   "grade": "G1",
+   "country": "ニュージーランド",
+   "url": "https://racedb.com/k/19012025122609.html"
+  },
+  {
+   "name": "アメリカンオークス",
+   "grade": "G1",
+   "country": "アメリカ",
+   "url": "https://racedb.com/k/10132025122811.html"
+  },
+  {
+   "name": "マリブＳ",
+   "grade": "G1",
+   "country": "アメリカ",
+   "url": "https://racedb.com/k/10132025122810.html"
+  },
+  {
+   "name": "ラブレアＳ",
+   "grade": "G1",
+   "country": "アメリカ",
+   "url": "https://racedb.com/k/10132025122808.html"
+  }
+ ]
+}

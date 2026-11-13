@@ -1,0 +1,21 @@
+{
+ "kind": "index",
+ "index_url": "https://racedb.com/grade/2025/g2-aus.htm",
+ "races": [
+  {
+   "name": "オーストラリアＳ",
+   "grade": "G2",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "ザショーツ",
+   "grade": "G2",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "ヒルＳ",
+   "grade": "G2",
+   "country": "オーストラリア"
+  }
+ ]
+}

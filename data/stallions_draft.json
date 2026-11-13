@@ -1,0 +1,630 @@
+{
+ "ancestor_frame_examples": {
+  "names": [
+   "ディープインパクト",
+   "キングカメハメハ",
+   "ステイゴールド",
+   "ハーツクライ",
+   "ドゥラメンテ",
+   "クロフネ",
+   "サンデーサイレンス",
+   "Galileo",
+   "Montjeu",
+   "A.P. Indy",
+   "Street Cry",
+   "Pivotal"
+  ],
+  "note": "血統表と母父プール専用（種付け不可）。目標30〜40頭。下記は例示で、次工程で確定する。"
+ },
+ "note": "設計ドラフト v0.1（2026-11-11）。頭数とカテゴリ配分の叩き台。fee_tier・適性・成長型はゲーム設計値であり実績データではない。各種牡馬の現役可否・所属・実際の種付け料は、次工程で公式情報（JBIS等）を確認して差し替えること。",
+ "pool_size_target": 50,
+ "stallions": [
+  {
+   "dist": [
+    1800,
+    3000
+   ],
+   "fee_tier": "S",
+   "growth": "普通",
+   "name": "キタサンブラック",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "ブラックタイド"
+  },
+  {
+   "dist": [
+    1600,
+    2600
+   ],
+   "fee_tier": "S",
+   "growth": "普通",
+   "name": "エピファネイア",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "シンボリクリスエス"
+  },
+  {
+   "dist": [
+    1600,
+    2400
+   ],
+   "fee_tier": "S",
+   "growth": "早熟",
+   "name": "コントレイル",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "ディープインパクト"
+  },
+  {
+   "dist": [
+    1600,
+    2400
+   ],
+   "fee_tier": "A",
+   "growth": "早熟",
+   "name": "サートゥルナーリア",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "ロードカナロア"
+  },
+  {
+   "dist": [
+    2000,
+    3000
+   ],
+   "fee_tier": "B",
+   "growth": "晩成",
+   "name": "オルフェーヴル",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "ステイゴールド"
+  },
+  {
+   "dist": [
+    2000,
+    3200
+   ],
+   "fee_tier": "B",
+   "growth": "晩成",
+   "name": "ゴールドシップ",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "ステイゴールド"
+  },
+  {
+   "dist": [
+    1800,
+    2800
+   ],
+   "fee_tier": "B",
+   "growth": "普通",
+   "name": "ルーラーシップ",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "キングカメハメハ"
+  },
+  {
+   "dist": [
+    1800,
+    2600
+   ],
+   "fee_tier": "A",
+   "growth": "普通",
+   "name": "レイデオロ",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "キングカメハメハ"
+  },
+  {
+   "dist": [
+    1800,
+    2600
+   ],
+   "fee_tier": "B",
+   "growth": "普通",
+   "name": "スワーヴリチャード",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "ハーツクライ"
+  },
+  {
+   "dist": [
+    1800,
+    2400
+   ],
+   "fee_tier": "C",
+   "growth": "普通",
+   "name": "サトノクラウン",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "Marju"
+  },
+  {
+   "dist": [
+    2400,
+    3600
+   ],
+   "fee_tier": "B",
+   "growth": "晩成",
+   "name": "フィエールマン",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "ディープインパクト"
+  },
+  {
+   "dist": [
+    2200,
+    3600
+   ],
+   "fee_tier": "C",
+   "growth": "晩成",
+   "name": "タイトルホルダー",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "ドゥラメンテ"
+  },
+  {
+   "dist": [
+    2000,
+    3000
+   ],
+   "fee_tier": "C",
+   "growth": "晩成",
+   "name": "ワールドプレミア",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "ディープインパクト"
+  },
+  {
+   "dist": [
+    2000,
+    3000
+   ],
+   "fee_tier": "C",
+   "growth": "晩成",
+   "name": "シュヴァルグラン",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "ハーツクライ"
+  },
+  {
+   "dist": [
+    1800,
+    2500
+   ],
+   "fee_tier": "S",
+   "growth": "普通",
+   "name": "イクイノックス",
+   "note": "新種牡馬枠（初年度産駒デビュー前）",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "キタサンブラック"
+  },
+  {
+   "dist": [
+    1000,
+    1600
+   ],
+   "fee_tier": "A",
+   "growth": "早熟",
+   "name": "ロードカナロア",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "キングカメハメハ"
+  },
+  {
+   "dist": [
+    1400,
+    2000
+   ],
+   "fee_tier": "A",
+   "growth": "普通",
+   "name": "モーリス",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "スクリーンヒーロー"
+  },
+  {
+   "dist": [
+    1400,
+    1800
+   ],
+   "fee_tier": "B",
+   "growth": "早熟",
+   "name": "イスラボニータ",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "フジキセキ"
+  },
+  {
+   "dist": [
+    1200,
+    1600
+   ],
+   "fee_tier": "B",
+   "growth": "早熟",
+   "name": "アドマイヤマーズ",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "ダイワメジャー"
+  },
+  {
+   "dist": [
+    1400,
+    2000
+   ],
+   "fee_tier": "C",
+   "growth": "普通",
+   "name": "サリオス",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "ハーツクライ"
+  },
+  {
+   "dist": [
+    1200,
+    1600
+   ],
+   "fee_tier": "C",
+   "growth": "早熟",
+   "name": "グレナディアガーズ",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "Frankel"
+  },
+  {
+   "dist": [
+    1000,
+    1400
+   ],
+   "fee_tier": "B",
+   "growth": "早熟",
+   "name": "ビッグアーサー",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "サクラバクシンオー"
+  },
+  {
+   "dist": [
+    1200,
+    1600
+   ],
+   "fee_tier": "C",
+   "growth": "早熟",
+   "name": "ミッキーアイル",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "ディープインパクト"
+  },
+  {
+   "dist": [
+    1600,
+    2000
+   ],
+   "fee_tier": "B",
+   "growth": "早熟",
+   "name": "リオンディーズ",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "キングカメハメハ"
+  },
+  {
+   "dist": [
+    1200,
+    1800
+   ],
+   "fee_tier": "B",
+   "growth": "早熟",
+   "name": "ダイワメジャー",
+   "note": "高齢ベテラン枠（引退が近い）",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "サンデーサイレンス"
+  },
+  {
+   "dist": [
+    1200,
+    1800
+   ],
+   "fee_tier": "A",
+   "growth": "早熟",
+   "name": "ヘニーヒューズ",
+   "region": "domestic",
+   "surface": "ダート",
+   "sire": "Hennessy"
+  },
+  {
+   "dist": [
+    1200,
+    1800
+   ],
+   "fee_tier": "A",
+   "growth": "早熟",
+   "name": "ドレフォン",
+   "region": "domestic",
+   "surface": "ダート",
+   "sire": "Gio Ponti"
+  },
+  {
+   "dist": [
+    1400,
+    2000
+   ],
+   "fee_tier": "B",
+   "growth": "普通",
+   "name": "マジェスティックウォリアー",
+   "region": "domestic",
+   "surface": "ダート",
+   "sire": "A.P. Indy"
+  },
+  {
+   "dist": [
+    1400,
+    2100
+   ],
+   "fee_tier": "B",
+   "growth": "普通",
+   "name": "シニスターミニスター",
+   "region": "domestic",
+   "surface": "ダート",
+   "sire": "Old Trieste"
+  },
+  {
+   "dist": [
+    1600,
+    2100
+   ],
+   "fee_tier": "B",
+   "growth": "晩成",
+   "name": "ホッコータルマエ",
+   "region": "domestic",
+   "surface": "ダート",
+   "sire": "キングカメハメハ"
+  },
+  {
+   "dist": [
+    1600,
+    2100
+   ],
+   "fee_tier": "C",
+   "growth": "普通",
+   "name": "コパノリッキー",
+   "region": "domestic",
+   "surface": "ダート",
+   "sire": "ゴールドアリュール"
+  },
+  {
+   "dist": [
+    1400,
+    2000
+   ],
+   "fee_tier": "C",
+   "growth": "普通",
+   "name": "エスポワールシチー",
+   "region": "domestic",
+   "surface": "ダート",
+   "sire": "ゴールドアリュール"
+  },
+  {
+   "dist": [
+    1600,
+    2400
+   ],
+   "fee_tier": "B",
+   "growth": "普通",
+   "name": "ニューイヤーズデイ",
+   "region": "domestic",
+   "surface": "ダート",
+   "sire": "Street Cry"
+  },
+  {
+   "dist": [
+    1200,
+    1700
+   ],
+   "fee_tier": "B",
+   "growth": "早熟",
+   "name": "マインドユアビスケッツ",
+   "region": "domestic",
+   "surface": "ダート",
+   "sire": "Posse"
+  },
+  {
+   "dist": [
+    1200,
+    1600
+   ],
+   "fee_tier": "C",
+   "growth": "早熟",
+   "name": "フォーウィールドライブ",
+   "region": "domestic",
+   "surface": "ダート",
+   "sire": "American Pharoah"
+  },
+  {
+   "dist": [
+    1400,
+    2400
+   ],
+   "fee_tier": "S",
+   "growth": "普通",
+   "name": "Frankel",
+   "region": "overseas",
+   "surface": "芝",
+   "sire": "Galileo"
+  },
+  {
+   "dist": [
+    1200,
+    2000
+   ],
+   "fee_tier": "S",
+   "growth": "早熟",
+   "name": "Dubawi",
+   "region": "overseas",
+   "surface": "芝",
+   "sire": "Dubai Millennium"
+  },
+  {
+   "dist": [
+    1600,
+    2800
+   ],
+   "fee_tier": "S",
+   "growth": "晩成",
+   "name": "Sea The Stars",
+   "region": "overseas",
+   "surface": "芝",
+   "sire": "Cape Cross"
+  },
+  {
+   "dist": [
+    1200,
+    1800
+   ],
+   "fee_tier": "A",
+   "growth": "早熟",
+   "name": "Kingman",
+   "region": "overseas",
+   "surface": "芝",
+   "sire": "Invincible Spirit"
+  },
+  {
+   "dist": [
+    1200,
+    2000
+   ],
+   "fee_tier": "A",
+   "growth": "普通",
+   "name": "Wootton Bassett",
+   "region": "overseas",
+   "surface": "芝",
+   "sire": "Iffraaj"
+  },
+  {
+   "dist": [
+    1200,
+    1800
+   ],
+   "fee_tier": "A",
+   "growth": "早熟",
+   "name": "Siyouni",
+   "region": "overseas",
+   "surface": "芝",
+   "sire": "Pivotal"
+  },
+  {
+   "dist": [
+    1400,
+    2200
+   ],
+   "fee_tier": "A",
+   "growth": "普通",
+   "name": "Lope de Vega",
+   "region": "overseas",
+   "surface": "芝",
+   "sire": "Shamardal"
+  },
+  {
+   "dist": [
+    1200,
+    2000
+   ],
+   "fee_tier": "S",
+   "growth": "早熟",
+   "name": "Into Mischief",
+   "region": "overseas",
+   "surface": "ダート",
+   "sire": "Harlan's Holiday"
+  },
+  {
+   "dist": [
+    1600,
+    2400
+   ],
+   "fee_tier": "A",
+   "growth": "普通",
+   "name": "Justify",
+   "region": "overseas",
+   "surface": "ダート",
+   "sire": "Scat Daddy"
+  },
+  {
+   "dist": [
+    1600,
+    2200
+   ],
+   "fee_tier": "A",
+   "growth": "普通",
+   "name": "Gun Runner",
+   "region": "overseas",
+   "surface": "ダート",
+   "sire": "Candy Ride"
+  },
+  {
+   "name": "ドウデュース",
+   "region": "domestic",
+   "surface": "芝",
+   "dist": [
+    1800,
+    2500
+   ],
+   "growth": "普通",
+   "fee_tier": "A",
+   "note": "新種牡馬枠",
+   "sire": "ハーツクライ"
+  },
+  {
+   "name": "エフフォーリア",
+   "region": "domestic",
+   "surface": "芝",
+   "dist": [
+    1800,
+    2500
+   ],
+   "growth": "普通",
+   "fee_tier": "B",
+   "note": "新種牡馬枠",
+   "sire": "エピファネイア"
+  },
+  {
+   "name": "シャフリヤール",
+   "region": "domestic",
+   "surface": "芝",
+   "dist": [
+    2000,
+    2600
+   ],
+   "growth": "晩成",
+   "fee_tier": "B",
+   "note": "新種牡馬枠",
+   "sire": "ディープインパクト"
+  },
+  {
+   "name": "ソールオリエンス",
+   "region": "domestic",
+   "surface": "芝",
+   "dist": [
+    1800,
+    2800
+   ],
+   "growth": "晩成",
+   "fee_tier": "C",
+   "note": "新種牡馬枠",
+   "sire": "キタサンブラック"
+  },
+  {
+   "name": "タスティエーラ",
+   "region": "domestic",
+   "surface": "芝",
+   "dist": [
+    1800,
+    2600
+   ],
+   "growth": "普通",
+   "fee_tier": "C",
+   "note": "新種牡馬枠",
+   "sire": "サトノクラウン"
+  }
+ ]
+}

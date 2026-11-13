@@ -1,0 +1,161 @@
+{
+ "kind": "direct",
+ "races": [
+  {
+   "name": "テレグラフ",
+   "grade": "G1",
+   "country": "ニュージーランド",
+   "url": "https://racedb.com/k/19022025010407.html"
+  },
+  {
+   "name": "ソーンドンマイル",
+   "grade": "G1",
+   "country": "ニュージーランド",
+   "url": "https://racedb.com/k/19022025011108.html"
+  },
+  {
+   "name": "スチュワーズカップ",
+   "grade": "G1",
+   "country": "香港",
+   "url": "https://racedb.com/k/29022025011908.html"
+  },
+  {
+   "name": "センテナリースプリントカップ",
+   "grade": "G1",
+   "country": "香港",
+   "url": "https://racedb.com/k/29022025011906.html"
+  },
+  {
+   "name": "アルマクトゥームチャレンジ",
+   "grade": "G1",
+   "country": "アラブ首長国連邦",
+   "url": "https://www.racedb.com/k/29112025012406.html"
+  },
+  {
+   "name": "ジェベルハッタ",
+   "grade": "G1",
+   "country": "アラブ首長国連邦",
+   "url": "https://www.racedb.com/k/29112025012407.html"
+  },
+  {
+   "name": "ペガサスワールドカップ招待Ｓ",
+   "grade": "G1",
+   "country": "アメリカ",
+   "url": "https://racedb.com/k/10772025012513.html"
+  },
+  {
+   "name": "レイルウェイ",
+   "grade": "G1",
+   "country": "ニュージーランド",
+   "url": "https://racedb.com/k/19012025012506.html"
+  },
+  {
+   "name": "ハービーダイクＳ",
+   "grade": "G1",
+   "country": "ニュージーランド",
+   "url": "https://racedb.com/k/19992025020806.html"
+  },
+  {
+   "name": "ワイカトスプリント",
+   "grade": "G1",
+   "country": "ニュージーランド",
+   "url": "https://racedb.com/k/19992025020808.html"
+  },
+  {
+   "name": "ＷＦＡクラシック",
+   "grade": "G1",
+   "country": "ニュージーランド",
+   "url": "https://racedb.com/k/19012025022207.html"
+  },
+  {
+   "name": "クイーンズシルバージュビリーカップ",
+   "grade": "G1",
+   "country": "香港",
+   "url": "https://racedb.com/k/29022025022305.html"
+  },
+  {
+   "name": "香港ゴールドカップ",
+   "grade": "G1",
+   "country": "香港",
+   "url": "https://racedb.com/k/29022025022307.html"
+  },
+  {
+   "name": "システマＳ",
+   "grade": "G1",
+   "country": "ニュージーランド",
+   "url": "https://racedb.com/k/19012025030804.html"
+  },
+  {
+   "name": "ニュージーランドサラブレッドブリーダーズＳ",
+   "grade": "G1",
+   "country": "ニュージーランド",
+   "url": "https://racedb.com/k/19012025030805.html"
+  },
+  {
+   "name": "ニュージーランドダービー",
+   "grade": "G1",
+   "country": "ニュージーランド",
+   "url": "https://racedb.com/k/19012025030809.html"
+  },
+  {
+   "name": "ニュージーランドＳ",
+   "grade": "G1",
+   "country": "ニュージーランド",
+   "url": "https://racedb.com/k/19012025030806.html"
+  },
+  {
+   "name": "ゴールデンスリッパー",
+   "grade": "G1",
+   "country": "オーストラリア",
+   "url": "https://racedb.com/k/10092025032208.html"
+  },
+  {
+   "name": "ニュージーランドオークス",
+   "grade": "G1",
+   "country": "ニュージーランド",
+   "url": "https://racedb.com/k/19022025032208.html"
+  },
+  {
+   "name": "マナワツサイヤーズプロデュースＳ",
+   "grade": "G1",
+   "country": "ニュージーランド",
+   "url": "https://racedb.com/k/19022025032908.html"
+  },
+  {
+   "name": "アルクォーツスプリント",
+   "grade": "G1",
+   "country": "アラブ首長国連邦",
+   "url": "https://www.racedb.com/k/29112025040504.html"
+  },
+  {
+   "name": "ドバイゴールデンシャヒーン",
+   "grade": "G1",
+   "country": "アラブ首長国連邦",
+   "url": "https://www.racedb.com/k/29112025040506.html"
+  },
+  {
+   "name": "ドバイターフ",
+   "grade": "G1",
+   "country": "アラブ首長国連邦",
+   "url": "https://www.racedb.com/k/29112025040507.html"
+  },
+  {
+   "name": "ドバイワールドカップ",
+   "grade": "G1",
+   "country": "アラブ首長国連邦",
+   "url": "https://www.racedb.com/k/29112025040509.html"
+  },
+  {
+   "name": "ＡＪＣオーストラリアンダービー",
+   "grade": "G1",
+   "country": "オーストラリア",
+   "url": "https://racedb.com/k/10082025040509.html"
+  },
+  {
+   "name": "ドンカスターＨ",
+   "grade": "G1",
+   "country": "オーストラリア",
+   "url": "https://racedb.com/k/10082025040508.html"
+  }
+ ]
+}

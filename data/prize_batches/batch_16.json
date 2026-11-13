@@ -1,0 +1,96 @@
+{
+ "kind": "index",
+ "index_url": "https://racedb.com/grade/2025/g2-fra.htm",
+ "races": [
+  {
+   "name": "アークール賞",
+   "grade": "G2",
+   "country": "フランス"
+  },
+  {
+   "name": "ミュゲ賞",
+   "grade": "G2",
+   "country": "フランス"
+  },
+  {
+   "name": "サンタラリ賞",
+   "grade": "G2",
+   "country": "フランス"
+  },
+  {
+   "name": "コリーダ賞",
+   "grade": "G2",
+   "country": "フランス"
+  },
+  {
+   "name": "サンドリンガム賞",
+   "grade": "G2",
+   "country": "フランス"
+  },
+  {
+   "name": "シャンティイ大賞典",
+   "grade": "G2",
+   "country": "フランス"
+  },
+  {
+   "name": "マルレ賞",
+   "grade": "G2",
+   "country": "フランス"
+  },
+  {
+   "name": "モーリスドニュイユ賞",
+   "grade": "G2",
+   "country": "フランス"
+  },
+  {
+   "name": "ギヨームドルナーノ賞",
+   "grade": "G2",
+   "country": "フランス"
+  },
+  {
+   "name": "ケルゴルレイ賞",
+   "grade": "G2",
+   "country": "フランス"
+  },
+  {
+   "name": "ドーヴィル大賞典",
+   "grade": "G2",
+   "country": "フランス"
+  },
+  {
+   "name": "ニエル賞",
+   "grade": "G2",
+   "country": "フランス"
+  },
+  {
+   "name": "フォワ賞",
+   "grade": "G2",
+   "country": "フランス"
+  },
+  {
+   "name": "ショードネイ賞",
+   "grade": "G2",
+   "country": "フランス"
+  },
+  {
+   "name": "ダニエルウィルデンシュタイン賞",
+   "grade": "G2",
+   "country": "フランス"
+  },
+  {
+   "name": "ドラール賞",
+   "grade": "G2",
+   "country": "フランス"
+  },
+  {
+   "name": "クリテリウムドメゾンラフィット",
+   "grade": "G2",
+   "country": "フランス"
+  },
+  {
+   "name": "コンセイユドパリ賞",
+   "grade": "G2",
+   "country": "フランス"
+  }
+ ]
+}

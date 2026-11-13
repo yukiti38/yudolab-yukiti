@@ -1,0 +1,21 @@
+{
+ "kind": "index",
+ "index_url": "https://racedb.com/grade/2025/g3-uae.htm",
+ "races": [
+  {
+   "name": "ナドアルシバターフスプリント",
+   "grade": "G3",
+   "country": "アラブ首長国連邦"
+  },
+  {
+   "name": "バージナハール",
+   "grade": "G3",
+   "country": "アラブ首長国連邦"
+  },
+  {
+   "name": "マハブアルシマール",
+   "grade": "G3",
+   "country": "アラブ首長国連邦"
+  }
+ ]
+}

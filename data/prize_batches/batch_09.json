@@ -1,0 +1,91 @@
+{
+ "kind": "index",
+ "index_url": "https://racedb.com/grade/2025/g1-aus.htm",
+ "races": [
+  {
+   "name": "コーフィールドギニー",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "トゥーラックＨ",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "マイトアンドパワーＳ",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "1000ギニー",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "キングチャールズ三世Ｓ",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "ジエベレスト",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "スプリングチャンピオンＳ",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "エンパイアローズＳ",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "クールモアスタッドＳ",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "ヴィクトリアダービーＳ",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "ＶＲＣオークス",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "チャンピオンズスプリント",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "チャンピオンズマイル",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "チャンピオンズＳ",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "Ｃ・Ｆ・オールＳ",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "レイルウェイＳ",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "ウィンターボトムＳ",
+   "grade": "G1",
+   "country": "オーストラリア"
+  }
+ ]
+}

@@ -1,0 +1,36 @@
+{
+ "kind": "index",
+ "index_url": "https://racedb.com/grade/2025/g2-ire.htm",
+ "races": [
+  {
+   "name": "グリーンランズＳ",
+   "grade": "G2",
+   "country": "アイルランド"
+  },
+  {
+   "name": "リッジウッドパールＳ",
+   "grade": "G2",
+   "country": "アイルランド"
+  },
+  {
+   "name": "カラカップ",
+   "grade": "G2",
+   "country": "アイルランド"
+  },
+  {
+   "name": "ミンストレルＳ",
+   "grade": "G2",
+   "country": "アイルランド"
+  },
+  {
+   "name": "デビュータントＳ",
+   "grade": "G2",
+   "country": "アイルランド"
+  },
+  {
+   "name": "ブランドフォードＳ",
+   "grade": "G2",
+   "country": "アイルランド"
+  }
+ ]
+}

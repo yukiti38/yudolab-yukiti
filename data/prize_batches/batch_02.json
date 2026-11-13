@@ -1,0 +1,161 @@
+{
+ "kind": "direct",
+ "races": [
+  {
+   "name": "クイーンエリザベスＳ",
+   "grade": "G1",
+   "country": "オーストラリア",
+   "url": "https://racedb.com/k/10082025041208.html"
+  },
+  {
+   "name": "ガネー賞",
+   "grade": "G1",
+   "country": "フランス",
+   "url": "https://racedb.com/k/40022025042705.html"
+  },
+  {
+   "name": "クイーンエリザベス二世カップ",
+   "grade": "G1",
+   "country": "香港",
+   "url": "https://racedb.com/k/29022025042708.html"
+  },
+  {
+   "name": "チェアマンズスプリントプライズ",
+   "grade": "G1",
+   "country": "香港",
+   "url": "https://racedb.com/k/29022025042705.html"
+  },
+  {
+   "name": "チャンピオンズマイル",
+   "grade": "G1",
+   "country": "香港",
+   "url": "https://racedb.com/k/29022025042707.html"
+  },
+  {
+   "name": "ケンタッキーオークス",
+   "grade": "G1",
+   "country": "アメリカ",
+   "url": "https://racedb.com/k/10742025050211.html"
+  },
+  {
+   "name": "ケンタッキーダービー",
+   "grade": "G1",
+   "country": "アメリカ",
+   "url": "https://racedb.com/k/10742025050312.html"
+  },
+  {
+   "name": "2000ギニーＳ",
+   "grade": "G1",
+   "country": "イギリス",
+   "url": "https://racedb.com/k/30062025050305.html"
+  },
+  {
+   "name": "1000ギニーＳ",
+   "grade": "G1",
+   "country": "イギリス",
+   "url": "https://racedb.com/k/30062025050404.html"
+  },
+  {
+   "name": "フランス1000ギニー",
+   "grade": "G1",
+   "country": "フランス",
+   "url": "https://racedb.com/k/40022025051106.html"
+  },
+  {
+   "name": "フランス2000ギニー",
+   "grade": "G1",
+   "country": "フランス",
+   "url": "https://racedb.com/k/40022025051105.html"
+  },
+  {
+   "name": "プリークネスＳ",
+   "grade": "G1",
+   "country": "アメリカ",
+   "url": "https://racedb.com/k/10392025051713.html"
+  },
+  {
+   "name": "ロッキンジＳ",
+   "grade": "G1",
+   "country": "イギリス",
+   "url": "https://racedb.com/k/30072025051704.html"
+  },
+  {
+   "name": "アイリッシュ2000ギニー",
+   "grade": "G1",
+   "country": "アイルランド",
+   "url": "https://racedb.com/k/39012025052405.html"
+  },
+  {
+   "name": "アイリッシュ1000ギニー",
+   "grade": "G1",
+   "country": "アイルランド",
+   "url": "https://racedb.com/k/39012025052505.html"
+  },
+  {
+   "name": "タタソールズゴールドカップ",
+   "grade": "G1",
+   "country": "アイルランド",
+   "url": "https://racedb.com/k/39012025052504.html"
+  },
+  {
+   "name": "イスパーン賞",
+   "grade": "G1",
+   "country": "フランス",
+   "url": "https://racedb.com/k/40022025052505.html"
+  },
+  {
+   "name": "ヴィコンテッスヴィジエ賞",
+   "grade": "G1",
+   "country": "フランス",
+   "url": "https://racedb.com/k/40022025052506.html"
+  },
+  {
+   "name": "チャンピオンズアンドチェイターカップ",
+   "grade": "G1",
+   "country": "香港",
+   "url": "https://racedb.com/k/29022025052508.html"
+  },
+  {
+   "name": "ジョッケクルブ賞（フランスダービー）",
+   "grade": "G1",
+   "country": "フランス",
+   "url": "https://racedb.com/k/40032025060105.html"
+  },
+  {
+   "name": "オークス",
+   "grade": "G1",
+   "country": "イギリス",
+   "url": "https://racedb.com/k/30022025060605.html"
+  },
+  {
+   "name": "コロネーションカップ",
+   "grade": "G1",
+   "country": "イギリス",
+   "url": "https://racedb.com/k/30022025060603.html"
+  },
+  {
+   "name": "ベルモントＳ",
+   "grade": "G1",
+   "country": "アメリカ",
+   "url": "https://racedb.com/k/10732025060713.html"
+  },
+  {
+   "name": "ダービーＳ",
+   "grade": "G1",
+   "country": "イギリス",
+   "url": "https://racedb.com/k/30022025060705.html"
+  },
+  {
+   "name": "ディアヌ賞（フランスオークス）",
+   "grade": "G1",
+   "country": "フランス",
+   "url": "https://racedb.com/k/40032025061505.html"
+  },
+  {
+   "name": "キングチャールズ三世Ｓ",
+   "grade": "G1",
+   "country": "イギリス",
+   "url": "https://racedb.com/k/30032025061703.html"
+  }
+ ]
+}

@@ -1,0 +1,161 @@
+{
+ "kind": "direct",
+ "races": [
+  {
+   "name": "アローフィールドスタッドプレート",
+   "grade": "G1",
+   "country": "ニュージーランド",
+   "url": "https://racedb.com/k/19992025092708.html"
+  },
+  {
+   "name": "オイロパ賞",
+   "grade": "G1",
+   "country": "ドイツ",
+   "url": "https://racedb.com/k/36052025092805.html"
+  },
+  {
+   "name": "サンチャリオットＳ",
+   "grade": "G1",
+   "country": "イギリス",
+   "url": "https://racedb.com/k/30062025100403.html"
+  },
+  {
+   "name": "カナディアンインターナショナルＳ",
+   "grade": "G1",
+   "country": "カナダ",
+   "url": "https://racedb.com/k/13192025100409.html"
+  },
+  {
+   "name": "カドラン賞",
+   "grade": "G1",
+   "country": "フランス",
+   "url": "https://racedb.com/k/40022025100402.html"
+  },
+  {
+   "name": "ロワイヤリュー賞",
+   "grade": "G1",
+   "country": "フランス",
+   "url": "https://racedb.com/k/40022025100407.html"
+  },
+  {
+   "name": "アベイユドロンシャン賞",
+   "grade": "G1",
+   "country": "フランス",
+   "url": "https://racedb.com/k/40022025100503.html"
+  },
+  {
+   "name": "アルクドゥトリオンフ賞（凱旋門賞）",
+   "grade": "G1",
+   "country": "フランス",
+   "url": "https://racedb.com/k/40022025100505.html"
+  },
+  {
+   "name": "オペラ賞",
+   "grade": "G1",
+   "country": "フランス",
+   "url": "https://racedb.com/k/40022025100506.html"
+  },
+  {
+   "name": "ジャンリュックラガルデール賞",
+   "grade": "G1",
+   "country": "フランス",
+   "url": "https://racedb.com/k/40022025100502.html"
+  },
+  {
+   "name": "フォレ賞",
+   "grade": "G1",
+   "country": "フランス",
+   "url": "https://racedb.com/k/40022025100507.html"
+  },
+  {
+   "name": "マルセルブサック賞",
+   "grade": "G1",
+   "country": "フランス",
+   "url": "https://racedb.com/k/40022025100501.html"
+  },
+  {
+   "name": "フィリーズマイル",
+   "grade": "G1",
+   "country": "イギリス",
+   "url": "https://racedb.com/k/30062025101004.html"
+  },
+  {
+   "name": "デューハーストＳ",
+   "grade": "G1",
+   "country": "イギリス",
+   "url": "https://racedb.com/k/30062025101104.html"
+  },
+  {
+   "name": "クイーンエリザベス二世Ｓ",
+   "grade": "G1",
+   "country": "イギリス",
+   "url": "https://racedb.com/k/30032025101805.html"
+  },
+  {
+   "name": "チャンピオンＳ",
+   "grade": "G1",
+   "country": "イギリス",
+   "url": "https://racedb.com/k/30032025101806.html"
+  },
+  {
+   "name": "ブリティッシュチャンピオンズスプリントＳ",
+   "grade": "G1",
+   "country": "イギリス",
+   "url": "https://racedb.com/k/30032025101803.html"
+  },
+  {
+   "name": "ブリティッシュチャンピオンズフィリーズアンドメアーズＳ",
+   "grade": "G1",
+   "country": "イギリス",
+   "url": "https://racedb.com/k/30032025101804.html"
+  },
+  {
+   "name": "ブリティッシュチャンピオンズロングディスタンスカップ",
+   "grade": "G1",
+   "country": "イギリス",
+   "url": "https://racedb.com/k/30032025101801.html"
+  },
+  {
+   "name": "コーフィールドカップ",
+   "grade": "G1",
+   "country": "オーストラリア",
+   "url": "https://racedb.com/k/10052025101809.html"
+  },
+  {
+   "name": "リヴァモルクラシック",
+   "grade": "G1",
+   "country": "ニュージーランド",
+   "url": "https://racedb.com/k/19012025101809.html"
+  },
+  {
+   "name": "フューチュリティトロフィーＳ",
+   "grade": "G1",
+   "country": "イギリス",
+   "url": "https://racedb.com/k/30102025102502.html"
+  },
+  {
+   "name": "コックスプレート",
+   "grade": "G1",
+   "country": "オーストラリア",
+   "url": "https://racedb.com/k/18122025102510.html"
+  },
+  {
+   "name": "クリテリウムアンテルナシオナル",
+   "grade": "G1",
+   "country": "フランス",
+   "url": "https://racedb.com/k/40012025102604.html"
+  },
+  {
+   "name": "クリテリウムドサンクルー",
+   "grade": "G1",
+   "country": "フランス",
+   "url": "https://racedb.com/k/40012025102606.html"
+  },
+  {
+   "name": "ロワイヤルオーク賞",
+   "grade": "G1",
+   "country": "フランス",
+   "url": "https://racedb.com/k/40012025102608.html"
+  }
+ ]
+}
