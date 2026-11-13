@@ -602,6 +602,11 @@ function migrateV029(){
   if(S.chronicle) S.chronicle = S.chronicle.filter(c=>!/^【(レース|成長|スキップ)】/.test(c.text));
   ensureMile();
   if(S.kanmuri == null) S.kanmuri = "";
+  /* v0.35で仮名フラグが付かなかった産駒の救済（v0.36）：名前が「母名のYY」のままの若馬に命名可能フラグを付け直す */
+  for(const h of S.horses){
+    if(h.unnamed == null && h.dam && h.name === provisionalName(h.dam, h.birthYear)
+      && (h.status==="foal" || h.status==="yearling" || (h.status==="racehorse" && !(h.results||[]).length))) h.unnamed = true;
+  }
 }
 /* ================= マイルストーン（v0.33・Terai方針） =================
    年表にはビッグイベントだけを残す。通常のレース結果・成長メモ・スキップ記録は年表に書かない。
@@ -911,13 +916,14 @@ function onNewYear(){
         distMin: r50(centre - width/2), distMax: r50(centre + width/2),
         growth: G_DISP[foalGt], gtype: foalGt, ability: 70 });
       foal.saleNoise = rnd(0.85, 1.15);
+      foal.unnamed = true;
       setParams(foal, fp(sg.spd, h.spd), fp(sg.sta, h.sta), fp(sg.gut, h.gut));
       /* 気性の継承：父母平均＋母父の薄い引き＋ブレ。両親とも荒いと「確変」で癖の確率が跳ね上がる */
       const bmsTemp = bmsSt ? stallionGen(bmsSt).temp : 55;
       foal.temp = clamp(Math.round((sg.temp + (h.temp != null ? h.temp : 55))/2 + (bmsTemp - 55) * 0.15 + triSpread(10)), 25, 98);
       foal.quirk = rollQuirk(foal.temp, isHotCross(sg.temp, h.temp) ? 2.2 : 1);
       S.horses.push(foal);
-      chron("【誕生】"+h.name+" が "+st.name+" の"+sex+"馬を出産。名前は「"+foal.name+"」");
+      chron("【誕生】"+h.name+" が "+st.name+" の"+sex+"馬を出産。仮名は「"+foal.name+"」（2歳までに命名）");
       ensureMile();
       if(!S.mile.fh3 && isFullHomebred3(foal)){ S.mile.fh3 = true; chron("【初】"+foal.name+"：3代前まで全て自家生産の産駒が初めて誕生した"); topic("🌟 "+foal.name+" は3代前まで全て自家生産の血統です"); }
       topic("🐴 "+foal.name+"（父"+st.name+"）が誕生しました。2歳までに名前を付けてください");
@@ -1583,7 +1589,18 @@ function openHorse(id){
   if(h.status==="racehorse"){
     actions = "<div class='flex' style='margin:10px 0;'><label>方針：</label><select id='policySel'>"
       + ["train","spd","sta","gut","pasture","rest"].map(p=>"<option value='"+p+"'"+(h.policy===p?" selected":"")+">"+({train:"調教（バランス）",spd:"スピード調教",sta:"スタミナ調教",gut:"根性調教",pasture:"放牧",rest:"休養"})[p]+"</option>").join("")
-      + "</select>"+(h.sex==="牡" ? "<button id='retireBtn'>引退させる</button>" : "")+"</div>";
+      + "</select></div>";
+    /* 牡馬の引退（v0.36）：確認ダイアログをやめてプルダウン式に（牝馬と同じ扱い）。種牡馬資格がある馬は2ボタン */
+    if(h.sex==="牡"){
+      if(canEnterStud(h)){
+        const why = (h.gradedWin ? "重賞勝ち" : "") + (h.gradedWin && h.earnings>=10000 ? "・" : "") + (h.earnings>=10000 ? "通算賞金1億円以上" : "");
+        actions += "<details class='sellmenu'><summary>引退させる</summary><div class='sellmenu-body'>"
+          + "<div class='sub'>この馬は種牡馬入りの資格があります（"+why+"）</div>"
+          + "<button id='retireStudBtn'>種牡馬として引退する</button> <button id='retirePlainBtn' class='ghost'>種牡馬にせず引退する</button></div></details>";
+      } else {
+        actions += "<details class='sellmenu'><summary>引退させる</summary><div class='sellmenu-body'><button id='retirePlainBtn'>引退する</button></div></details>";
+      }
+    }
     /* 牝馬の引退は選択式（v0.33・Terai決定）：繁殖入りするか、その場で売却するか。売却額は開いた時点で確定して表示＝売却価格 */
     if(h.sex==="牝"){
       const rp = marePrice(h); retireSalePrice = rp;
@@ -1611,9 +1628,9 @@ function openHorse(id){
   }
   /* 命名（v0.35）：仮名の間だけ、馬ページから正式な名前を付けられる。2歳で現役編入されると自動で名前が付く */
   let nameSuggest = null;
-  if(h.unnamed && (h.status==="foal" || h.status==="yearling")){
+  if(h.unnamed && (h.status==="foal" || h.status==="yearling" || (h.status==="racehorse" && h.results.length===0))){
     nameSuggest = farmFoalName();
-    actions += "<div class='sellmenu'><div class='sub'>この馬はまだ仮名（"+h.name+"）です。2歳になるまでに名前を決めてください（過ぎると自動で名前が付きます）</div>"
+    actions += "<div class='sellmenu'><div class='sub'>この馬はまだ仮名（"+h.name+"）です。"+(h.status==="racehorse" ? "デビューする前に名前を決めてください" : "2歳になるまでに名前を決めてください（過ぎると自動で名前が付きます）")+"</div>"
       + "<div class='sellmenu-body'><input type='text' id='nameInput' size='16' placeholder='名前を入力'><button id='nameBtn'>この名前で登録</button><button id='nameSuggestBtn' class='ghost'>候補："+nameSuggest+"</button></div></div>";
   }
   $("#horseModalBox").innerHTML = "<div class='flex' style='justify-content:space-between;'><h2 style='margin:0;'>"+h.name+"</h2><button onclick='document.querySelector(\"#horseModal\").style.display=\"none\"'>閉じる</button></div>"
@@ -1646,18 +1663,19 @@ function openHorse(id){
     topic("✏️ "+oldName+" を「"+v+"」と命名しました");
     $("#horseModal").style.display = "none"; save(); render();
   };
-  const rb = $("#retireBtn"); if(rb) rb.onclick = () => {
+  const doRetireColt = (toStud) => {
     h.retired = true;
-    if(canEnterStud(h)){
-      const why = (h.gradedWin ? "重賞勝ち" : "") + (h.gradedWin && h.earnings>=10000 ? "・" : "") + (h.earnings>=10000 ? "通算賞金1億円以上" : "");
-      if(confirm(h.name+" は種牡馬入りの資格があります（"+why+"）。\n種牡馬にしますか？（キャンセル＝種牡馬入りせず引退）")){
-        h.status="stallion"; S.stallions.push({name:h.name, sire:h.sire, region:"domestic", surface:h.surface, dist:[h.distMin,h.distMax], growth:h.growth, gtype:gtypeOf(h), fee_tier:"B", fresh:true}); chron(h.name+" は引退し、種牡馬入りした"); topic("✨ "+h.name+" が種牡馬入りしました");
-      } else { chron(h.name+" は引退した（種牡馬入りは見送り）"); }
+    if(toStud){
+      h.status="stallion"; S.stallions.push({name:h.name, sire:h.sire, region:"domestic", surface:h.surface, dist:[h.distMin,h.distMax], growth:h.growth, gtype:gtypeOf(h), fee_tier:"B", fresh:true});
+      chron(h.name+" は引退し、種牡馬入りした"); topic("✨ "+h.name+" が種牡馬入りしました");
     }
+    else if(canEnterStud(h)){ chron(h.name+" は引退した（種牡馬入りは見送り）"); }
     else { chron(h.name+" は引退した"); }
     checkHofMilestone(h);
     $("#horseModal").style.display = "none"; save(); render();
   };
+  const rstud = $("#retireStudBtn"); if(rstud) rstud.onclick = () => doRetireColt(true);
+  const rplain = $("#retirePlainBtn"); if(rplain) rplain.onclick = () => doRetireColt(false);
   const rbb = $("#retireBroodBtn"); if(rbb) rbb.onclick = () => {
     if(mareCapReached()){ alert("繁殖牝馬が上限の"+MARE_CAP+"頭に達しています（現在"+mareCount()+"頭）。繁殖入りはできません"); return; }
     h.status = "broodmare"; h.retired = false;
@@ -1760,6 +1778,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>競馬シミュレーター（趣味） v0.35</footer>
+<footer>競馬シミュレーター（趣味） v0.36</footer>
 </body>
 </html>
