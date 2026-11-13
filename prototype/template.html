@@ -524,6 +524,11 @@ function youngPrice(h){
 function canEnterStud(h){
   return h.sex==="牡" && (!!h.gradedWin || (h.earnings||0) >= 10000);
 }
+/* 繁殖牝馬の頭数上限（v0.32・Terai決定）：10頭。売却はいつでも可能なので、上限時は先に売って枠を空ける。
+   上限に達していると、セールで買えない＆牝馬を引退させても繁殖入りできない（引退自体をブロックして知らせる） */
+const MARE_CAP = 10;
+function mareCount(){ return S.horses.filter(h=>h.status==="broodmare").length; }
+function mareCapReached(){ return mareCount() >= MARE_CAP; }
 function canSellYoung(h){
   return !h.retired && (h.status==="foal" || h.status==="yearling" || (h.status==="racehorse" && h.results.length===0));
 }
@@ -890,6 +895,7 @@ function chooseMare(id){
 function buyMare(id){
   const idx = S.salePool.findIndex(x=>x.id===id); if(idx<0) return;
   const m = S.salePool[idx];
+  if(mareCapReached()){ topic("⚠️ 繁殖牝馬が上限の"+MARE_CAP+"頭に達しています（現在"+mareCount()+"頭）。購入するには先に繁殖牝馬を売却してください"); save(); render(); return; }
   if(S.funds < m.price){ topic("⚠️ 資金が足りません（"+m.name+" は "+man(m.price)+"）"); save(); render(); return; }
   S.funds -= m.price;
   S.salePool.splice(idx,1);
@@ -1181,7 +1187,7 @@ function saleView(){
   const rows = S.salePool.map(m =>
     "<tr><td>"+m.name+"</td><td>"+ageOf(m)+"歳</td><td>父 "+m.sire+"／母父 "+m.bms+"</td><td>"+m.surface+" "+m.distMin+"-"+m.distMax+"m・"+m.growth+"</td><td>"+evalComment(m)+"</td><td>"+man(m.price)+"</td><td><button data-buy='"+m.id+"'>購入する</button></td></tr>").join("");
   setTimeout(()=>{ document.querySelectorAll("[data-buy]").forEach(btn => btn.onclick = () => buyMare(btn.getAttribute("data-buy"))); }, 0);
-  return "<h3>繁殖牝馬セール（11〜12月）</h3><table><tr><th>馬名</th><th>年齢</th><th>血統</th><th>適性</th><th>評価</th><th>価格</th><th></th></tr>"+rows+"</table>";
+  return "<h3>繁殖牝馬セール（11〜12月）</h3><div class='sub'>繁殖牝馬は最大"+MARE_CAP+"頭まで（現在"+mareCount()+"頭）。売却はいつでも各馬のページからできます</div><table><tr><th>馬名</th><th>年齢</th><th>血統</th><th>適性</th><th>評価</th><th>価格</th><th></th></tr>"+rows+"</table>";
 }
 function viewBreed(){
   if(!(S.month>=2 && S.month<=6)) return "<div class='sub'>繁殖シーズンは2〜6月です。今はシーズン外なので、牝馬の様子を眺めるだけです。</div>" + broodmareTable() + saleView();
@@ -1466,6 +1472,7 @@ function openHorse(id){
   $("#horseModal").style.display = "block";
   const ps = $("#policySel"); if(ps) ps.onchange = () => { h.policy = ps.value; save(); };
   const rb = $("#retireBtn"); if(rb) rb.onclick = () => {
+    if(h.sex==="牝" && mareCapReached()){ alert("繁殖牝馬が上限の"+MARE_CAP+"頭に達しています（現在"+mareCount()+"頭）。\n先に繁殖牝馬を売却してから引退させてください（売却はいつでもできます）"); return; }
     h.retired = true;
     if(h.sex==="牝"){ h.status="broodmare"; h.retired=false; chron(h.name+" は引退し、繁殖牝馬になった"); topic(h.name+" が繁殖入りしました"); }
     else if(canEnterStud(h)){
@@ -1563,6 +1570,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>NKC / WHC 競馬ゲーム試作 v0.31</footer>
+<footer>NKC / WHC 競馬ゲーム試作 v0.32</footer>
 </body>
 </html>
