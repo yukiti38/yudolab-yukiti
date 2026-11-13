@@ -670,6 +670,11 @@ function raceMilestones(h, race, finish, prize){
   if(finish!==1) return;
   S.farmWins++;
   for(const t of WIN_MARKS) if(S.farmWins>=t && M.winsMark<t){ M.winsMark = t; chron("【牧場通算】牧場の通算勝利数が "+t+" 勝に到達した"); topic("🎉 牧場の通算 "+t+" 勝に到達しました"); }
+  /* 重賞初制覇（v0.37・Terai要望）：その馬にとって初めての重賞勝ちは年表に残す（結果は更新済みなので、重賞勝ちがちょうど1つなら今回が初） */
+  if(GRADED_SET.includes(race.grade) && gradedWinList(h).length===1){
+    chron("【重賞初制覇】"+h.name+" が "+race.name+"（"+race.grade+"）を勝ち、重賞初制覇を果たした");
+    topic("🏆 "+h.name+" が "+race.name+" で重賞初制覇です");
+  }
   if((CROWN_COLT.includes(race.name) || CROWN_FILLY.includes(race.name)) && !M.classic){
     M.classic = true;
     chron("【初制覇】"+h.name+" が "+race.name+" を勝ち、牧場初のクラシック制覇を果たした");
@@ -1778,6 +1783,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>競馬シミュレーター（趣味） v0.36</footer>
+<footer>競馬シミュレーター（趣味） v0.37</footer>
 </body>
 </html>
