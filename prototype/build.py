@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 """Build prototype/index.html from template.html + data files in ../data/.
 v0.26 (2026-11-13): weight_type（負担重量区分）と labels（路線／トライアル）を
-レースデータに載せるようになった。"""
+レースデータに載せるようになった。
+v0.27 (2026-11-13): 海外レースの性別条件パースを修正（「牡馬牝馬限定」を牝馬限定と
+誤判定していた問題）。
+v0.28 (2026-11-13): データ監査（data/DATA_AUDIT_2026-11-13.md）対応。年齢条件パースの
+全面修正（全角数字・2歳以上・4歳・誤記 upward）、牡馬限定の符号化、ハロン＋ヤード距離、
+ドバイシーマクラシックの追加、馬場反転2件と競馬場表記ゆれの訂正。"""
 import json, re, math, datetime, os
 
 BASE = os.path.dirname(os.path.abspath(__file__))
@@ -90,29 +95,57 @@ def parse_dist(r):
     m = re.search(r"(\d{3,4})\s*メートル", txt)
     if m:
         return int(m.group(1))
-    m = re.search(r"(\d+(?:\.\d+)?)\s*ハロン", txt)
+    # ハロン＋ヤードの複合表記（英国式）はヤード分も換算する（旧実装は切り捨てていた。
+    # 監査 Check 4：セントジェームズパレスS 1400→1600 等、出荷G1 14件が短くなっていた）
+    m = re.search(r"(\d+(?:\.\d+)?)\s*ハロン(?:\s*(\d+(?:\.\d+)?)\s*ヤード)?", txt)
     if m:
-        return int(round(float(m.group(1)) * 201.168 / 50.0) * 50)
+        metres = float(m.group(1)) * 201.168
+        if m.group(2):
+            metres += float(m.group(2)) * 0.9144
+        return int(round(metres / 50.0) * 50)
     m = re.search(r"(\d+(?:\.\d+)?)\s*マイル", txt)
     if m:
         return int(round(float(m.group(1)) * 1609.34 / 50.0) * 50)
     return None
 
+_FW_DIGITS = str.maketrans("０１２３４５６７８９", "0123456789")
+
 def parse_cond(r):
-    raw = (r.get("conditions_raw") or "")
-    if re.search(r"４歳以上|4歳以上|Four year old and upward", raw):
+    # 全角数字（２歳・３歳以上など）を半角に正規化してから判定する。旧実装は半角の
+    # 「2歳」しか見ておらず、全角表記の2歳限定戦59件（出荷分）が既定値「3歳以上」に
+    # 落下していた（監査 Check 5・型A）。racedb 原文の upward 誤記
+    # （upwarwd / upwawrd）もここで正規化する（同 Check 5・型C）。
+    raw = (r.get("conditions_raw") or "").translate(_FW_DIGITS)
+    raw = re.sub(r"upwarwd|upwawrd", "upward", raw, flags=re.I)
+    # 年齢：「以上」付きを先に判定する。旧実装は "Two year old and upward" で年齢を
+    # 空にし、最終的に「3歳以上」へ落下させていた（2歳以上戦60件。同 Check 5・型B）。
+    # UAE の半球別表記（北半球産4歳以上／南半球産3歳以上）は従来どおり「4歳以上」
+    # （4歳以上の分岐が先に一致するため。ゲームに半球の概念がないことによる仕様差）。
+    if re.search(r"4歳以上|Four year old and upward", raw, re.I):
         age = "4歳以上"
-    elif re.search(r"３歳以上|3歳以上|Three year old and upward", raw):
+    elif re.search(r"3歳以上|Three year old and upward", raw, re.I):
         age = "3歳以上"
-    elif re.search(r"Two year old and upward", raw):
-        age = ""
-    elif re.search(r"2歳|Two year", raw):
+    elif re.search(r"2歳以上|Two year old and upward", raw, re.I):
+        age = "2歳以上"
+    elif re.search(r"2歳|Two year old", raw, re.I):
         age = "2歳"
-    elif re.search(r"３歳|3歳|Three year old", raw):
+    elif re.search(r"3歳|Three year old", raw, re.I):
         age = "3歳"
+    elif re.search(r"4歳|Four year old", raw, re.I):
+        age = "4歳"
     else:
         age = "3歳以上"
-    sex = "牝" if re.search(r"牝|fillies|mares", raw, re.I) else ""
+    # 牝馬限定の判定：「牡馬牝馬限定」は牡牝混合（オープン）を意味するので牝にしない。
+    # 現データの実パターンは「牝馬限定」177件／「牡馬牝馬限定」21件で、英語表記
+    # （fillies/mares/colts）は現データに存在しないが、将来の取り込み用に併記する。
+    hin = ("牝馬限定" in raw and "牡馬牝馬限定" not in raw) or \
+          (re.search(r"fillies|mares", raw, re.I) and not re.search(r"colts", raw, re.I))
+    # 牡馬限定／牡馬せん馬限定（監査 Check 1）：旧実装は落としていたため牝馬が出走
+    # できてしまっていた。せん馬はプレイヤー馬の性別に無いので「牡」として扱い、
+    # eligibility() の「牡を含み牝を含まない＝牡馬限定」判定にそのまま乗せる。
+    bo = (("牡馬限定" in raw or "牡馬せん馬限定" in raw) and "牡馬牝馬限定" not in raw) or \
+         (re.search(r"colts", raw, re.I) and not re.search(r"fillies|mares", raw, re.I))
+    sex = "牝" if hin else ("牡" if bo else "")
     return (age + sex) if (age or sex) else "3歳以上"
 
 ov_out = []
