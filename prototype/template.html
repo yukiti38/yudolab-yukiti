@@ -562,16 +562,6 @@ function makeMare(sts){
   m.quirk = rollQuirk(m.temp);
   return m;
 }
-/* 特別な架空牝馬（v0.41）：絶えた系統を持つ牝馬たち＋変異因子のメルトスイート。セールに並ぶ */
-function makeSpecialMare(sm){
-  const m = newHorse({ name: sm.name, sex:"牝", birthYear: sm.birthYear, sire: sm.sire, dam: sm.dam, bms: sm.bms,
-    status:"broodmare", surface: sm.surface, distMin: sm.dist[0], distMax: sm.dist[1], growth: sm.growth, gtype: sm.gtype, ability: 70 });
-  setParams(m, sm.params[0], sm.params[1], sm.params[2]);
-  m.temp = sm.temp; m.quirk = rollQuirk(m.temp);
-  m.price = sm.price; m.special = true;
-  if(sm.mutation) m.mutation = true;
-  return m;
-}
 function initState(){
   S = { year:2026, month:1, week:1, funds:30000, horses:[], stallions: JSON.parse(JSON.stringify(DATA.stallions)),
         chronicle:[], topics:[], yearEndDone:false, phase:"choose", candidates:[], salePool:[], firstMatingDone:false,
@@ -611,7 +601,7 @@ function migrateV029(){
      マイルストーン状態を既存の戦績から復元する（達成済みの初制覇などが遡って発火しないように） */
   if(S.chronicle) S.chronicle = S.chronicle.filter(c=>!/^【(レース|成長|スキップ|種付け|NKC年度記録)】/.test(c.text) && !/は2歳になり、現役馬に編入された/.test(c.text));
   for(const h of S.horses) if(h.status==="stallion" && h.studYear==null) h.studYear = S.year;
-  if(!S.specialMaresAdded){ S.specialMaresAdded = true; if(S.phase!=="choose" && S.salePool){ for(const sm of (DATA.specialMares||[])) if(!S.horses.some(h=>h.name===sm.name) && !S.salePool.some(h=>h.name===sm.name)) S.salePool.push(makeSpecialMare(sm)); } }
+  if(S.salePool) S.salePool = S.salePool.filter(m=>!m.special); S.specialMaresAdded = true; /* v0.42：未承認だった特別牝馬を取り下げ */
   ensureMile();
   if(S.kanmuri == null) S.kanmuri = "";
   /* v0.35で仮名フラグが付かなかった産駒の救済（v0.36）：名前が「母名のYY」のままの若馬に命名可能フラグを付け直す */
@@ -968,15 +958,15 @@ function onNewYear(){
       const bmsTemp = bmsSt ? stallionGen(bmsSt).temp : 55;
       foal.temp = clamp(Math.round((sg.temp + (h.temp != null ? h.temp : 55))/2 + (bmsTemp - 55) * 0.15 + triSpread(10)), 25, 98);
       foal.quirk = rollQuirk(foal.temp, isHotCross(sg.temp, h.temp) ? 2.2 : 1);
-      /* 変異（v0.41）：変異因子を持つ母の産駒は約1%で能力・適性が大きく変異する */
-      if(h.mutation && Math.random()<0.01){
+      /* 変異（v0.41→v0.42で父側に訂正）：変異因子を持つ種牡馬の産駒は約1%で能力・適性が大きく変異する */
+      if(st.mutation && Math.random()<0.01){
         setParams(foal, clampParam(foal.spd + irnd(-18,26)), clampParam(foal.sta + irnd(-18,26)), clampParam(foal.gut + irnd(-18,26)));
         if(Math.random()<0.6) foal.surface = foal.surface==="芝" ? "ダート" : foal.surface==="ダート" ? "芝" : (Math.random()<0.5 ? "芝" : "ダート");
         const shift = irnd(500,1100) * (Math.random()<0.5 ? -1 : 1);
         const w2 = foal.distMax - foal.distMin;
         const c2 = clamp((foal.distMin+foal.distMax)/2 + shift, 800, 3800);
         foal.distMin = r50(c2 - w2/2); foal.distMax = r50(c2 + w2/2);
-        chron("【変異】"+h.name+" の産駒「"+foal.name+"」に大きな変異が現れた（能力・適性が親の傾向から大きく外れている）");
+        chron("【変異】"+st.name+" の産駒「"+foal.name+"」に大きな変異が現れた（能力・適性が親の傾向から大きく外れている）");
         topic("🧬 "+foal.name+" に大きな変異が現れました");
       }
       S.horses.push(foal);
@@ -1063,7 +1053,7 @@ function skipTo(y, m, w){
 function chooseMare(id){
   const m = S.candidates.find(x=>x.id===id); if(!m) return;
   S.horses.push(m);
-  S.salePool = S.candidates.filter(x=>x.id!==id).concat((DATA.specialMares||[]).map(makeSpecialMare)); S.specialMaresAdded = true;
+  S.salePool = S.candidates.filter(x=>x.id!==id);
   S.candidates = [];
   S.phase = "play";
   chron("【牧場の始まり】最初の繁殖牝馬に "+m.name+"（父"+m.sire+"）を選んだ");
@@ -1538,9 +1528,9 @@ function viewStallions(){
     document.querySelectorAll("[data-fav]").forEach(btn => btn.onclick = () => toggleFav(btn.getAttribute("data-fav")));
   }, 0);
   const list = sortedStallions();
-  const rows = list.map(st=>"<tr><td><button data-fav='"+st.name+"' class='ghost' title='お気に入り'>"+((S.favs||[]).includes(st.name)?"★":"☆")+"</button> "+st.name+(isHomebredStallion(st)?" <span class='ok'>自家製</span>":"")+(()=>{ const hh = S.horses.find(x=>x.name===st.name); return (hh && hh.studYear!=null) ? " <span class='sub'>供用"+(S.year-hh.studYear+1)+"年目（20年まで）</span>" : ""; })()+(st.fresh?" <span class='ok'>NEW</span>":"")+(st.sire?" <span class='sub'>父 "+st.sire+"</span>":"")+"</td><td>"+(st.region==="overseas"?"海外":"国内")+"</td><td>"+st.surface+"</td><td>"+st.dist[0]+"-"+st.dist[1]+"m</td><td>"+st.growth+"</td><td>"+st.fee_tier+"</td><td>"+stallionTendency(st)+"</td><td>"+(stallionFee(st)===0 ? "無料" : fee(st.fee_tier))+"</td></tr>").join("");
+  const rows = list.map(st=>"<tr><td><button data-fav='"+st.name+"' class='ghost' title='お気に入り'>"+((S.favs||[]).includes(st.name)?"★":"☆")+"</button> "+st.name+(isHomebredStallion(st)?" <span class='ok'>自家製</span>":"")+(()=>{ const hh = S.horses.find(x=>x.name===st.name); return (hh && hh.studYear!=null) ? " <span class='sub'>供用"+(S.year-hh.studYear+1)+"年目（20年まで）</span>" : ""; })()+(st.fresh?" <span class='ok'>NEW</span>":"")+(st.mutation?" <span class='ok'>🧬変異因子</span>":"")+(st.sire?" <span class='sub'>父 "+st.sire+"</span>":"")+"</td><td>"+(st.region==="overseas"?"海外":"国内")+"</td><td>"+st.surface+"</td><td>"+st.dist[0]+"-"+st.dist[1]+"m</td><td>"+st.growth+"</td><td>"+st.fee_tier+"</td><td>"+stallionTendency(st)+"</td><td>"+(stallionFee(st)===0 ? "無料" : fee(st.fee_tier))+"</td></tr>").join("");
   const fsel = (id, cur, pairs) => "<select id='"+id+"'>" + pairs.map(p=>"<option value='"+p[0]+"'"+(cur===p[0]?" selected":"")+">"+p[1]+"</option>").join("") + "</select>";
-  return "<div class='sub'>プールは固定の53頭です（引退・世代交代はありません。自家生産の牡馬が重賞勝ちで引退すると種牡馬入りします）。現在"+S.stallions.length+"頭。種付け料はティア別の設計値です。</div>"
+  return "<div class='sub'>プールは固定の54頭です（引退・世代交代はありません。自家生産の牡馬が重賞勝ちで引退すると種牡馬入りします）。現在"+S.stallions.length+"頭。種付け料はティア別の設計値です。</div>"
     + "<div class='flex' style='margin:6px 0;'><span>並び替え：</span><select id='sortSel'>"+opts+"</select><span>絞込み：</span>"
     + fsel("sfRegion", stallionFilter.region, [["all","地域すべて"],["domestic","国内"],["overseas","海外"]])
     + fsel("sfSurface", stallionFilter.surface, [["all","芝・ダート"],["芝","芝"],["ダート","ダート"]])
@@ -1642,7 +1632,6 @@ function bindTab(){ bindHorses(); }
 /* 牡馬系ライン（v0.41）：種牡馬データの line（父父〜）と特別牝馬の父系・母父系から、名前→父の対応表を作る */
 const PEDIGREE_LINES = {};
 for(const st of DATA.stallions){ const chain = [st.name, st.sire].concat(st.line||[]); for(let i=0;i<chain.length-1;i++) if(chain[i] && chain[i+1] && !PEDIGREE_LINES[chain[i]]) PEDIGREE_LINES[chain[i]] = chain[i+1]; }
-for(const sm of (DATA.specialMares||[])){ for(const c of [sm.sireLine||[], sm.bmsLine||[]]) for(let i=0;i<c.length-1;i++) if(c[i] && c[i+1] && !PEDIGREE_LINES[c[i]]) PEDIGREE_LINES[c[i]] = c[i+1]; }
 /* 血統表用：名前から父母を引く。所有馬→種牡馬ロスター→牡馬系ラインの順（牝馬側は所有馬のみ） */
 function personRec(name){
   if(!name || name==="―") return null;
@@ -1887,6 +1876,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>競馬シミュレーター（趣味） v0.41</footer>
+<footer>競馬シミュレーター（趣味） v0.42</footer>
 </body>
 </html>
