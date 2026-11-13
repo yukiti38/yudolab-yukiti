@@ -524,6 +524,7 @@ function evalComment(h){
   const best = [["スピード",h.spd],["スタミナ",h.sta],["根性",h.gut]].sort((a,b)=>b[1]-a[1])[0][0];
   return rankOf(comp)+"評価（"+best+"型・"+h.surface+"・"+h.distMin+"〜"+h.distMax+"m・"+h.growth+"）";
 }
+const RANK_PRICE = { S:[4200,5000], A:[2600,4000], B:[1300,2500], C:[600,1200] };
 function marePrice(h){ return clamp(Math.round((h.ability-50)*90 + irnd(0,400)), 600, 5000); }
 /* 若馬（デビュー前）の売却額：見える評価ランクではなく、隠れた上限（3パラメータ＝将来の天井）で決まる。
    評価が低くても素質が高ければ高く売れる＝「手放す判断」に読みの要素を持たせる（v0.29・Terai発案、式はゆきち設計） */
@@ -549,28 +550,73 @@ function mareCapReached(){ return mareCount() >= MARE_CAP; }
 function canSellYoung(h){
   return !h.retired && (h.status==="foal" || h.status==="yearling" || (h.status==="racehorse" && h.results.length===0));
 }
-function makeMare(sts){
-  const bms = pick(sts);
-  const m = newHorse({ name:foalName(), sex:"牝", birthYear:2026-irnd(4,7), sire:bms.name, dam:foalName(), bms:pick(sts).name,
-    status:"broodmare", surface:bms.surface, distMin:bms.dist[0], distMax:bms.dist[1], growth:bms.growth, gtype:familyVariant(bms.growth), ability:70, coat:randomCoat() });
-  /* 架空牝馬の遺伝値：母父の格を中心に±6、距離傾向でスピード/スタミナに寄せる */
-  const base = TIER_BASE[bms.fee_tier] || 78;
-  const mid = (bms.dist[0]+bms.dist[1])/2;
+function rankPrice(rank){ const b = RANK_PRICE[rank] || RANK_PRICE.B; return irnd(b[0], b[1]); }
+function makeMare(sts, rankHint){
+  const sire = pick(sts);
+  const ranks = ["S","A","B","C"];
+  let rank = rankHint;
+  if(!rank){ let ri = ranks.indexOf(sire.fee_tier); const r = Math.random(); if(r<0.22 && ri>0) ri--; else if(r>0.78 && ri<3) ri++; rank = ranks[clamp(ri,0,3)]; }
+  const m = newHorse({ name:foalName(), sex:"牝", birthYear:S.year-irnd(4,7), sire:sire.name, dam:foalName(), bms:pick(sts).name,
+    status:"broodmare", surface:sire.surface, distMin:sire.dist[0], distMax:sire.dist[1], growth:sire.growth, gtype:familyVariant(sire.growth), ability:70 });
+  /* 母母・母母父まで用意して、産駒の血統表の母方が奥まで埋まるようにする（v0.43） */
+  m.grandam = foalName(); m.gbms = pick(sts).name;
+  /* 遺伝値：ランクを中心に±6、距離傾向でスピード/スタミナに寄せる */
+  const base = TIER_BASE[rank] || 74;
+  const mid = (sire.dist[0]+sire.dist[1])/2;
   const bias = clamp(Math.round((2000-mid)/200), -4, 4);
   setParams(m, base + bias + irnd(-6,6), base - bias + irnd(-6,6), base + irnd(-6,6));
-  m.temp = clamp(Math.round(stallionGen(bms).temp + triSpread(10)), 25, 98);
+  m.temp = clamp(Math.round(stallionGen(sire).temp + triSpread(10)), 25, 98);
   m.quirk = rollQuirk(m.temp);
+  m.rank = rank; m.price = rankPrice(rank);
   return m;
+}
+function makeTemplateMare(t){
+  const m = newHorse({ name:t.name, sex:"牝", birthYear:S.year-irnd(4,7), sire:t.sire, dam:t.dam, bms:t.bms,
+    status:"broodmare", surface:t.surface, distMin:t.dist[0], distMax:t.dist[1], growth:t.growth, gtype:familyVariant(t.growth), ability:70 });
+  m.grandam = t.grandam; m.gbms = t.gbms;
+  const base = TIER_BASE[t.rank] || 74;
+  const mid = (t.dist[0]+t.dist[1])/2;
+  const bias = clamp(Math.round((2000-mid)/200), -4, 4);
+  setParams(m, base + bias + irnd(-6,6), base - bias + irnd(-6,6), base + irnd(-6,6));
+  m.temp = irnd(40,75); m.quirk = rollQuirk(m.temp);
+  m.rank = t.rank; m.price = rankPrice(t.rank); m.template = true; m.group = t.group;
+  return m;
+}
+/* 繁殖牝馬セールの年次更新（v0.43）：毎年10頭、テンプレ（血統グループ別・一度出たら二度出ない）優先、尽きたらランダム生成 */
+function refreshSale(){
+  S.saleYear = S.year;
+  if(!S.usedTemplates) S.usedTemplates = [];
+  const wantRanks = ["S","A","A","B","B","B","B","C","C","C"].sort(()=>Math.random()-0.5);
+  const groups = ["sunday","kingmambo","overseas","other"];
+  let rest = (DATA.mareTemplates||[]).filter(t=>!S.usedTemplates.includes(t.name));
+  const pool = [];
+  for(let i=0;i<10;i++){
+    const wantRank = wantRanks[i];
+    const forceGroup = i<4 ? groups[i] : null;
+    let cand = rest.filter(t=>(!forceGroup || t.group===forceGroup) && t.rank===wantRank);
+    if(!cand.length) cand = rest.filter(t=>!forceGroup || t.group===forceGroup);
+    if(!cand.length) cand = rest.filter(t=>t.rank===wantRank);
+    if(!cand.length) cand = rest;
+    if(cand.length){
+      const t = cand[irnd(0, cand.length-1)];
+      rest = rest.filter(x=>x!==t);
+      S.usedTemplates.push(t.name);
+      pool.push(makeTemplateMare(t));
+    } else {
+      pool.push(makeMare(S.stallions, wantRank));
+    }
+  }
+  S.salePool = pool;
 }
 function initState(){
   S = { year:2026, month:1, week:1, funds:30000, horses:[], stallions: JSON.parse(JSON.stringify(DATA.stallions)),
-        chronicle:[], topics:[], yearEndDone:false, phase:"choose", candidates:[], salePool:[], firstMatingDone:false,
+        chronicle:[], topics:[], yearEndDone:false, phase:"choose", candidates:[], salePool:[], saleYear:2026, usedTemplates:[], firstMatingDone:false,
         giftQueue:[], giftAprDone:false, giftDecDone:false, favs:[], mile:null, farmWins:0, farmPrize:0, kanmuri:"" };
   const sts = S.stallions;
   // 種牡馬ロスターは固定（約50頭・引退／世代交代なし。WS4b・2026-11-13）。
   // 自家生産の牡馬が引退時に種牡馬入りすることはある（そちらは従来どおり）。
   // 開始時：候補5頭から繁殖牝馬を1頭だけ選ぶ（架空・母父は実在プールから）。選ばなかった候補は後のセールに回る。
-  for(let i=0;i<5;i++){ const m = makeMare(sts); m.price = marePrice(m); S.candidates.push(m); }
+  for(let i=0;i<5;i++){ const m = makeMare(sts); S.candidates.push(m); }
   chron("ゲーム開始。2026年、牧場の一年目が始まった。まずは繁殖牝馬を1頭選ぶところから。");
   topic("🐴 最初に、繁殖牝馬を1頭選んでください。選ばなかった候補は、後の繁殖牝馬セールで買えることがあります");
   save();
@@ -602,6 +648,8 @@ function migrateV029(){
   if(S.chronicle) S.chronicle = S.chronicle.filter(c=>!/^【(レース|成長|スキップ|種付け|NKC年度記録)】/.test(c.text) && !/は2歳になり、現役馬に編入された/.test(c.text));
   for(const h of S.horses) if(h.status==="stallion" && h.studYear==null) h.studYear = S.year;
   if(S.salePool) S.salePool = S.salePool.filter(m=>!m.special); S.specialMaresAdded = true; /* v0.42：未承認だった特別牝馬を取り下げ */
+  if(S.saleYear==null) S.saleYear = S.year>2026 ? S.year-1 : 2026;
+  if(!S.usedTemplates) S.usedTemplates = [];
   ensureMile();
   if(S.kanmuri == null) S.kanmuri = "";
   /* v0.35で仮名フラグが付かなかった産駒の救済（v0.36）：名前が「母名のYY」のままの若馬に命名可能フラグを付け直す */
@@ -1002,6 +1050,7 @@ function onNewYear(){
   // 年表は大きな出来事だけに絞る（v0.38・Terai方針）：年度トップのような定例行は書かない
 }
 function weeklyEvents(){
+  if(S.month===11 && S.week===1 && S.phase!=="choose" && S.saleYear!==S.year) refreshSale();
   if(S.month===2 && S.week===1) topic("🌸 繁殖シーズンが始まりました（2〜6月）。「繁殖」タブで種付けできます");
   if(S.month===3 && S.week===1) topic("🐴 春の出産シーズンです（昨年の種付け分は年始に誕生済み）");
   if(S.month===6 && S.week===1) topic("🏇 2歳馬のデビューが始まる時期です");
@@ -1365,7 +1414,7 @@ function drawEntryList(){
 function saleView(){
   if(!S.salePool || !S.salePool.length || S.month < 11) return "";
   const rows = S.salePool.map(m =>
-    "<tr><td>"+m.name+"</td><td>"+ageOf(m)+"歳</td><td>父 "+m.sire+"／母父 "+m.bms+"</td><td>"+m.surface+" "+m.distMin+"-"+m.distMax+"m・"+m.growth+"</td><td>"+evalComment(m)+"</td><td>"+man(m.price)+"</td><td><button data-buy='"+m.id+"'>購入する</button></td></tr>").join("");
+    "<tr><td>"+m.name+"</td><td>"+ageOf(m)+"歳</td><td>父 "+m.sire+"／母父 "+m.bms+(m.gbms?"／母母父 "+m.gbms:"")+"</td><td>"+m.surface+" "+m.distMin+"-"+m.distMax+"m・"+m.growth+"</td><td>"+(m.rank?"ランク"+m.rank+"｜":"")+evalComment(m)+"</td><td>"+man(m.price)+"</td><td><button data-buy='"+m.id+"'>購入する</button></td></tr>").join("");
   setTimeout(()=>{ document.querySelectorAll("[data-buy]").forEach(btn => btn.onclick = () => buyMare(btn.getAttribute("data-buy"))); }, 0);
   return "<h3>繁殖牝馬セール（11〜12月）</h3><div class='sub'>繁殖牝馬は最大"+MARE_CAP+"頭まで（現在"+mareCount()+"頭）。売却はいつでも各馬のページからできます</div><table><tr><th>馬名</th><th>年齢</th><th>血統</th><th>適性</th><th>評価</th><th>価格</th><th></th></tr>"+rows+"</table>";
 }
@@ -1632,13 +1681,21 @@ function bindTab(){ bindHorses(); }
 /* 牡馬系ライン（v0.41）：種牡馬データの line（父父〜）と特別牝馬の父系・母父系から、名前→父の対応表を作る */
 const PEDIGREE_LINES = {};
 for(const st of DATA.stallions){ const chain = [st.name, st.sire].concat(st.line||[]); for(let i=0;i<chain.length-1;i++) if(chain[i] && chain[i+1] && !PEDIGREE_LINES[chain[i]]) PEDIGREE_LINES[chain[i]] = chain[i+1]; }
-/* 血統表用：名前から父母を引く。所有馬→種牡馬ロスター→牡馬系ラインの順（牝馬側は所有馬のみ） */
+for(const st of DATA.stallions){ const c = st.bmsLine||[]; for(let i=0;i<c.length-1;i++) if(c[i] && c[i+1] && !PEDIGREE_LINES[c[i]]) PEDIGREE_LINES[c[i]] = c[i+1]; }
+for(const t of (DATA.mareTemplates||[])){ for(const c of [t.sireLine||[], t.bmsLine||[], t.gbmsLine||[]]) for(let i=0;i<c.length-1;i++) if(c[i] && c[i+1] && !PEDIGREE_LINES[c[i]]) PEDIGREE_LINES[c[i]] = c[i+1]; }
+/* 種牡馬の母系（v0.43）：母→{父=母父, 母=母母}、母母→{父=母母父} を引けるようにする */
+const PEDIGREE_DAMS = {};
+for(const st of DATA.stallions){ if(st.dam){ if(!PEDIGREE_DAMS[st.dam]) PEDIGREE_DAMS[st.dam] = { sire: st.bms||null, dam: st.grandam||null }; if(st.grandam && !PEDIGREE_DAMS[st.grandam]) PEDIGREE_DAMS[st.grandam] = { sire: st.gbms||null, dam: null }; } }
+/* 血統表用：名前から父母を引く。所有馬→種牡馬ロスター→セール牝馬の母・母母→種牡馬の母系→牡馬系ラインの順 */
 function personRec(name){
   if(!name || name==="―") return null;
   const hh = S.horses.find(x=>x.name===name);
   if(hh) return { sire: hh.sire||null, dam: hh.dam||null };
   const st = S.stallions.find(x=>x.name===name);
-  if(st) return { sire: st.sire||null, dam: null };
+  if(st) return { sire: st.sire||null, dam: st.dam||null };
+  const holder = (S.horses||[]).concat(S.salePool||[], S.candidates||[]).find(x=>x.dam===name || x.grandam===name);
+  if(holder) return holder.dam===name ? { sire: holder.bms||null, dam: holder.grandam||null } : { sire: holder.gbms||null, dam: null };
+  if(PEDIGREE_DAMS[name]) return PEDIGREE_DAMS[name];
   if(PEDIGREE_LINES[name]) return { sire: PEDIGREE_LINES[name], dam: null };
   return null;
 }
@@ -1876,6 +1933,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>競馬シミュレーター（趣味） v0.42</footer>
+<footer>競馬シミュレーター（趣味） v0.43</footer>
 </body>
 </html>

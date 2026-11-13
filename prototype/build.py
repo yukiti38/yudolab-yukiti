@@ -179,7 +179,8 @@ for r in ov:
         "month": r["month"], "wom": min(4, r["week_of_month"]),
     })
 
-data = {"domestic": dom_out, "overseas": ov_out, "stallions": st["stallions"]}
+mt = json.load(open(os.path.join(DATA, "mare_templates.json")))
+data = {"domestic": dom_out, "overseas": ov_out, "stallions": st["stallions"], "mareTemplates": mt["mareTemplates"]}
 blob = "const DATA = " + json.dumps(data, ensure_ascii=False) + ";"
 html = tpl.replace("/*__DATA__*/", blob)
 out = os.path.join(BASE, "index.html")

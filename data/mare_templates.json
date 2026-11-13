@@ -1,0 +1,1342 @@
+{
+ "mareTemplates": [
+  {
+   "name": "ツキノクイーン",
+   "group": "sunday",
+   "rank": "A",
+   "sire": "ディープインパクト",
+   "sireLine": [
+    "ディープインパクト",
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dam": "カゼノティアラ",
+   "bms": "ノーザンテースト",
+   "bmsLine": [
+    "ノーザンテースト",
+    "ノーザンダンサー",
+    "ニアークティック",
+    "ニアーコ"
+   ],
+   "grandam": "ハルノメロディ",
+   "gbms": "ノーザンテースト",
+   "gbmsLine": [
+    "ノーザンテースト",
+    "ノーザンダンサー",
+    "ニアークティック",
+    "ニアーコ"
+   ],
+   "surface": "芝",
+   "dist": [
+    1600,
+    2400
+   ],
+   "growth": "普通"
+  },
+  {
+   "name": "アオイパレード",
+   "group": "sunday",
+   "rank": "S",
+   "sire": "ハーツクライ",
+   "sireLine": [
+    "ハーツクライ",
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dam": "カゼノハート",
+   "bms": "キングカメハメハ",
+   "bmsLine": [
+    "キングカメハメハ",
+    "キングマンボ",
+    "ミスタープロスペクター"
+   ],
+   "grandam": "ユキノグレース",
+   "gbms": "Danehill",
+   "gbmsLine": [
+    "Danehill",
+    "Danzig",
+    "Northern Dancer",
+    "Nearctic"
+   ],
+   "surface": "芝",
+   "dist": [
+    1800,
+    2600
+   ],
+   "growth": "普通"
+  },
+  {
+   "name": "ユキノシンフォニー",
+   "group": "sunday",
+   "rank": "B",
+   "sire": "ダイワメジャー",
+   "sireLine": [
+    "ダイワメジャー",
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dam": "ヒカリレディ",
+   "bms": "エルコンドルパサー",
+   "bmsLine": [
+    "エルコンドルパサー",
+    "キングマンボ",
+    "ミスタープロスペクター"
+   ],
+   "grandam": "モモノクイーン",
+   "gbms": "キングマンボ",
+   "gbmsLine": [
+    "キングマンボ",
+    "ミスタープロスペクター",
+    "レイズアネイティヴ"
+   ],
+   "surface": "芝",
+   "dist": [
+    1200,
+    1800
+   ],
+   "growth": "早熟"
+  },
+  {
+   "name": "モモノブーケ",
+   "group": "sunday",
+   "rank": "B",
+   "sire": "スペシャルウィーク",
+   "sireLine": [
+    "スペシャルウィーク",
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dam": "ハルノソング",
+   "bms": "ダイワメジャー",
+   "bmsLine": [
+    "ダイワメジャー",
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "grandam": "チハヤフェアリー",
+   "gbms": "ダンシングブレーヴ",
+   "gbmsLine": [
+    "ダンシングブレーヴ",
+    "リファール",
+    "ノーザンダンサー",
+    "ニアークティック"
+   ],
+   "surface": "芝",
+   "dist": [
+    1800,
+    2800
+   ],
+   "growth": "普通"
+  },
+  {
+   "name": "ソラノプリンセス",
+   "group": "sunday",
+   "rank": "A",
+   "sire": "マンハッタンカフェ",
+   "sireLine": [
+    "マンハッタンカフェ",
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dam": "ノゾミグレース",
+   "bms": "フレンチデピュティ",
+   "bmsLine": [
+    "フレンチデピュティ",
+    "デピュティミニスター",
+    "ヴァイスリージェント",
+    "ノーザンダンサー"
+   ],
+   "grandam": "アカリソング",
+   "gbms": "Sadler's Wells",
+   "gbmsLine": [
+    "Sadler's Wells",
+    "Northern Dancer",
+    "Nearctic",
+    "Native Dancer"
+   ],
+   "surface": "芝",
+   "dist": [
+    2000,
+    3000
+   ],
+   "growth": "晩成"
+  },
+  {
+   "name": "カゼノスター",
+   "group": "sunday",
+   "rank": "C",
+   "sire": "アグネスタキオン",
+   "sireLine": [
+    "アグネスタキオン",
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dam": "アオイティアラ",
+   "bms": "Storm Cat",
+   "bmsLine": [
+    "Storm Cat",
+    "Northern Dancer",
+    "Nearctic",
+    "Native Dancer"
+   ],
+   "grandam": "ソラノグレース",
+   "gbms": "Mr. Prospector",
+   "gbmsLine": [
+    "Mr. Prospector",
+    "Raise a Native",
+    "Native Dancer",
+    "Polynesian"
+   ],
+   "surface": "芝",
+   "dist": [
+    1400,
+    2200
+   ],
+   "growth": "早熟"
+  },
+  {
+   "name": "アカリパレード",
+   "group": "sunday",
+   "rank": "B",
+   "sire": "ゼンノロブロイ",
+   "sireLine": [
+    "ゼンノロブロイ",
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dam": "ユキノパレード",
+   "bms": "フォーティナイナー",
+   "bmsLine": [
+    "フォーティナイナー",
+    "ミスタープロスペクター",
+    "レイズアネイティヴ",
+    "ネイティヴダンサー"
+   ],
+   "grandam": "ユメノフェアリー",
+   "gbms": "エルコンドルパサー",
+   "gbmsLine": [
+    "エルコンドルパサー",
+    "キングマンボ",
+    "ミスタープロスペクター"
+   ],
+   "surface": "芝",
+   "dist": [
+    1800,
+    2600
+   ],
+   "growth": "普通"
+  },
+  {
+   "name": "ミライシンフォニー",
+   "group": "sunday",
+   "rank": "C",
+   "sire": "ネオユニヴァース",
+   "sireLine": [
+    "ネオユニヴァース",
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dam": "ユメノハート",
+   "bms": "トニービン",
+   "bmsLine": [
+    "トニービン",
+    "カンパラ",
+    "カラムーン",
+    "サーゲイロード"
+   ],
+   "grandam": "モモノベル",
+   "gbms": "ブライアンズタイム",
+   "gbmsLine": [
+    "ブライアンズタイム",
+    "ロベルト",
+    "ヘイルトゥリーズン",
+    "ターントゥ"
+   ],
+   "surface": "芝",
+   "dist": [
+    1600,
+    2400
+   ],
+   "growth": "普通"
+  },
+  {
+   "name": "ハルノクイーン",
+   "group": "sunday",
+   "rank": "B",
+   "sire": "ゴールドアリュール",
+   "sireLine": [
+    "ゴールドアリュール",
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dam": "ツキノスター",
+   "bms": "クロフネ",
+   "bmsLine": [
+    "クロフネ",
+    "フレンチデピュティ",
+    "デピュティミニスター",
+    "ヴァイスリージェント"
+   ],
+   "grandam": "カゼノドリーム",
+   "gbms": "ノーザンダンサー",
+   "gbmsLine": [
+    "ノーザンダンサー",
+    "ニアークティック",
+    "ニアーコ",
+    "ファラモンド"
+   ],
+   "surface": "ダート",
+   "dist": [
+    1400,
+    2000
+   ],
+   "growth": "普通"
+  },
+  {
+   "name": "ノゾミティアラ",
+   "group": "sunday",
+   "rank": "C",
+   "sire": "ステイゴールド",
+   "sireLine": [
+    "ステイゴールド",
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dam": "カゼノパレード",
+   "bms": "Danehill",
+   "bmsLine": [
+    "Danehill",
+    "Danzig",
+    "Northern Dancer",
+    "Nearctic"
+   ],
+   "grandam": "ホシノグレース",
+   "gbms": "メジロマックイーン",
+   "gbmsLine": [
+    "メジロマックイーン",
+    "メジロティターン",
+    "メジロアサマ",
+    "シャトーゲイ"
+   ],
+   "surface": "芝",
+   "dist": [
+    2000,
+    3000
+   ],
+   "growth": "晩成"
+  },
+  {
+   "name": "アカリローズ",
+   "group": "kingmambo",
+   "rank": "B",
+   "sire": "キングマンボ",
+   "sireLine": [
+    "キングマンボ",
+    "ミスタープロスペクター",
+    "レイズアネイティヴ"
+   ],
+   "dam": "ホシノフェアリー",
+   "bms": "ハーツクライ",
+   "bmsLine": [
+    "ハーツクライ",
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "grandam": "アカリドリーム",
+   "gbms": "テスコボーイ",
+   "gbmsLine": [
+    "テスコボーイ",
+    "プリンスリーギフト",
+    "ナスルーラ",
+    "ニアーコ"
+   ],
+   "surface": "芝",
+   "dist": [
+    1400,
+    2200
+   ],
+   "growth": "普通"
+  },
+  {
+   "name": "ナギサドリーム",
+   "group": "kingmambo",
+   "rank": "A",
+   "sire": "キングカメハメハ",
+   "sireLine": [
+    "キングカメハメハ",
+    "キングマンボ",
+    "ミスタープロスペクター"
+   ],
+   "dam": "チハヤスター",
+   "bms": "キングマンボ",
+   "bmsLine": [
+    "キングマンボ",
+    "ミスタープロスペクター",
+    "レイズアネイティヴ"
+   ],
+   "grandam": "コハクローズ",
+   "gbms": "サンデーサイレンス",
+   "gbmsLine": [
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン",
+    "ターントゥ"
+   ],
+   "surface": "芝",
+   "dist": [
+    1600,
+    2400
+   ],
+   "growth": "普通"
+  },
+  {
+   "name": "コハクドリーム",
+   "group": "kingmambo",
+   "rank": "S",
+   "sire": "エルコンドルパサー",
+   "sireLine": [
+    "エルコンドルパサー",
+    "キングマンボ",
+    "ミスタープロスペクター"
+   ],
+   "dam": "カゼノクイーン",
+   "bms": "メジロマックイーン",
+   "bmsLine": [
+    "メジロマックイーン",
+    "メジロティターン",
+    "メジロアサマ",
+    "シャトーゲイ"
+   ],
+   "grandam": "コハクシンフォニー",
+   "gbms": "フォーティナイナー",
+   "gbmsLine": [
+    "フォーティナイナー",
+    "ミスタープロスペクター",
+    "レイズアネイティヴ",
+    "ネイティヴダンサー"
+   ],
+   "surface": "芝",
+   "dist": [
+    1600,
+    2400
+   ],
+   "growth": "普通"
+  },
+  {
+   "name": "コハククイーン",
+   "group": "kingmambo",
+   "rank": "B",
+   "sire": "キングズベスト",
+   "sireLine": [
+    "キングズベスト",
+    "キングマンボ",
+    "ミスタープロスペクター"
+   ],
+   "dam": "ツキノフェアリー",
+   "bms": "バゴ",
+   "bmsLine": [
+    "バゴ",
+    "ナシュワン",
+    "ブラッシンググルーム",
+    "レッドゴッド"
+   ],
+   "grandam": "コハクウィング",
+   "gbms": "トニービン",
+   "gbmsLine": [
+    "トニービン",
+    "カンパラ",
+    "カラムーン",
+    "サーゲイロード"
+   ],
+   "surface": "芝",
+   "dist": [
+    1600,
+    2400
+   ],
+   "growth": "普通"
+  },
+  {
+   "name": "チハヤムーン",
+   "group": "kingmambo",
+   "rank": "C",
+   "sire": "レモンドロップキッド",
+   "sireLine": [
+    "レモンドロップキッド",
+    "キングマンボ",
+    "ミスタープロスペクター"
+   ],
+   "dam": "ノゾミソング",
+   "bms": "サンデーサイレンス",
+   "bmsLine": [
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン",
+    "ターントゥ"
+   ],
+   "grandam": "ナギサムーン",
+   "gbms": "ロベルト",
+   "gbmsLine": [
+    "ロベルト",
+    "ヘイルトゥリーズン",
+    "ターントゥ",
+    "ロイヤルチャージャー"
+   ],
+   "surface": "ダート",
+   "dist": [
+    1600,
+    2200
+   ],
+   "growth": "普通"
+  },
+  {
+   "name": "ルリノティアラ",
+   "group": "kingmambo",
+   "rank": "A",
+   "sire": "ロードカナロア",
+   "sireLine": [
+    "ロードカナロア",
+    "キングカメハメハ",
+    "キングマンボ"
+   ],
+   "dam": "チハヤティアラ",
+   "bms": "ブライアンズタイム",
+   "bmsLine": [
+    "ブライアンズタイム",
+    "ロベルト",
+    "ヘイルトゥリーズン",
+    "ターントゥ"
+   ],
+   "grandam": "ユキノレディ",
+   "gbms": "クロフネ",
+   "gbmsLine": [
+    "クロフネ",
+    "フレンチデピュティ",
+    "デピュティミニスター",
+    "ヴァイスリージェント"
+   ],
+   "surface": "芝",
+   "dist": [
+    1000,
+    1600
+   ],
+   "growth": "早熟"
+  },
+  {
+   "name": "モモノハート",
+   "group": "kingmambo",
+   "rank": "B",
+   "sire": "ルーラーシップ",
+   "sireLine": [
+    "ルーラーシップ",
+    "キングカメハメハ",
+    "キングマンボ"
+   ],
+   "dam": "スズノローズ",
+   "bms": "Sadler's Wells",
+   "bmsLine": [
+    "Sadler's Wells",
+    "Northern Dancer",
+    "Nearctic",
+    "Native Dancer"
+   ],
+   "grandam": "ツキノウィング",
+   "gbms": "ノーザンテースト",
+   "gbmsLine": [
+    "ノーザンテースト",
+    "ノーザンダンサー",
+    "ニアークティック",
+    "ニアーコ"
+   ],
+   "surface": "芝",
+   "dist": [
+    1800,
+    2800
+   ],
+   "growth": "普通"
+  },
+  {
+   "name": "ウミノプリンセス",
+   "group": "kingmambo",
+   "rank": "C",
+   "sire": "レイデオロ",
+   "sireLine": [
+    "レイデオロ",
+    "キングカメハメハ",
+    "キングマンボ"
+   ],
+   "dam": "コハクムーン",
+   "bms": "スペシャルウィーク",
+   "bmsLine": [
+    "スペシャルウィーク",
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "grandam": "アオイダンス",
+   "gbms": "Danehill",
+   "gbmsLine": [
+    "Danehill",
+    "Danzig",
+    "Northern Dancer",
+    "Nearctic"
+   ],
+   "surface": "芝",
+   "dist": [
+    1800,
+    2600
+   ],
+   "growth": "普通"
+  },
+  {
+   "name": "ホシノシンフォニー",
+   "group": "kingmambo",
+   "rank": "B",
+   "sire": "キングマンボ",
+   "sireLine": [
+    "キングマンボ",
+    "ミスタープロスペクター",
+    "レイズアネイティヴ"
+   ],
+   "dam": "カゼノレディ",
+   "bms": "Galileo",
+   "bmsLine": [
+    "Galileo",
+    "Sadler's Wells",
+    "Northern Dancer",
+    "Nearctic"
+   ],
+   "grandam": "スズノスター",
+   "gbms": "キングマンボ",
+   "gbmsLine": [
+    "キングマンボ",
+    "ミスタープロスペクター",
+    "レイズアネイティヴ"
+   ],
+   "surface": "芝",
+   "dist": [
+    1400,
+    2200
+   ],
+   "growth": "普通"
+  },
+  {
+   "name": "チハヤダンス",
+   "group": "kingmambo",
+   "rank": "C",
+   "sire": "ドバイデスティネーション",
+   "sireLine": [
+    "ドバイデスティネーション",
+    "キングマンボ",
+    "ミスタープロスペクター"
+   ],
+   "dam": "アオイグレース",
+   "bms": "サクラバクシンオー",
+   "bmsLine": [
+    "サクラバクシンオー",
+    "サクラユタカオー",
+    "テスコボーイ",
+    "プリンスリーギフト"
+   ],
+   "grandam": "ウミノクイーン",
+   "gbms": "ダンシングブレーヴ",
+   "gbmsLine": [
+    "ダンシングブレーヴ",
+    "リファール",
+    "ノーザンダンサー",
+    "ニアークティック"
+   ],
+   "surface": "芝",
+   "dist": [
+    1400,
+    2000
+   ],
+   "growth": "普通"
+  },
+  {
+   "name": "ソラノドリーム",
+   "group": "overseas",
+   "rank": "S",
+   "sire": "Galileo",
+   "sireLine": [
+    "Galileo",
+    "Sadler's Wells",
+    "Northern Dancer",
+    "Nearctic"
+   ],
+   "dam": "モモノティアラ",
+   "bms": "ノーザンテースト",
+   "bmsLine": [
+    "ノーザンテースト",
+    "ノーザンダンサー",
+    "ニアークティック",
+    "ニアーコ"
+   ],
+   "grandam": "ウミノシンフォニー",
+   "gbms": "Sadler's Wells",
+   "gbmsLine": [
+    "Sadler's Wells",
+    "Northern Dancer",
+    "Nearctic",
+    "Native Dancer"
+   ],
+   "surface": "芝",
+   "dist": [
+    1800,
+    2800
+   ],
+   "growth": "晩成"
+  },
+  {
+   "name": "コハクグレース",
+   "group": "overseas",
+   "rank": "A",
+   "sire": "Montjeu",
+   "sireLine": [
+    "Montjeu",
+    "Sadler's Wells",
+    "Northern Dancer",
+    "Nearctic"
+   ],
+   "dam": "アカリブーケ",
+   "bms": "キングカメハメハ",
+   "bmsLine": [
+    "キングカメハメハ",
+    "キングマンボ",
+    "ミスタープロスペクター"
+   ],
+   "grandam": "ナギサエンジェル",
+   "gbms": "Mr. Prospector",
+   "gbmsLine": [
+    "Mr. Prospector",
+    "Raise a Native",
+    "Native Dancer",
+    "Polynesian"
+   ],
+   "surface": "芝",
+   "dist": [
+    2000,
+    3000
+   ],
+   "growth": "晩成"
+  },
+  {
+   "name": "サキノハート",
+   "group": "overseas",
+   "rank": "B",
+   "sire": "Danehill",
+   "sireLine": [
+    "Danehill",
+    "Danzig",
+    "Northern Dancer",
+    "Nearctic"
+   ],
+   "dam": "アオイソング",
+   "bms": "エルコンドルパサー",
+   "bmsLine": [
+    "エルコンドルパサー",
+    "キングマンボ",
+    "ミスタープロスペクター"
+   ],
+   "grandam": "スズノティアラ",
+   "gbms": "エルコンドルパサー",
+   "gbmsLine": [
+    "エルコンドルパサー",
+    "キングマンボ",
+    "ミスタープロスペクター"
+   ],
+   "surface": "芝",
+   "dist": [
+    1200,
+    1800
+   ],
+   "growth": "早熟"
+  },
+  {
+   "name": "ヒカリスター",
+   "group": "overseas",
+   "rank": "C",
+   "sire": "Danzig",
+   "sireLine": [
+    "Danzig",
+    "Northern Dancer",
+    "Nearctic",
+    "Native Dancer"
+   ],
+   "dam": "コハクプリンセス",
+   "bms": "ダイワメジャー",
+   "bmsLine": [
+    "ダイワメジャー",
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "grandam": "ユメノレディ",
+   "gbms": "ブライアンズタイム",
+   "gbmsLine": [
+    "ブライアンズタイム",
+    "ロベルト",
+    "ヘイルトゥリーズン",
+    "ターントゥ"
+   ],
+   "surface": "芝",
+   "dist": [
+    1200,
+    1600
+   ],
+   "growth": "早熟"
+  },
+  {
+   "name": "ノゾミプリンセス",
+   "group": "overseas",
+   "rank": "A",
+   "sire": "Storm Cat",
+   "sireLine": [
+    "Storm Cat",
+    "Northern Dancer",
+    "Nearctic",
+    "Native Dancer"
+   ],
+   "dam": "ノゾミスター",
+   "bms": "フレンチデピュティ",
+   "bmsLine": [
+    "フレンチデピュティ",
+    "デピュティミニスター",
+    "ヴァイスリージェント",
+    "ノーザンダンサー"
+   ],
+   "grandam": "カゼノベル",
+   "gbms": "ノーザンダンサー",
+   "gbmsLine": [
+    "ノーザンダンサー",
+    "ニアークティック",
+    "ニアーコ",
+    "ファラモンド"
+   ],
+   "surface": "ダート",
+   "dist": [
+    1200,
+    1800
+   ],
+   "growth": "早熟"
+  },
+  {
+   "name": "ヒカリフェアリー",
+   "group": "overseas",
+   "rank": "B",
+   "sire": "A.P. Indy",
+   "sireLine": [
+    "A.P. Indy",
+    "Seattle Slew",
+    "Bold Reasoning",
+    "Boldnesian"
+   ],
+   "dam": "サキノウィング",
+   "bms": "Storm Cat",
+   "bmsLine": [
+    "Storm Cat",
+    "Northern Dancer",
+    "Nearctic",
+    "Native Dancer"
+   ],
+   "grandam": "アカリレディ",
+   "gbms": "メジロマックイーン",
+   "gbmsLine": [
+    "メジロマックイーン",
+    "メジロティターン",
+    "メジロアサマ",
+    "シャトーゲイ"
+   ],
+   "surface": "ダート",
+   "dist": [
+    1600,
+    2400
+   ],
+   "growth": "普通"
+  },
+  {
+   "name": "ハルノシンフォニー",
+   "group": "overseas",
+   "rank": "B",
+   "sire": "Rainbow Quest",
+   "sireLine": [
+    "Rainbow Quest",
+    "Blushing Groom",
+    "Red God",
+    "Nasrullah"
+   ],
+   "dam": "アオイハート",
+   "bms": "フォーティナイナー",
+   "bmsLine": [
+    "フォーティナイナー",
+    "ミスタープロスペクター",
+    "レイズアネイティヴ",
+    "ネイティヴダンサー"
+   ],
+   "grandam": "ハルノドリーム",
+   "gbms": "テスコボーイ",
+   "gbmsLine": [
+    "テスコボーイ",
+    "プリンスリーギフト",
+    "ナスルーラ",
+    "ニアーコ"
+   ],
+   "surface": "芝",
+   "dist": [
+    1800,
+    2800
+   ],
+   "growth": "晩成"
+  },
+  {
+   "name": "モモノソング",
+   "group": "overseas",
+   "rank": "C",
+   "sire": "Machiavellian",
+   "sireLine": [
+    "Machiavellian",
+    "Mr. Prospector",
+    "Raise a Native",
+    "Native Dancer"
+   ],
+   "dam": "ホシノパレード",
+   "bms": "トニービン",
+   "bmsLine": [
+    "トニービン",
+    "カンパラ",
+    "カラムーン",
+    "サーゲイロード"
+   ],
+   "grandam": "ナギサウィング",
+   "gbms": "サンデーサイレンス",
+   "gbmsLine": [
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン",
+    "ターントゥ"
+   ],
+   "surface": "芝",
+   "dist": [
+    1200,
+    1800
+   ],
+   "growth": "早熟"
+  },
+  {
+   "name": "ルリノエンジェル",
+   "group": "overseas",
+   "rank": "A",
+   "sire": "Sadler's Wells",
+   "sireLine": [
+    "Sadler's Wells",
+    "Northern Dancer",
+    "Nearctic",
+    "Native Dancer"
+   ],
+   "dam": "ソラノスター",
+   "bms": "クロフネ",
+   "bmsLine": [
+    "クロフネ",
+    "フレンチデピュティ",
+    "デピュティミニスター",
+    "ヴァイスリージェント"
+   ],
+   "grandam": "サキノブーケ",
+   "gbms": "フォーティナイナー",
+   "gbmsLine": [
+    "フォーティナイナー",
+    "ミスタープロスペクター",
+    "レイズアネイティヴ",
+    "ネイティヴダンサー"
+   ],
+   "surface": "芝",
+   "dist": [
+    1800,
+    2800
+   ],
+   "growth": "晩成"
+  },
+  {
+   "name": "ヒカリブーケ",
+   "group": "overseas",
+   "rank": "C",
+   "sire": "Invincible Spirit",
+   "sireLine": [
+    "Invincible Spirit",
+    "Green Desert",
+    "Danzig",
+    "Northern Dancer"
+   ],
+   "dam": "カゼノシンフォニー",
+   "bms": "Danehill",
+   "bmsLine": [
+    "Danehill",
+    "Danzig",
+    "Northern Dancer",
+    "Nearctic"
+   ],
+   "grandam": "ナギサグレース",
+   "gbms": "トニービン",
+   "gbmsLine": [
+    "トニービン",
+    "カンパラ",
+    "カラムーン",
+    "サーゲイロード"
+   ],
+   "surface": "芝",
+   "dist": [
+    1000,
+    1400
+   ],
+   "growth": "早熟"
+  },
+  {
+   "name": "ナギサフェアリー",
+   "group": "other",
+   "rank": "B",
+   "sire": "トウショウボーイ",
+   "sireLine": [
+    "トウショウボーイ",
+    "テスコボーイ",
+    "プリンスリーギフト",
+    "ナスルーラ"
+   ],
+   "dam": "モモノドリーム",
+   "bms": "ハーツクライ",
+   "bmsLine": [
+    "ハーツクライ",
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "grandam": "ハルノハート",
+   "gbms": "ロベルト",
+   "gbmsLine": [
+    "ロベルト",
+    "ヘイルトゥリーズン",
+    "ターントゥ",
+    "ロイヤルチャージャー"
+   ],
+   "surface": "芝",
+   "dist": [
+    1200,
+    1800
+   ],
+   "growth": "早熟"
+  },
+  {
+   "name": "カゼノグレース",
+   "group": "other",
+   "rank": "S",
+   "sire": "ノーザンテースト",
+   "sireLine": [
+    "ノーザンテースト",
+    "ノーザンダンサー",
+    "ニアークティック",
+    "ニアーコ"
+   ],
+   "dam": "ユキノクイーン",
+   "bms": "キングマンボ",
+   "bmsLine": [
+    "キングマンボ",
+    "ミスタープロスペクター",
+    "レイズアネイティヴ"
+   ],
+   "grandam": "ルリノダンス",
+   "gbms": "クロフネ",
+   "gbmsLine": [
+    "クロフネ",
+    "フレンチデピュティ",
+    "デピュティミニスター",
+    "ヴァイスリージェント"
+   ],
+   "surface": "芝",
+   "dist": [
+    1400,
+    2200
+   ],
+   "growth": "普通"
+  },
+  {
+   "name": "ツキノプリンセス",
+   "group": "other",
+   "rank": "A",
+   "sire": "ブライアンズタイム",
+   "sireLine": [
+    "ブライアンズタイム",
+    "ロベルト",
+    "ヘイルトゥリーズン",
+    "ターントゥ"
+   ],
+   "dam": "ミライエンジェル",
+   "bms": "メジロマックイーン",
+   "bmsLine": [
+    "メジロマックイーン",
+    "メジロティターン",
+    "メジロアサマ",
+    "シャトーゲイ"
+   ],
+   "grandam": "コハクパレード",
+   "gbms": "ノーザンテースト",
+   "gbmsLine": [
+    "ノーザンテースト",
+    "ノーザンダンサー",
+    "ニアークティック",
+    "ニアーコ"
+   ],
+   "surface": "ダート",
+   "dist": [
+    1400,
+    2100
+   ],
+   "growth": "普通"
+  },
+  {
+   "name": "ソラノウィング",
+   "group": "other",
+   "rank": "B",
+   "sire": "トニービン",
+   "sireLine": [
+    "トニービン",
+    "カンパラ",
+    "カラムーン",
+    "サーゲイロード"
+   ],
+   "dam": "スズノダンス",
+   "bms": "バゴ",
+   "bmsLine": [
+    "バゴ",
+    "ナシュワン",
+    "ブラッシンググルーム",
+    "レッドゴッド"
+   ],
+   "grandam": "ホシノレディ",
+   "gbms": "Danehill",
+   "gbmsLine": [
+    "Danehill",
+    "Danzig",
+    "Northern Dancer",
+    "Nearctic"
+   ],
+   "surface": "芝",
+   "dist": [
+    1800,
+    2800
+   ],
+   "growth": "晩成"
+  },
+  {
+   "name": "ハルノフェアリー",
+   "group": "other",
+   "rank": "C",
+   "sire": "サクラバクシンオー",
+   "sireLine": [
+    "サクラバクシンオー",
+    "サクラユタカオー",
+    "テスコボーイ",
+    "プリンスリーギフト"
+   ],
+   "dam": "ハルノエンジェル",
+   "bms": "サンデーサイレンス",
+   "bmsLine": [
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン",
+    "ターントゥ"
+   ],
+   "grandam": "アカリエンジェル",
+   "gbms": "キングマンボ",
+   "gbmsLine": [
+    "キングマンボ",
+    "ミスタープロスペクター",
+    "レイズアネイティヴ"
+   ],
+   "surface": "芝",
+   "dist": [
+    1000,
+    1400
+   ],
+   "growth": "早熟"
+  },
+  {
+   "name": "ユキノダンス",
+   "group": "other",
+   "rank": "A",
+   "sire": "クロフネ",
+   "sireLine": [
+    "クロフネ",
+    "フレンチデピュティ",
+    "デピュティミニスター",
+    "ヴァイスリージェント"
+   ],
+   "dam": "ツキノムーン",
+   "bms": "ブライアンズタイム",
+   "bmsLine": [
+    "ブライアンズタイム",
+    "ロベルト",
+    "ヘイルトゥリーズン",
+    "ターントゥ"
+   ],
+   "grandam": "ナギサハート",
+   "gbms": "ダンシングブレーヴ",
+   "gbmsLine": [
+    "ダンシングブレーヴ",
+    "リファール",
+    "ノーザンダンサー",
+    "ニアークティック"
+   ],
+   "surface": "ダート",
+   "dist": [
+    1200,
+    1800
+   ],
+   "growth": "普通"
+  },
+  {
+   "name": "アオイクイーン",
+   "group": "other",
+   "rank": "B",
+   "sire": "キングヘイロー",
+   "sireLine": [
+    "キングヘイロー",
+    "ダンシングブレーヴ",
+    "リファール",
+    "ノーザンダンサー"
+   ],
+   "dam": "ホシノティアラ",
+   "bms": "Sadler's Wells",
+   "bmsLine": [
+    "Sadler's Wells",
+    "Northern Dancer",
+    "Nearctic",
+    "Native Dancer"
+   ],
+   "grandam": "ミライクイーン",
+   "gbms": "Sadler's Wells",
+   "gbmsLine": [
+    "Sadler's Wells",
+    "Northern Dancer",
+    "Nearctic",
+    "Native Dancer"
+   ],
+   "surface": "芝",
+   "dist": [
+    1200,
+    1800
+   ],
+   "growth": "早熟"
+  },
+  {
+   "name": "ユメノダンス",
+   "group": "other",
+   "rank": "C",
+   "sire": "バゴ",
+   "sireLine": [
+    "バゴ",
+    "ナシュワン",
+    "ブラッシンググルーム",
+    "レッドゴッド"
+   ],
+   "dam": "ウミノハート",
+   "bms": "スペシャルウィーク",
+   "bmsLine": [
+    "スペシャルウィーク",
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "grandam": "モモノローズ",
+   "gbms": "Mr. Prospector",
+   "gbmsLine": [
+    "Mr. Prospector",
+    "Raise a Native",
+    "Native Dancer",
+    "Polynesian"
+   ],
+   "surface": "芝",
+   "dist": [
+    1800,
+    2600
+   ],
+   "growth": "晩成"
+  },
+  {
+   "name": "スズノウィング",
+   "group": "other",
+   "rank": "B",
+   "sire": "フォーティナイナー",
+   "sireLine": [
+    "フォーティナイナー",
+    "ミスタープロスペクター",
+    "レイズアネイティヴ",
+    "ネイティヴダンサー"
+   ],
+   "dam": "ナギサスター",
+   "bms": "Galileo",
+   "bmsLine": [
+    "Galileo",
+    "Sadler's Wells",
+    "Northern Dancer",
+    "Nearctic"
+   ],
+   "grandam": "ミライブーケ",
+   "gbms": "エルコンドルパサー",
+   "gbmsLine": [
+    "エルコンドルパサー",
+    "キングマンボ",
+    "ミスタープロスペクター"
+   ],
+   "surface": "ダート",
+   "dist": [
+    1200,
+    1800
+   ],
+   "growth": "早熟"
+  },
+  {
+   "name": "サキノエンジェル",
+   "group": "other",
+   "rank": "C",
+   "sire": "スキャン",
+   "sireLine": [
+    "スキャン",
+    "ミスタープロスペクター",
+    "レイズアネイティヴ",
+    "ネイティヴダンサー"
+   ],
+   "dam": "アカリダンス",
+   "bms": "サクラバクシンオー",
+   "bmsLine": [
+    "サクラバクシンオー",
+    "サクラユタカオー",
+    "テスコボーイ",
+    "プリンスリーギフト"
+   ],
+   "grandam": "スズノフェアリー",
+   "gbms": "ブライアンズタイム",
+   "gbmsLine": [
+    "ブライアンズタイム",
+    "ロベルト",
+    "ヘイルトゥリーズン",
+    "ターントゥ"
+   ],
+   "surface": "ダート",
+   "dist": [
+    1400,
+    2000
+   ],
+   "growth": "普通"
+  }
+ ]
+}
