@@ -516,6 +516,11 @@ function youngPrice(h){
   const noise = h.saleNoise != null ? h.saleNoise : 1;
   return clamp(Math.round(base * ageF * noise / 10) * 10, 100, 12000);
 }
+/* 種牡馬入りの資格（v0.30・Terai決定）：牡馬で、重賞勝ちがあるか通算獲得賞金1億円（10000万円）以上。
+   資格がある馬は引退時に「種牡馬にするか」を選べる（従来は重賞勝ちで自動入りだった） */
+function canEnterStud(h){
+  return h.sex==="牡" && (!!h.gradedWin || (h.earnings||0) >= 10000);
+}
 function canSellYoung(h){
   return !h.retired && (h.status==="foal" || h.status==="yearling" || (h.status==="racehorse" && h.results.length===0));
 }
@@ -1453,7 +1458,12 @@ function openHorse(id){
   const rb = $("#retireBtn"); if(rb) rb.onclick = () => {
     h.retired = true;
     if(h.sex==="牝"){ h.status="broodmare"; h.retired=false; chron(h.name+" は引退し、繁殖牝馬になった"); topic(h.name+" が繁殖入りしました"); }
-    else if(h.gradedWin){ h.status="stallion"; S.stallions.push({name:h.name, sire:h.sire, region:"domestic", surface:h.surface, dist:[h.distMin,h.distMax], growth:h.growth, gtype:gtypeOf(h), fee_tier:"B", fresh:true}); chron(h.name+" は引退し、種牡馬入りした"); topic("✨ "+h.name+" が種牡馬入りしました"); }
+    else if(canEnterStud(h)){
+      const why = (h.gradedWin ? "重賞勝ち" : "") + (h.gradedWin && h.earnings>=10000 ? "・" : "") + (h.earnings>=10000 ? "通算賞金1億円以上" : "");
+      if(confirm(h.name+" は種牡馬入りの資格があります（"+why+"）。\n種牡馬にしますか？（キャンセル＝種牡馬入りせず引退）")){
+        h.status="stallion"; S.stallions.push({name:h.name, sire:h.sire, region:"domestic", surface:h.surface, dist:[h.distMin,h.distMax], growth:h.growth, gtype:gtypeOf(h), fee_tier:"B", fresh:true}); chron(h.name+" は引退し、種牡馬入りした"); topic("✨ "+h.name+" が種牡馬入りしました");
+      } else { chron(h.name+" は引退した（種牡馬入りは見送り）"); }
+    }
     else { chron(h.name+" は引退した"); }
     $("#horseModal").style.display = "none"; save(); render();
   };
@@ -1546,6 +1556,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>NKC / WHC 競馬ゲーム試作 v0.29</footer>
+<footer>NKC / WHC 競馬ゲーム試作 v0.30</footer>
 </body>
 </html>
