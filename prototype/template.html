@@ -599,7 +599,7 @@ function migrateV029(){
   if(S.stallions) for(const st of S.stallions){ if(!st.gtype) st.gtype = st.growth || "普通"; }
   /* v0.33 移行：年表から通常のレース結果・成長メモ・スキップ記録を取り除き（ビッグイベントのみにする）、
      マイルストーン状態を既存の戦績から復元する（達成済みの初制覇などが遡って発火しないように） */
-  if(S.chronicle) S.chronicle = S.chronicle.filter(c=>!/^【(レース|成長|スキップ)】/.test(c.text));
+  if(S.chronicle) S.chronicle = S.chronicle.filter(c=>!/^【(レース|成長|スキップ|種付け|NKC年度記録)】/.test(c.text) && !/は2歳になり、現役馬に編入された/.test(c.text));
   ensureMile();
   if(S.kanmuri == null) S.kanmuri = "";
   /* v0.35で仮名フラグが付かなかった産駒の救済（v0.36）：名前が「母名のYY」のままの若馬に命名可能フラグを付け直す */
@@ -940,13 +940,11 @@ function onNewYear(){
     if(h.status==="foal" && ageOf(h)>=1) h.status="yearling";
     else if(h.status==="yearling" && ageOf(h)>=2){
       if(h.unnamed){ const oldName = h.name; h.name = farmFoalName(); h.unnamed = false; chron("【命名】"+oldName+" は2歳になるまでに名前が決まらなかったため、「"+h.name+"」と自動で命名された"); }
-      h.status="racehorse"; chron(h.name+" は2歳になり、現役馬に編入された");
+      h.status="racehorse";
     }
   }
   // 種牡馬ロスターは固定：世代交代・補充は行わない（WS4b・2026-11-13）
-  // 年末表彰っぽい年表
-  const best = S.horses.filter(h=>h.status==="racehorse").sort((a,b)=>b.earnings-a.earnings)[0];
-  if(best && best.earnings>0) chron("【NKC年度記録】ここまでの獲得賞金トップは "+best.name+"（"+man(best.earnings)+"）");
+  // 年表は大きな出来事だけに絞る（v0.38・Terai方針）：年度トップのような定例行は書かない
 }
 function weeklyEvents(){
   if(S.month===2 && S.week===1) topic("🌸 繁殖シーズンが始まりました（2〜6月）。「繁殖」タブで種付けできます");
@@ -1314,6 +1312,8 @@ let mateMareId = null, mateSort = "recommend";
 let mateFilter = { region:"all", surface:"all", feeMax:"all", homeOnly:false };
 /* 自家製種牡馬か（自牧場の馬が種牡馬入りしたもの。ロスターの自動補充組は含まない） */
 function isHomebredStallion(st){ return S.horses.some(h=>h.status==="stallion" && h.name===st.name); }
+/* 種付料（v0.38）：自家製種牡馬は無料（設計通り）。それ以外はティア別の固定額 */
+function stallionFee(st){ return isHomebredStallion(st) ? 0 : FEE_VAL[st.fee_tier]; }
 function compatScore(m, st){
   let s = 0;
   if(st.surface===m.surface) s += 2; else if(st.surface==="芝ダート" || m.surface==="芝ダート") s += 1;
@@ -1329,20 +1329,20 @@ function inbreedNote(m, st){
   return "";
 }
 function mateWith(m, st){
-  const f = FEE_VAL[st.fee_tier];
+  const f = stallionFee(st);
   if(S.funds < f){ topic("⚠️ 資金が足りません"); save(); render(); return; }
   S.funds -= f;
   m.lastSire = st.name;
   const guaranteed = !S.firstMatingDone; // 最初の1回だけ受胎確定（滑り出しで詰まらないための配慮）
-  if(guaranteed || Math.random() < 0.85){ S.firstMatingDone = true; m.pregnant = { sire: st.name, dueYear: S.year+1 }; chron("【種付け】"+m.name+" × "+st.name+"（種付料"+f+"万円）"); topic("🌸 "+m.name+" が "+st.name+" を受胎しました（来年出産予定）"); }
-  else { chron("【種付け】"+m.name+" × "+st.name+" は不受胎だった"); topic(m.name+" は不受胎でした。また来年。"); }
+  if(guaranteed || Math.random() < 0.85){ S.firstMatingDone = true; m.pregnant = { sire: st.name, dueYear: S.year+1 }; topic("🌸 "+m.name+" が "+st.name+" を受胎しました（来年出産予定）"); }
+  else { topic(m.name+" は不受胎でした。シーズン中なら再種付けできます"); }
   save(); render();
 }
 function sortedForMating(m){
   const arr = S.stallions.filter(st =>
     (mateFilter.region==="all" || st.region===mateFilter.region) &&
     (mateFilter.surface==="all" || st.surface===mateFilter.surface) &&
-    (mateFilter.feeMax==="all" || FEE_VAL[st.fee_tier] <= parseInt(mateFilter.feeMax,10)) &&
+    (mateFilter.feeMax==="all" || stallionFee(st) <= parseInt(mateFilter.feeMax,10)) &&
     (!mateFilter.homeOnly || isHomebredStallion(st)));
   const growOrd = {"早熟":0, "普通":1, "晩成":2};
   if(mateSort==="recommend") arr.sort((a,b)=> (compatScore(m,b)-compatScore(m,a)) || (((S.favs||[]).includes(b.name)?1:0)-((S.favs||[]).includes(a.name)?1:0)) || (FEE_VAL[b.fee_tier]-FEE_VAL[a.fee_tier]));
@@ -1351,8 +1351,8 @@ function sortedForMating(m){
   else if(mateSort==="distShort") arr.sort((a,b)=> (a.dist[0]-b.dist[0]) || (a.dist[1]-b.dist[1]));
   else if(mateSort==="distLong") arr.sort((a,b)=> (b.dist[1]-a.dist[1]) || (b.dist[0]-a.dist[0]));
   else if(mateSort==="growth") arr.sort((a,b)=> (growOrd[a.growth]-growOrd[b.growth]) || (FEE_VAL[b.fee_tier]-FEE_VAL[a.fee_tier]));
-  else if(mateSort==="feeDesc") arr.sort((a,b)=> FEE_VAL[b.fee_tier]-FEE_VAL[a.fee_tier]);
-  else if(mateSort==="feeAsc") arr.sort((a,b)=> FEE_VAL[a.fee_tier]-FEE_VAL[b.fee_tier]);
+  else if(mateSort==="feeDesc") arr.sort((a,b)=> stallionFee(b)-stallionFee(a));
+  else if(mateSort==="feeAsc") arr.sort((a,b)=> stallionFee(a)-stallionFee(b));
     return arr;
 }
 function broodmareStatusTable(mares){
@@ -1391,11 +1391,11 @@ function broodmareTable(){
     for(const st of list){
       const note = inbreedNote(m, st);
       const hotNote = isHotCross(stallionGen(st).temp, m.temp) ? "気性が荒くなりやすい配合（確変）" : "";
-      html += "<tr><td><button data-fav='"+st.name+"' class='ghost' title='お気に入り'>"+((S.favs||[]).includes(st.name)?"★":"☆")+"</button></td><td>"+st.name+(isHomebredStallion(st)?" <span class='ok'>自家製</span>":"")+(st.sire?" <span class='sub'>父 "+st.sire+"</span>":"")+"</td><td>"+(st.region==="overseas"?"海外":"国内")+"</td><td>"+st.surface+"</td><td>"+st.dist[0]+"-"+st.dist[1]+"m</td><td>"+st.growth+"</td><td>"+st.fee_tier+"</td><td>"+stallionTendency(st)+"</td><td>"+man(FEE_VAL[st.fee_tier])+"</td><td>"+compatMark(m, st)+(note?" <span class='bad'>"+note+"</span>":"")+(hotNote?" <span class='bad'>"+hotNote+"</span>":"")+"</td><td><button data-matewith='"+st.name+"'>種付け</button></td></tr>";
+      html += "<tr><td><button data-fav='"+st.name+"' class='ghost' title='お気に入り'>"+((S.favs||[]).includes(st.name)?"★":"☆")+"</button></td><td>"+st.name+(isHomebredStallion(st)?" <span class='ok'>自家製</span>":"")+(st.sire?" <span class='sub'>父 "+st.sire+"</span>":"")+"</td><td>"+(st.region==="overseas"?"海外":"国内")+"</td><td>"+st.surface+"</td><td>"+st.dist[0]+"-"+st.dist[1]+"m</td><td>"+st.growth+"</td><td>"+st.fee_tier+"</td><td>"+stallionTendency(st)+"</td><td>"+(stallionFee(st)===0 ? "無料" : man(stallionFee(st)))+"</td><td>"+compatMark(m, st)+(note?" <span class='bad'>"+note+"</span>":"")+(hotNote?" <span class='bad'>"+hotNote+"</span>":"")+"</td><td><button data-matewith='"+st.name+"'>種付け</button></td></tr>";
     }
     html += "</table>";
   }
-  html += broodmareStatusTable(mares) + "<div class='sub'>種付けした仔は翌年の年初に生まれます。種付料はティア別の設計値です。</div>";
+  html += broodmareStatusTable(mares) + "<div class='sub'>種付けした仔は翌年の年初に生まれます。種付料はティア別の設計値です（自家製種牡馬は無料）。</div>";
   setTimeout(()=>{
     document.querySelectorAll("[data-mate-mare]").forEach(btn => btn.onclick = () => { mateMareId = btn.getAttribute("data-mate-mare"); render(); });
     const so = document.querySelector("#mateSort"); if(so) so.onchange = () => { mateSort = so.value; render(); };
@@ -1430,8 +1430,8 @@ function sortedStallions(){
   else if(stallionSort==="distLong") arr.sort((a,b)=> (b.dist[1]-a.dist[1]) || (b.dist[0]-a.dist[0]));
   else if(stallionSort==="sire") arr.sort((a,b)=> String(a.sire||"～").localeCompare(String(b.sire||"～"), "ja") || (FEE_VAL[b.fee_tier]-FEE_VAL[a.fee_tier]));
   else if(stallionSort==="growth") arr.sort((a,b)=> (growOrd[a.growth]-growOrd[b.growth]) || (FEE_VAL[b.fee_tier]-FEE_VAL[a.fee_tier]));
-  else if(stallionSort==="feeDesc") arr.sort((a,b)=> FEE_VAL[b.fee_tier]-FEE_VAL[a.fee_tier]);
-  else if(stallionSort==="feeAsc") arr.sort((a,b)=> FEE_VAL[a.fee_tier]-FEE_VAL[b.fee_tier]);
+  else if(stallionSort==="feeDesc") arr.sort((a,b)=> stallionFee(b)-stallionFee(a));
+  else if(stallionSort==="feeAsc") arr.sort((a,b)=> stallionFee(a)-stallionFee(b));
   return arr.filter(st =>
     (stallionFilter.region==="all" || st.region===stallionFilter.region) &&
     (stallionFilter.surface==="all" || st.surface===stallionFilter.surface) &&
@@ -1783,6 +1783,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>競馬シミュレーター（趣味） v0.37</footer>
+<footer>競馬シミュレーター（趣味） v0.38</footer>
 </body>
 </html>
