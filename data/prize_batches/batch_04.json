@@ -1,0 +1,161 @@
+{
+ "kind": "direct",
+ "races": [
+  {
+   "name": "モーリスドゲスト賞",
+   "grade": "G1",
+   "country": "フランス",
+   "url": "https://racedb.com/k/40042025081004.html"
+  },
+  {
+   "name": "Ｅ・Ｐ・テイラーＳ",
+   "grade": "G1",
+   "country": "カナダ",
+   "url": "https://racedb.com/k/13192025081607.html"
+  },
+  {
+   "name": "ジャックルマロワ賞",
+   "grade": "G1",
+   "country": "フランス",
+   "url": "https://racedb.com/k/40042025081704.html"
+  },
+  {
+   "name": "インターナショナルＳ",
+   "grade": "G1",
+   "country": "イギリス",
+   "url": "https://racedb.com/k/30092025082004.html"
+  },
+  {
+   "name": "ヨークシャーオークス",
+   "grade": "G1",
+   "country": "イギリス",
+   "url": "https://racedb.com/k/30092025082104.html"
+  },
+  {
+   "name": "ナンソープＳ",
+   "grade": "G1",
+   "country": "イギリス",
+   "url": "https://racedb.com/k/30092025082204.html"
+  },
+  {
+   "name": "シティオブヨークＳ",
+   "grade": "G1",
+   "country": "イギリス",
+   "url": "https://racedb.com/k/30092025082303.html"
+  },
+  {
+   "name": "ジャンロマネ賞",
+   "grade": "G1",
+   "country": "フランス",
+   "url": "https://racedb.com/k/40042025082406.html"
+  },
+  {
+   "name": "モルニ賞",
+   "grade": "G1",
+   "country": "フランス",
+   "url": "https://racedb.com/k/40042025082404.html"
+  },
+  {
+   "name": "スプリントカップ",
+   "grade": "G1",
+   "country": "イギリス",
+   "url": "https://racedb.com/k/30152025090605.html"
+  },
+  {
+   "name": "タージノトロフィー",
+   "grade": "G1",
+   "country": "ニュージーランド",
+   "url": "https://racedb.com/k/19012025090609.html"
+  },
+  {
+   "name": "バーデン大賞",
+   "grade": "G1",
+   "country": "ドイツ",
+   "url": "https://racedb.com/k/36062025090708.html"
+  },
+  {
+   "name": "ムーランドロンシャン賞",
+   "grade": "G1",
+   "country": "フランス",
+   "url": "https://racedb.com/k/40022025090704.html"
+  },
+  {
+   "name": "ヴェルメイユ賞",
+   "grade": "G1",
+   "country": "フランス",
+   "url": "https://racedb.com/k/40022025090705.html"
+  },
+  {
+   "name": "アイリッシュチャンピオンＳ",
+   "grade": "G1",
+   "country": "アイルランド",
+   "url": "https://racedb.com/k/39042025091307.html"
+  },
+  {
+   "name": "メイトロンＳ",
+   "grade": "G1",
+   "country": "アイルランド",
+   "url": "https://racedb.com/k/39042025091305.html"
+  },
+  {
+   "name": "セントレジャーＳ",
+   "grade": "G1",
+   "country": "イギリス",
+   "url": "https://racedb.com/k/30102025091305.html"
+  },
+  {
+   "name": "ウッドバインマイルＳ",
+   "grade": "G1",
+   "country": "カナダ",
+   "url": "https://racedb.com/k/13192025091309.html"
+  },
+  {
+   "name": "サマーＳ",
+   "grade": "G1",
+   "country": "カナダ",
+   "url": "https://racedb.com/k/13192025091306.html"
+  },
+  {
+   "name": "ナタルマＳ",
+   "grade": "G1",
+   "country": "カナダ",
+   "url": "https://racedb.com/k/13192025091308.html"
+  },
+  {
+   "name": "アイリッシュセントレジャーＳ",
+   "grade": "G1",
+   "country": "アイルランド",
+   "url": "https://racedb.com/k/39012025091406.html"
+  },
+  {
+   "name": "フライングファイブＳ",
+   "grade": "G1",
+   "country": "アイルランド",
+   "url": "https://racedb.com/k/39012025091404.html"
+  },
+  {
+   "name": "モイグレアスタッドＳ",
+   "grade": "G1",
+   "country": "アイルランド",
+   "url": "https://racedb.com/k/39012025091403.html"
+  },
+  {
+   "name": "ヴィンセントオブライエンナショナルＳ",
+   "grade": "G1",
+   "country": "アイルランド",
+   "url": "https://racedb.com/k/39012025091405.html"
+  },
+  {
+   "name": "チェヴァリーパークＳ",
+   "grade": "G1",
+   "country": "イギリス",
+   "url": "https://racedb.com/k/30062025092702.html"
+  },
+  {
+   "name": "ミドルパークＳ",
+   "grade": "G1",
+   "country": "イギリス",
+   "url": "https://racedb.com/k/30062025092703.html"
+  }
+ ]
+}

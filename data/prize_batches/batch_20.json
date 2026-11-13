@@ -1,0 +1,26 @@
+{
+ "kind": "index",
+ "index_url": "https://racedb.com/grade/2025/g2-uae.htm",
+ "races": [
+  {
+   "name": "ドバイシティオブゴールド",
+   "grade": "G2",
+   "country": "アラブ首長国連邦"
+  },
+  {
+   "name": "ゴドルフィンマイル",
+   "grade": "G2",
+   "country": "アラブ首長国連邦"
+  },
+  {
+   "name": "ゴドルフィンマイル",
+   "grade": "G2",
+   "country": "アラブ首長国連邦"
+  },
+  {
+   "name": "ドバイゴールドカップ",
+   "grade": "G2",
+   "country": "アラブ首長国連邦"
+  }
+ ]
+}

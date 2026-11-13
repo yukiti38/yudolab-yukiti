@@ -1,0 +1,136 @@
+{
+ "kind": "index",
+ "index_url": "https://racedb.com/grade/2025/g1-aus.htm",
+ "races": [
+  {
+   "name": "オールエイジドＳ",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "シャンパンＳ",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "オーストラレイシアンオークス",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "ロバートサングスターＳ",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "サウスオーストラリアンダービー",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "グッドウッドＳ",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "ドゥームベン10000",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "ドゥームベンカップ",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "キングスフォードスミスカップ",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "クイーンズランドオークス",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "クイーンズランドダービー",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "ストラドブロークＨ",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "Ｊ・Ｊ・アトキンスＳ",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "タタソールズティアラ",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "ウィンクスＳ",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "メムジーＳ",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "モイアＳ",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "マカイビーディーヴァＳ",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "アンダーウッドＳ",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "サールパートクラークＳ",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "マニカトＳ",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "ゴールデンローズ",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "エプソムＨ",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "ターンブルＳ",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "フライトＳ",
+   "grade": "G1",
+   "country": "オーストラリア"
+  },
+  {
+   "name": "メトロポリタンＨ",
+   "grade": "G1",
+   "country": "オーストラリア"
+  }
+ ]
+}

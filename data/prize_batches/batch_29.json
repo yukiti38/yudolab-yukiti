@@ -1,0 +1,31 @@
+{
+ "kind": "index",
+ "index_url": "https://racedb.com/grade/2025/g3-ire.htm",
+ "races": [
+  {
+   "name": "ガリニュールＳ",
+   "grade": "G3",
+   "country": "アイルランド"
+  },
+  {
+   "name": "インターナショナルＳ",
+   "grade": "G3",
+   "country": "アイルランド"
+  },
+  {
+   "name": "フェニックススプリントＳ",
+   "grade": "G3",
+   "country": "アイルランド"
+  },
+  {
+   "name": "ロイヤルウィップＳ",
+   "grade": "G3",
+   "country": "アイルランド"
+  },
+  {
+   "name": "キラヴランＳ",
+   "grade": "G3",
+   "country": "アイルランド"
+  }
+ ]
+}

@@ -1,0 +1,21 @@
+{
+ "kind": "index",
+ "index_url": "https://racedb.com/grade/2025/g2-ger.htm",
+ "races": [
+  {
+   "name": "オレアンダーレネン",
+   "grade": "G2",
+   "country": "ドイツ"
+  },
+  {
+   "name": "ハンザ大賞",
+   "grade": "G2",
+   "country": "ドイツ"
+  },
+  {
+   "name": "エッティンゲンレネン",
+   "grade": "G2",
+   "country": "ドイツ"
+  }
+ ]
+}

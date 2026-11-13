@@ -1,0 +1,36 @@
+{
+ "kind": "index",
+ "index_url": "https://racedb.com/grade/2025/g1-sau.htm",
+ "races": [
+  {
+   "name": "サウジカップ",
+   "grade": "G1",
+   "country": "サウジアラビア"
+  },
+  {
+   "name": "ネオムターフカップ",
+   "grade": "G1",
+   "country": "サウジアラビア"
+  },
+  {
+   "name": "1351ターフスプリント",
+   "grade": "G2",
+   "country": "サウジアラビア"
+  },
+  {
+   "name": "レッドシーターフハンデキャップ",
+   "grade": "G2",
+   "country": "サウジアラビア"
+  },
+  {
+   "name": "リヤドダートスプリント",
+   "grade": "G2",
+   "country": "サウジアラビア"
+  },
+  {
+   "name": "サウジダービー",
+   "grade": "G3",
+   "country": "サウジアラビア"
+  }
+ ]
+}

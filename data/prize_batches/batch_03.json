@@ -1,0 +1,161 @@
+{
+ "kind": "direct",
+ "races": [
+  {
+   "name": "クイーンアンＳ",
+   "grade": "G1",
+   "country": "イギリス",
+   "url": "https://racedb.com/k/30032025061701.html"
+  },
+  {
+   "name": "セントジェームズパレスＳ",
+   "grade": "G1",
+   "country": "イギリス",
+   "url": "https://racedb.com/k/30032025061704.html"
+  },
+  {
+   "name": "プリンスオブウェールズＳ",
+   "grade": "G1",
+   "country": "イギリス",
+   "url": "https://racedb.com/k/30032025061804.html"
+  },
+  {
+   "name": "ゴールドカップ",
+   "grade": "G1",
+   "country": "イギリス",
+   "url": "https://racedb.com/k/30032025061904.html"
+  },
+  {
+   "name": "コモンウェルスカップ",
+   "grade": "G1",
+   "country": "イギリス",
+   "url": "https://racedb.com/k/30032025062002.html"
+  },
+  {
+   "name": "コロネーションＳ",
+   "grade": "G1",
+   "country": "イギリス",
+   "url": "https://racedb.com/k/30032025062004.html"
+  },
+  {
+   "name": "クイーンエリザベス二世ジュビリーＳ",
+   "grade": "G1",
+   "country": "イギリス",
+   "url": "https://racedb.com/k/30032025062103.html"
+  },
+  {
+   "name": "プリティーポリーＳ",
+   "grade": "G1",
+   "country": "アイルランド",
+   "url": "https://racedb.com/k/39012025062805.html"
+  },
+  {
+   "name": "アイリッシュダービー",
+   "grade": "G1",
+   "country": "アイルランド",
+   "url": "https://racedb.com/k/39012025062906.html"
+  },
+  {
+   "name": "サンクルー大賞典",
+   "grade": "G1",
+   "country": "フランス",
+   "url": "https://racedb.com/k/40012025062907.html"
+  },
+  {
+   "name": "ドイチェスデルビー",
+   "grade": "G1",
+   "country": "ドイツ",
+   "url": "https://racedb.com/k/36022025070608.html"
+  },
+  {
+   "name": "エクリプスＳ",
+   "grade": "G1",
+   "country": "イギリス",
+   "url": "https://racedb.com/k/30082025070504.html"
+  },
+  {
+   "name": "ジャンプラ賞",
+   "grade": "G1",
+   "country": "フランス",
+   "url": "https://racedb.com/k/40042025070605.html"
+  },
+  {
+   "name": "ファルマスＳ",
+   "grade": "G1",
+   "country": "イギリス",
+   "url": "https://racedb.com/k/30062025071104.html"
+  },
+  {
+   "name": "ジュライカップＳ",
+   "grade": "G1",
+   "country": "イギリス",
+   "url": "https://racedb.com/k/30062025071206.html"
+  },
+  {
+   "name": "パリ大賞典",
+   "grade": "G1",
+   "country": "フランス",
+   "url": "https://racedb.com/k/40022025071307.html"
+  },
+  {
+   "name": "アイリッシュオークス",
+   "grade": "G1",
+   "country": "アイルランド",
+   "url": "https://racedb.com/k/39012025071905.html"
+  },
+  {
+   "name": "キングジョージ六世＆クイーンエリザベスＳ",
+   "grade": "G1",
+   "country": "イギリス",
+   "url": "https://racedb.com/k/30032025072606.html"
+  },
+  {
+   "name": "ダルマイヤー大賞",
+   "grade": "G1",
+   "country": "ドイツ",
+   "url": "https://racedb.com/k/36042025072706.html"
+  },
+  {
+   "name": "グッドウッドカップＳ",
+   "grade": "G1",
+   "country": "イギリス",
+   "url": "https://racedb.com/k/30012025072904.html"
+  },
+  {
+   "name": "サセックスＳ",
+   "grade": "G1",
+   "country": "イギリス",
+   "url": "https://racedb.com/k/30012025073004.html"
+  },
+  {
+   "name": "ナッソーＳ",
+   "grade": "G1",
+   "country": "イギリス",
+   "url": "https://racedb.com/k/30012025073104.html"
+  },
+  {
+   "name": "ディアナ賞（ドイツオークス）",
+   "grade": "G1",
+   "country": "ドイツ",
+   "url": "https://racedb.com/k/36032025080305.html"
+  },
+  {
+   "name": "ロートシルト賞",
+   "grade": "G1",
+   "country": "フランス",
+   "url": "https://racedb.com/k/40042025080305.html"
+  },
+  {
+   "name": "フェニックスＳ",
+   "grade": "G1",
+   "country": "アイルランド",
+   "url": "https://racedb.com/k/39012025080905.html"
+  },
+  {
+   "name": "ベルリン大賞",
+   "grade": "G1",
+   "country": "ドイツ",
+   "url": "https://racedb.com/k/36072025081008.html"
+  }
+ ]
+}

@@ -1,0 +1,126 @@
+{
+ "kind": "index",
+ "index_url": "https://racedb.com/grade/2025/g3-fra.htm",
+ "races": [
+  {
+   "name": "エクスビュリ賞",
+   "grade": "G3",
+   "country": "フランス"
+  },
+  {
+   "name": "エドモンブラン賞",
+   "grade": "G3",
+   "country": "フランス"
+  },
+  {
+   "name": "ペネロープ賞",
+   "grade": "G3",
+   "country": "フランス"
+  },
+  {
+   "name": "ヴァントー賞",
+   "grade": "G3",
+   "country": "フランス"
+  },
+  {
+   "name": "グロット賞",
+   "grade": "G3",
+   "country": "フランス"
+  },
+  {
+   "name": "ノアイユ賞",
+   "grade": "G3",
+   "country": "フランス"
+  },
+  {
+   "name": "フォンテーヌブロー賞",
+   "grade": "G3",
+   "country": "フランス"
+  },
+  {
+   "name": "クレオパトル賞",
+   "grade": "G3",
+   "country": "フランス"
+  },
+  {
+   "name": "グレフュール賞",
+   "grade": "G3",
+   "country": "フランス"
+  },
+  {
+   "name": "サンジョルジュ賞",
+   "grade": "G3",
+   "country": "フランス"
+  },
+  {
+   "name": "オカール賞",
+   "grade": "G3",
+   "country": "フランス"
+  },
+  {
+   "name": "ロワイヨモン賞",
+   "grade": "G3",
+   "country": "フランス"
+  },
+  {
+   "name": "ラクープ賞",
+   "grade": "G3",
+   "country": "フランス"
+  },
+  {
+   "name": "ゴントービロン賞",
+   "grade": "G3",
+   "country": "フランス"
+  },
+  {
+   "name": "グラディアトゥール賞",
+   "grade": "G3",
+   "country": "フランス"
+  },
+  {
+   "name": "パン賞",
+   "grade": "G3",
+   "country": "フランス"
+  },
+  {
+   "name": "プティクヴェール賞",
+   "grade": "G3",
+   "country": "フランス"
+  },
+  {
+   "name": "プランスドランジュ賞",
+   "grade": "G3",
+   "country": "フランス"
+  },
+  {
+   "name": "エクリプス賞",
+   "grade": "G3",
+   "country": "フランス"
+  },
+  {
+   "name": "シェーヌ賞",
+   "grade": "G3",
+   "country": "フランス"
+  },
+  {
+   "name": "コンデ賞",
+   "grade": "G3",
+   "country": "フランス"
+  },
+  {
+   "name": "パース賞",
+   "grade": "G3",
+   "country": "フランス"
+  },
+  {
+   "name": "フロール賞",
+   "grade": "G3",
+   "country": "フランス"
+  },
+  {
+   "name": "ミエスク賞",
+   "grade": "G3",
+   "country": "フランス"
+  }
+ ]
+}
