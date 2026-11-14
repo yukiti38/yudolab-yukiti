@@ -389,4 +389,60 @@ T('injury chance weight add-on', Math.abs(injuryChance(57) - 0.35) < 1e-9 && Mat
   entryWeekAhead = 0;
 }
 
+
+// ---- v0.52 stage3: affinities ----
+T('snapBand nearest', snapBand(2050) === 2000 && snapBand(2150) === 2200 && snapBand(900) === 1000);
+{
+  let viol = 0, rootO = 0, distHold = 0, courseHold = 0, yusoN = 0;
+  const N = 600;
+  for (let i = 0; i < N; i++) {
+    const h = mk({}); const a = genAffinities(h, 2000);
+    if ((a.rootAff === '○' && a.nonRoot === '○') || (a.rootAff === '✕' && a.nonRoot === '✕')) viol++;
+    if (a.rootAff === '○') rootO++;
+    if (Object.keys(a.distAff).length) distHold++;
+    if (Object.keys(a.courseAff).length) courseHold++;
+    if (a.yuso) yusoN++;
+  }
+  T('root/nonRoot same-direction never generated', viol === 0);
+  T('root O rate ~35%', rootO / N > 0.27 && rootO / N < 0.43);
+  T('distance affinity hold rate ~45%', distHold / N > 0.36 && distHold / N < 0.54);
+  T('course affinity hold rate ~50%', courseHold / N > 0.41 && courseHold / N < 0.59);
+  T('yuso rate ~20%', yusoN / N > 0.13 && yusoN / N < 0.27);
+}
+{
+  const h = mk({});
+  h.aff = { rootDist: 2000, rootAff: '○', nonRoot: '-', distAff: { 2000: '○' }, distKnown: {}, courseAff: { '東京': '○' }, courseKnown: {}, known: { root: false, nonRoot: false, yuso: false }, yuso: false };
+  T('affinity stacking capped at 1.10', Math.abs(affinityFactor(h, { racecourse: '東京', distance_m: 2000 }) - 1.10) < 1e-9);
+  h.aff.rootAff = '✕'; h.aff.distAff = { 2000: '✕' }; h.aff.courseAff = { '東京': '✕' };
+  T('affinity downside capped at 0.90', Math.abs(affinityFactor(h, { racecourse: '東京', distance_m: 2000 }) - 0.90) < 1e-9);
+  h.aff = { rootDist: 2000, rootAff: '-', nonRoot: '○', distAff: {}, distKnown: {}, courseAff: {}, courseKnown: {}, known: { root: false, nonRoot: false, yuso: false }, yuso: false };
+  T('non-root mark applies at 1800 only', Math.abs(affinityFactor(h, { racecourse: '東京', distance_m: 1800 }) - 1.05) < 1e-9 && affinityFactor(h, { racecourse: '東京', distance_m: 2000 }) === 1);
+}
+{
+  freshS({ year: 2032, month: 4, week: 1 });
+  let correct = 0, total = 0;
+  for (let i = 0; i < 300; i++) {
+    const h = mk({ name: '予測' + i, birthYear: 2028 });
+    ensureAffinities(h);
+    if (h.aff.pred.root === h.aff.rootAff) correct++;
+    total++;
+  }
+  T('root prediction accuracy ~70%', correct / total > 0.58 && correct / total < 0.86);
+  const foal = mk({ name: '当歳', birthYear: 2032, status: 'foal' });
+  ensureAffinities(foal);
+  T('foal has affinities but no predictions yet', !!foal.aff && !foal.aff.pred);
+}
+{
+  freshS({ year: 2032, month: 4, week: 1 });
+  const h = mk({ name: '確定テスト', birthYear: 2028, stable: '美浦' });
+  setParams(h, 72, 72, 72);
+  h.fatigue = 0; h.condition = 90;
+  h.aff = { rootDist: 2000, rootAff: '○', nonRoot: '-', distAff: {}, distKnown: {}, courseAff: {}, courseKnown: {}, known: { root: false, nonRoot: false, yuso: false }, yuso: true, pred: { root: '○', nonRoot: '-', yuso: '○', dist: { 2000: '-' }, course: { '東京': '-' } } };
+  S.horses = [h];
+  const race = { name: '東京テスト', grade: 'OP', sector: 'central', racecourse: '東京', surface: '芝', distance_m: 2000, general: false, conditions: '', weight_type: '馬齢' };
+  runRace(race, [h]);
+  T('racing reveals root, course, dist, yuso', h.aff.known.root === true && h.aff.courseKnown['東京'] === true && h.aff.distKnown[2000] === true && h.aff.known.yuso === true);
+  T('yuso halves transport', transportFatigue(h, { racecourse: '京都', sector: 'central' }) === 10);
+}
+
 console.log('\nRESULT: ' + pass + ' passed, ' + fail + ' failed');
