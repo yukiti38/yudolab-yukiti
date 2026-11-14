@@ -930,10 +930,10 @@ function advanceWeek(){
   for(const h of S.horses){
     if(h.retired) continue;
     if(h.status==="racehorse"){
-      if(isInjured(h)){ h.fatigue = clamp(h.fatigue-30,0,100); h.condition = clamp(h.condition+5,5,100); }
-      else if(h.policy==="pasture"){ h.fatigue = clamp(h.fatigue-22,0,100); h.condition = clamp(h.condition+8,5,100); }
-      else if(h.policy==="rest"){ h.fatigue = clamp(h.fatigue-30,0,100); h.condition = clamp(h.condition+5,5,100); }
-      else { h.fatigue = clamp(h.fatigue-12,0,100); h.condition = clamp(h.condition+rnd(0,2),5,100); }
+      if(isInjured(h)){ h.fatigue = clamp(h.fatigue-40,0,100); h.condition = clamp(h.condition+10,5,100); }
+      else if(h.policy==="pasture"){ h.fatigue = clamp(h.fatigue-30,0,100); h.condition = clamp(h.condition+12,5,100); }
+      else if(h.policy==="rest"){ h.fatigue = clamp(h.fatigue-40,0,100); h.condition = clamp(h.condition+10,5,100); }
+      else { h.fatigue = clamp(h.fatigue-20,0,100); h.condition = clamp(h.condition+5,5,100); }
     }
   }
   // 3) カレンダーを進める
@@ -1933,6 +1933,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>競馬シミュレーター（趣味） v0.43</footer>
+<footer>競馬シミュレーター（趣味） v0.44</footer>
 </body>
 </html>
