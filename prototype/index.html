@@ -309,6 +309,7 @@ function ensureParams(){
     if(!h.coat) h.coat = randomCoat();
     if(h.temp == null){ h.temp = newTemp(); h.quirk = rollQuirk(h.temp); }
     if(!h.rankBase) h.rankBase = { spd: effRank(h,"spd"), sta: effRank(h,"sta"), gut: effRank(h,"gut") };
+    ensureAffinities(h);
   }
   for(const st of S.stallions){ stallionGen(st); if(!st.coat) st.coat = randomCoat(); }
 }
@@ -892,6 +893,135 @@ function aptitudeFactor(h, race){
   if(d){ if(d < h.distMin) f *= clamp(1 - (h.distMin-d)/2600, 0.8, 1); if(d > h.distMax) f *= clamp(1 - (d-h.distMax)/2600, 0.78, 1); }
   return f;
 }
+/* ================= 相性（v0.52） =================
+   根幹距離／距離別／競馬場別／非根幹距離／輸送を ○（×1.05）・✕（×0.95）・−（なし）で統一する。
+   すべて隠し情報で、実際にその距離・競馬場で走って初めて確定する。2歳時からスタッフ予測（正答率約70%、
+   外れは − に寄り、真逆は稀）だけが薄く見え、確定すると置き換わる */
+const AFF_BANDS = [1000,1200,1400,1600,1800,2000,2200,2400,2600,2800,3000,3200,3600];
+const COURSES10 = ["札幌","函館","福島","新潟","東京","中山","中京","京都","阪神","小倉"];
+function snapBand(centre){ let best = AFF_BANDS[0], bd = Infinity; for(const b of AFF_BANDS){ const d = Math.abs(b-centre); if(d < bd){ bd = d; best = b; } } return best; }
+function rollMark(pO, pX){ const r = Math.random(); return r < pO ? "○" : r < pO + pX ? "✕" : "-"; }
+function genAffinities(h, centre){
+  const aff = { distAff:{}, distKnown:{}, courseAff:{}, courseKnown:{}, known:{ root:false, nonRoot:false, yuso:false } };
+  /* 根幹距離：継承中心を最寄りの標準バンドへ。ただし血統だけでなく性格でも決まる（一部は1バンドずれる） */
+  let root = snapBand(centre != null ? centre : (h.distMin + h.distMax) / 2);
+  const ri = AFF_BANDS.indexOf(root), sh = Math.random();
+  if(sh < 0.15 && ri > 0) root = AFF_BANDS[ri-1];
+  else if(sh < 0.30 && ri < AFF_BANDS.length-1) root = AFF_BANDS[ri+1];
+  aff.rootDist = root;
+  aff.rootAff = rollMark(0.35, 0.20); // ○35%／✕20%／−45%
+  /* 非根幹距離（400で割り切れない距離すべて）：根幹と同方向（○同士・✕同士）は重ねて生成しない */
+  let nr = rollMark(0.20, 0.12);
+  if((nr === "○" && aff.rootAff === "○") || (nr === "✕" && aff.rootAff === "✕")) nr = "-";
+  aff.nonRoot = nr;
+  const cands = AFF_BANDS.filter(b => b >= h.distMin && b <= h.distMax);
+  const pool = [...cands];
+  const take = () => pool.length ? pool.splice(irnd(0, pool.length-1), 1)[0] : null;
+  const dr = Math.random(); // 距離別：約45%が何かを持つ（○1 25%／○2 8%／✕1 8%／○✕各1 4%）
+  if(dr < 0.25){ const b = take(); if(b != null) aff.distAff[b] = "○"; }
+  else if(dr < 0.33){ for(let i=0;i<2;i++){ const b = take(); if(b != null) aff.distAff[b] = "○"; } }
+  else if(dr < 0.41){ const b = take(); if(b != null) aff.distAff[b] = "✕"; }
+  else if(dr < 0.45){ const b1 = take(); if(b1 != null) aff.distAff[b1] = "○"; const b2 = take(); if(b2 != null) aff.distAff[b2] = "✕"; }
+  const cpool = [...COURSES10];
+  const ctake = () => cpool.splice(irnd(0, cpool.length-1), 1)[0];
+  const cr = Math.random(); // 競馬場別（国内10場のみ）：約50%が何かを持つ（○1 30%／○2 7%／✕1 10%／✕2 3%）
+  if(cr < 0.30) aff.courseAff[ctake()] = "○";
+  else if(cr < 0.37){ aff.courseAff[ctake()] = "○"; aff.courseAff[ctake()] = "○"; }
+  else if(cr < 0.47) aff.courseAff[ctake()] = "✕";
+  else if(cr < 0.50){ aff.courseAff[ctake()] = "✕"; aff.courseAff[ctake()] = "✕"; }
+  aff.yuso = Math.random() < 0.20; // 輸送○（輸送疲労が半分になる）
+  return aff;
+}
+function predictMark(t){
+  const r = Math.random();
+  if(t === "-") return r < 0.80 ? "-" : r < 0.92 ? "○" : "✕"; // 無印の予測は − に寄せる
+  if(r < 0.70) return t; // 正答
+  if(r < 0.95) return "-"; // 外れは − 方向へ
+  return t === "○" ? "✕" : "○"; // 真逆は稀
+}
+function ensureAffinities(h, centre){
+  if(!h.aff) h.aff = genAffinities(h, centre);
+  if(ageOf(h) >= 2 && !h.aff.pred){
+    const a = h.aff;
+    const pred = { root: predictMark(a.rootAff), nonRoot: predictMark(a.nonRoot), yuso: predictMark(a.yuso ? "○" : "-"), dist:{}, course:{} };
+    for(const b of AFF_BANDS) if(b >= h.distMin && b <= h.distMax) pred.dist[b] = predictMark(a.distAff[b] || "-");
+    for(const c of COURSES10) pred.course[c] = predictMark(a.courseAff[c] || "-");
+    a.pred = pred;
+  }
+  return h.aff;
+}
+function affinityFactor(h, race){
+  const a = h.aff; if(!a || !race) return 1;
+  const d = race.distance_m;
+  let df = 1;
+  if(d){
+    if(d === a.rootDist && a.rootAff !== "-") df *= a.rootAff === "○" ? 1.05 : 0.95;
+    if(a.distAff[d]) df *= a.distAff[d] === "○" ? 1.05 : 0.95;
+    if(d % 400 !== 0 && a.nonRoot !== "-") df *= a.nonRoot === "○" ? 1.05 : 0.95;
+  }
+  df = clamp(df, 0.93, 1.07); // 距離系の重なり上限
+  let cf = 1;
+  const course = COURSES10.find(c => (race.racecourse || "").includes(c));
+  if(course && a.courseAff[course]) cf = a.courseAff[course] === "○" ? 1.05 : 0.95;
+  return clamp(df * cf, 0.90, 1.10); // 相性全体の上限
+}
+function revealAffinities(h, race, tf){
+  const a = h.aff; if(!a) return;
+  const d = race.distance_m;
+  if(d){
+    if(d === a.rootDist) a.known.root = true;
+    if(a.pred && a.pred.dist[d] != null) a.distKnown[d] = true;
+    if(d % 400 !== 0) a.known.nonRoot = true;
+  }
+  const course = COURSES10.find(c => (race.racecourse || "").includes(c));
+  if(course) a.courseKnown[course] = true;
+  if((tf || 0) > 0 || race.sector === "overseas") a.known.yuso = true;
+}
+/* 馬ページの相性欄：確定値は太字、未確定はスタッフ予測を薄く出す */
+function affShown(trueVal, predVal, known){
+  if(known) return "<b>" + trueVal + "</b>";
+  if(predVal != null) return "<span class='sub'>予想" + predVal + "</span>";
+  return "<span class='sub'>？</span>";
+}
+function affinitySection(h){
+  if(!(h.status === "racehorse" || h.status === "yearling" || h.status === "foal")) return "";
+  const a = h.aff;
+  if(!a) return "";
+  if(ageOf(h) < 2 || !a.pred) return "<dt>相性</dt><dd><span class='sub'>2歳になるとスタッフの予測が出ます。実際に走った距離・競馬場から確定していきます</span></dd>";
+  const p = a.pred;
+  const distParts = [];
+  for(const b of AFF_BANDS){
+    if(b < h.distMin || b > h.distMax) continue;
+    if(a.distKnown[b]) distParts.push(b + "m <b>" + (a.distAff[b] || "-") + "</b>");
+    else if(p.dist[b] && p.dist[b] !== "-") distParts.push(b + "m <span class='sub'>予想" + p.dist[b] + "</span>");
+  }
+  const courseParts = [];
+  for(const c of COURSES10){
+    if(a.courseKnown[c]) courseParts.push(c + " <b>" + (a.courseAff[c] || "-") + "</b>");
+    else if(p.course[c] && p.course[c] !== "-") courseParts.push(c + " <span class='sub'>予想" + p.course[c] + "</span>");
+  }
+  return "<dt>相性</dt><dd>根幹距離 " + a.rootDist + "m：" + affShown(a.rootAff, p.root, a.known.root)
+    + " ／ 非根幹距離：" + affShown(a.nonRoot, p.nonRoot, a.known.nonRoot)
+    + " ／ 輸送：" + affShown(a.yuso ? "○" : "-", p.yuso, a.known.yuso)
+    + (distParts.length ? "<br>距離別：" + distParts.join("、") : "")
+    + (courseParts.length ? "<br>競馬場別：" + courseParts.join("、") : "")
+    + "</dd>";
+}
+/* 登録画面の相性ヒント（見えるのは予測と確定値だけ。真値は出さない） */
+function affinityPredHint(h, r){
+  const a = h.aff; if(!a || !a.pred) return "";
+  const hints = [];
+  const d = r.distance_m;
+  if(d){
+    if(d === a.rootDist){ const v = a.known.root ? a.rootAff : a.pred.root; if(v !== "-") hints.push("根幹距離" + v + (a.known.root ? "（確定）" : "（予想）")); }
+    const dv = a.distKnown[d] ? (a.distAff[d] || "-") : a.pred.dist[d];
+    if(dv && dv !== "-") hints.push("距離" + dv + (a.distKnown[d] ? "（確定）" : "（予想）"));
+    if(d % 400 !== 0){ const nv = a.known.nonRoot ? a.nonRoot : a.pred.nonRoot; if(nv !== "-") hints.push("非根幹" + nv + (a.known.nonRoot ? "（確定）" : "（予想）")); }
+  }
+  const course = COURSES10.find(c => (r.racecourse || "").includes(c));
+  if(course){ const cv = a.courseKnown[course] ? (a.courseAff[course] || "-") : a.pred.course[course]; if(cv && cv !== "-") hints.push(course + cv + (a.courseKnown[course] ? "（確定）" : "（予想）")); }
+  return hints.length ? "<br><span class='sub'>相性：" + hints.join("・") + "</span>" : "";
+}
 /* ================= 斤量（負担重量） =================
    区分はレースデータの weight_type（定量／別定／ハンデ／馬齢）。データを持たない一般競走は馬齢扱い。
    定量・馬齢は全馬同条件なので、従来どおりスコアには影響させない。
@@ -971,7 +1101,7 @@ function runRace(race, entries){
     const spread = 0.10 * (1 - clamp((gut-40)/60, 0, 1) * 0.5) * (STYLE_VAR[styleOf(h)] || 1) * tempSpreadMul(h);
     const wall = assignedWeight(race, h);
     const w = wtActive ? wall : null;
-    runners.push({ horse:h, weight:w, wall, score: raceBase(h,race)*aptitudeFactor(h,race)*styleFactor(h,pace)*(w!=null ? weightFactor(w) : 1)*(1 + rnd(-1,1)*spread), gut });
+    runners.push({ horse:h, weight:w, wall, score: raceBase(h,race)*aptitudeFactor(h,race)*affinityFactor(h,race)*styleFactor(h,pace)*(w!=null ? weightFactor(w) : 1)*(1 + rnd(-1,1)*spread), gut });
   }
   const nRivals = fs - entries.length;
   for(let i=0;i<nRivals;i++){
@@ -1004,6 +1134,7 @@ function runRace(race, entries){
       weight: r.wall, transport: tfMap.get(h) || 0,
       time: race.distance_m ? (baseTime + idx*0.35 + rnd(0,0.5)).toFixed(1) : "", agari: (rnd(33.2,36.8)).toFixed(1), prize };
     h.results.push(rec); h.earnings += prize; S.funds += prize;
+    revealAffinities(h, race, tfMap.get(h) || 0); /* 相性は走って初めて確定する（v0.52） */
     if(finish===1){ h.wins++; if(["GI","GII","GIII","JpnI","JpnII","JpnIII","L"].includes(race.grade)) h.gradedWin = true; }
     h.fatigue = clamp(h.fatigue + irnd(34,52) + weightBurden(r.wall), 0, 100);
     h.condition = clamp(h.condition - irnd(6,16), 5, 100);
@@ -1121,6 +1252,7 @@ function onNewYear(){
       foal.saleNoise = rnd(0.85, 1.15);
       foal.unnamed = true;
       setParams(foal, fp(sg.spd, h.spd), fp(sg.sta, h.sta), fp(sg.gut, h.gut));
+      foal.aff = genAffinities(foal, centre); /* 相性（v0.52）：根幹距離は継承中心から決める */
       /* 持続（隠し特性・v0.50）：両親とも持続なら7%、片方なら5%。無ければ突然変異0.1%のみ */
       {
         const sireHorse = S.horses.find(x=>x.status==="stallion" && x.name===st.name);
@@ -1523,7 +1655,7 @@ function drawEntryList(){
     const wnote2 = r.sector==="overseas" ? "<br><span class='sub'>✈️ 海外遠征：前週が出発・検疫週（疲労+10）、翌週が帰国・検疫週。遠征費 "+man(EXPEDITION_FEE)+"／1レース</span>"
       : tf>0 ? "<br><span class='sub'>🚚 輸送疲れ見込み +"+tf+"（"+(h.stable ? h.stable+"所属" : "所属未定")+(h.stayRegion && courseRegion(r.racecourse)===h.stayRegion ? "・滞在中" : "")+(ageOf(h)===2 ? "・2歳は重め" : "")+"）</span>" : "";
     const trialsBtn = (r.grade==="GI" || r.grade==="JpnI") ? " <button data-trials='"+r.name+"' class='ghost'>トライアル一覧</button>" : "";
-    return "<tr"+(reason?" style='opacity:.45'":"")+"><td>"+mark+"</td><td>"+raceLabel(r)+(chips?"<br>"+chips:"")+wnote+wnote2+trialsBtn+"</td><td>"+(r.sector==="overseas"?"海外・WHC":r.sector==="regional"?"地方・TKC":"中央・NKC")+"</td><td>1着賞金 "+man(prizeTable(r)[0])+"</td><td>"+btn+"</td></tr>";
+    return "<tr"+(reason?" style='opacity:.45'":"")+"><td>"+mark+"</td><td>"+raceLabel(r)+(chips?"<br>"+chips:"")+wnote+wnote2+affinityPredHint(h, r)+trialsBtn+"</td><td>"+(r.sector==="overseas"?"海外・WHC":r.sector==="regional"?"地方・TKC":"中央・NKC")+"</td><td>1着賞金 "+man(prizeTable(r)[0])+"</td><td>"+btn+"</td></tr>";
   }).join("");
   let trialsHtml = "";
   if(trialsFor){
@@ -1930,6 +2062,7 @@ function openHorse(id){
     + (h.coat ? "<dt>毛色</dt><dd>"+h.coat+"</dd>" : "")
     + "<dt>適性</dt><dd>"+h.surface+" "+h.distMin+"-"+h.distMax+"m・"+h.growth+"</dd>"
     + ((h.status==="yearling" || h.status==="racehorse") ? "<dt>所属</dt><dd>"+(h.stable ? h.stable+"トレーニングセンター（変更できません）"+(h.stayRegion ? "／現在は遠征先に滞在中" : "") : "未定です <button id='stableMihoBtn'>美浦にする</button> <button id='stableRittoBtn'>栗東にする</button> <span class='sub'>一度決めると現役の間は変更できません</span>")+"</dd>" : "")
+    + affinitySection(h)
     + (h.spd != null ? "<dt>パラメータ</dt><dd>スピード <b>"+effRank(h,"spd")+"</b>"+trendMark(h,"spd")+" ／ スタミナ <b>"+effRank(h,"sta")+"</b>"+trendMark(h,"sta")+" ／ 根性 <b>"+effRank(h,"gut")+"</b>"+trendMark(h,"gut")+"（総合 <b>"+rankOf(Math.round(effAvg(h)))+"</b>）<br><span class='sub'>素質（上限）：スピード "+rankOf(h.spd)+" ／ スタミナ "+rankOf(h.sta)+" ／ 根性 "+rankOf(h.gut)+"（総合 "+rankOf(Math.round((h.spd+h.sta+h.gut)/3))+"）</span></dd>" : "")
     + (h.status==="stallion" ? "<dt>持続</dt><dd>"+(h.jizoku ? "🌱 持続の特性あり（衰えにくい）" : "なし")+"</dd>" : h.jizokuRevealed ? "<dt>持続</dt><dd>🌱 持続の特性あり（衰えにくい）</dd>" : h.status==="broodmare" ? "<dt>持続</dt><dd>不明</dd>" : "")
     + (h.temp != null ? "<dt>気性</dt><dd>"+tempBand(h.temp)+(h.quirk ? "<span class='sub'> ― スタッフ談："+QUIRK_HINT[h.quirk]+"</span>" : "")+"</dd>" : "")
@@ -2068,6 +2201,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>競馬シミュレーター（趣味） v0.51</footer>
+<footer>競馬シミュレーター（趣味） v0.52</footer>
 </body>
 </html>
