@@ -49,6 +49,23 @@
   .sellmenu { margin:10px 0; border:1px solid var(--line); border-radius:10px; padding:8px 10px; background:var(--panel2); }
   .sellmenu summary { cursor:pointer; font-size:14px; }
   .sellmenu-body { margin-top:8px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .ltree-scroll { overflow-x:auto; padding:8px 2px 12px; }
+  .ltree { display:inline-block; }
+  .lnode { display:flex; align-items:center; position:relative; }
+  .lnode + .lnode { margin-top:10px; }
+  .lkids { display:flex; flex-direction:column; justify-content:center; position:relative; margin-left:14px; padding-left:28px; }
+  .lkids::before { content:""; position:absolute; left:-14px; top:50%; width:14px; border-top:2px solid var(--line); }
+  .lkids > .lnode::before { content:""; position:absolute; left:-28px; top:50%; width:28px; border-top:2px solid var(--line); }
+  .lkids > .lnode::after { content:""; position:absolute; left:-28px; top:-6px; bottom:-6px; border-left:2px solid var(--line); }
+  .lkids > .lnode:first-child::after { top:50%; }
+  .lkids > .lnode:last-child::after { bottom:50%; }
+  .lcard { display:flex; flex-direction:column; gap:1px; background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:5px 9px; min-width:118px; cursor:pointer; }
+  .lcard:hover { border-color:var(--acc); }
+  .lname { font-weight:700; font-size:13.5px; color:var(--acc); }
+  .lmeta { font-size:11.5px; color:var(--sub); white-space:nowrap; }
+  .lg1 { font-size:11.5px; color:var(--warn); white-space:nowrap; }
+  .ltoggle { padding:0 6px; margin-right:6px; font-size:12px; line-height:1.8; }
+  .lmore { margin-left:12px; font-size:12px; color:var(--sub); white-space:nowrap; }
 </style>
 </head>
 <body>
@@ -100,6 +117,7 @@
       <button data-tab="breed">繁殖（2〜6月）</button>
       <button data-tab="stallions">種牡馬</button>
       <button data-tab="chron">牧場年表</button>
+      <button data-tab="lineage">🌳 牝系図</button>
       <button data-tab="calendar">📅 カレンダー</button>
     </div>
     <div id="tabBody" style="margin-top:12px;"></div>
@@ -1561,6 +1579,7 @@ function render(){
   else if(currentTab==="breed") b.innerHTML = viewBreed();
   else if(currentTab==="stallions") b.innerHTML = viewStallions();
   else if(currentTab==="calendar") b.innerHTML = viewCalendar();
+  else if(currentTab==="lineage") b.innerHTML = viewLineage();
   else b.innerHTML = viewChron();
   if(S.giftQueue && S.giftQueue.length){
     b.innerHTML = giftPanel() + b.innerHTML;
@@ -2003,7 +2022,14 @@ function viewChron(){
 function bindHorses(){
   document.querySelectorAll("[data-horse]").forEach(el => el.onclick = () => openHorse(el.getAttribute("data-horse")));
 }
-function bindTab(){ bindHorses(); }
+function bindTab(){
+  bindHorses();
+  document.querySelectorAll("[data-ltoggle]").forEach(el => el.onclick = () => {
+    const id = el.getAttribute("data-ltoggle");
+    if(lineCollapsed.has(id)) lineCollapsed.delete(id); else lineCollapsed.add(id);
+    render();
+  });
+}
 /* 牡馬系ライン（v0.41）：種牡馬データの line（父父〜）と特別牝馬の父系・母父系から、名前→父の対応表を作る */
 const PEDIGREE_LINES = {};
 for(const st of DATA.stallions){ const chain = [st.name, st.sire].concat(st.line||[]); for(let i=0;i<chain.length-1;i++) if(chain[i] && chain[i+1] && !PEDIGREE_LINES[chain[i]]) PEDIGREE_LINES[chain[i]] = chain[i+1]; }
@@ -2187,6 +2213,107 @@ function produceSection(h){
   const rows = kids.map(k=>"<tr><td><span class='horse-link' data-horse='"+k.id+"'>"+k.name+"</span>"+(k.unnamed ? " <span class='sub'>（仮名）</span>" : "")+"</td><td>"+k.sex+"</td><td>"+k.birthYear+"年生</td><td>"+(h.sex==="牝" ? (k.sire||"―") : (k.dam||"―"))+"</td><td>"+(k.results ? k.results.length : 0)+"戦"+(k.wins||0)+"勝</td><td>"+man(k.earnings||0)+"</td><td>"+statusJa(k)+"</td></tr>").join("");
   return "<h3>産駒（"+kids.length+"頭）</h3><table><tr><th>馬名</th><th>性</th><th>世代</th><th>"+(h.sex==="牝" ? "父" : "母")+"</th><th>成績</th><th>獲得賞金</th><th>現況</th></tr>"+rows+"</table>";
 }
+/* ================= 牝系図（v0.55・Terai設計確定 2026-11-14） =================
+   牝系は S.horses の母（dam）リンクだけで毎回計算する（保存フラグは持たない）。
+   根元牝馬＝自分の母が S.horses 内にいない牝馬。各馬は母を辿った先の根元牝馬のラインに属し、
+   牡馬は葉で終わって木は牝馬だけがつなぐ（産駒一覧 v0.40 と同じ dam 照合）。
+   成立条件は3つ全部：根元の直仔5頭以上・ラインの子孫20頭以上・ライン内のG1勝ち馬3頭以上
+   （G1勝ちは hasG1Win＝GI/JpnI/海外G1 の既存判定をそのまま使う）。
+   売却した馬は S.horses から消えるため、系図・頭数は「現在の所有馬」の範囲で数える（仕様として受容）。
+   establishedLines() を系図ビューと馬ページの「牝系」表示の両方が使うので、両者は食い違わない。 */
+let lineCollapsed = new Set();
+function childrenByDam(){
+  const m = {};
+  for(const h of S.horses){ if(h.dam){ (m[h.dam] = m[h.dam] || []).push(h); } }
+  for(const k in m) m[k].sort((a,b)=>(a.birthYear-b.birthYear) || (a.id<b.id ? -1 : a.id>b.id ? 1 : 0));
+  return m;
+}
+function femaleLines(){
+  const kids = childrenByDam();
+  const inFarm = new Set(S.horses.map(h=>h.name));
+  const founders = S.horses.filter(h=>h.sex==="牝" && !(h.dam && inFarm.has(h.dam)));
+  return founders.map(f=>{
+    const descendants = [];
+    const seen = new Set([f.id]);
+    const queue = [...(kids[f.name]||[])];
+    while(queue.length){
+      const c = queue.shift();
+      if(seen.has(c.id)) continue;
+      seen.add(c.id); descendants.push(c);
+      if(c.sex==="牝") for(const g of (kids[c.name]||[])) queue.push(g);
+    }
+    const members = [f, ...descendants];
+    return { founder: f, name: f.name+"系", directKids: kids[f.name]||[], descendants,
+      members, memberIds: new Set(members.map(h=>h.id)), g1Winners: members.filter(h=>hasG1Win(h)) };
+  });
+}
+function establishedLines(){
+  return femaleLines()
+    .filter(L=>L.directKids.length>=5 && L.descendants.length>=20 && L.g1Winners.length>=3)
+    .sort((a,b)=>(b.descendants.length-a.descendants.length) || (a.founder.birthYear-b.founder.birthYear));
+}
+function lineOfHorse(h){ return establishedLines().find(L=>L.memberIds.has(h.id)) || null; }
+/* 馬ページの「牝系」行：成立したラインに属する馬だけ出す。未成立なら行ごと出さない */
+function familyLineRow(h){
+  const L = lineOfHorse(h);
+  return L ? "<dt>牝系</dt><dd>"+L.name+" <span class='sub'>（成立した牝系）</span></dd>" : "";
+}
+/* G1の代表勝ち鞍：グレード格→賞金の順で一番大きい勝ち（殿堂の代表勝ち鞍と同じ考え方） */
+function repG1Win(h){
+  let best = null;
+  for(const r of h.results){
+    if(r.finish===1 && G1_GRADES.includes(r.grade)){
+      const rk = GRADE_RANK[r.grade]!=null ? GRADE_RANK[r.grade] : 9;
+      if(!best || rk<best.rk || (rk===best.rk && (r.prize||0)>best.prize)) best = { rk, prize: r.prize||0, race: r.race, grade: r.grade };
+    }
+  }
+  return best;
+}
+function lineCard(h){
+  const g1 = repG1Win(h);
+  return "<span class='lcard' data-horse='"+h.id+"'>"
+    + "<span class='lname'>"+h.name+(h.unnamed ? " <span class='sub'>（仮名）</span>" : "")+"</span>"
+    + "<span class='lmeta'>"+h.birthYear+"年生・"+h.sex+"・"+statusJa(h)+"</span>"
+    + (h.sire ? "<span class='lmeta'>父 "+h.sire+"</span>" : "")
+    + (g1 ? "<span class='lg1'>🏆 "+g1.race+"（"+g1.grade+"）</span>" : "")
+    + "</span>";
+}
+function countDescInTree(h, kids){
+  let n = 0; const seen = new Set();
+  const queue = [...(kids[h.name]||[])];
+  while(queue.length){
+    const c = queue.shift();
+    if(seen.has(c.id)) continue;
+    seen.add(c.id); n++;
+    if(c.sex==="牝") for(const g of (kids[c.name]||[])) queue.push(g);
+  }
+  return n;
+}
+/* 木は「親（左）→子（右）」の入れ子フレックスで描く。兄弟は縦に積み、肘型の継ぎ目は CSS の疑似要素。
+   枝は －／＋ ボタンで畳める（畳んだ枝は子孫頭数だけ見せる）。 */
+function lineTreeNode(h, kids){
+  const myKids = kids[h.name]||[];
+  let html = "<div class='lnode'>";
+  if(myKids.length) html += "<button class='ltoggle' data-ltoggle='"+h.id+"'>"+(lineCollapsed.has(h.id) ? "＋" : "－")+"</button>";
+  html += lineCard(h);
+  if(myKids.length){
+    if(lineCollapsed.has(h.id)) html += "<span class='lmore'>子孫 "+countDescInTree(h, kids)+"頭</span>";
+    else html += "<div class='lkids'>"+myKids.map(c=>lineTreeNode(c, kids)).join("")+"</div>";
+  }
+  return html + "</div>";
+}
+function viewLineage(){
+  const lines = establishedLines();
+  let html = "<h3>🌳 牝系図</h3>"
+    + "<div class='sub'>成立した牝系だけを表示します（根元牝馬の直仔5頭以上・子孫20頭以上・G1勝ち馬3頭以上）。世代は左から右へ進み、横線が親→子です。カードをタップするとその馬のページが開きます。「－／＋」で枝を畳んだり開いたりできます。</div>";
+  if(!lines.length) return html + "<div class='sub' style='margin-top:10px;'>まだ成立した牝系はありません。1頭の繁殖牝馬の血が広がり、G1馬を出すようになると、ここに系図が現れます。</div>";
+  const kids = childrenByDam();
+  for(const L of lines){
+    html += "<h3 style='margin-top:20px;'>"+L.name+" <span class='sub'>（根元："+L.founder.name+"／子孫"+L.descendants.length+"頭／G1勝ち馬"+L.g1Winners.length+"頭）</span></h3>"
+      + "<div class='ltree-scroll'><div class='ltree'>"+lineTreeNode(L.founder, kids)+"</div></div>";
+  }
+  return html;
+}
 function openHorse(id){
   const h = S.horses.find(x=>x.id===id); if(!h) return;
   const gw = gradedWinList(h);
@@ -2243,6 +2370,7 @@ function openHorse(id){
   $("#horseModalBox").innerHTML = "<div class='flex' style='justify-content:space-between;'><h2 style='margin:0;'>"+h.name+"</h2><button onclick='document.querySelector(\"#horseModal\").style.display=\"none\"'>閉じる</button></div>"
     + "<dl class='kv'><dt>性・年齢</dt><dd>"+h.sex+"・"+ageOf(h)+"歳</dd><dt>状態</dt><dd>"+statusJa(h)+(isInjured(h) ? "（🚑 故障で休養中・あと約"+(h.injuredUntil-absWeek())+"週）" : "")+(h.studRetired ? "（種牡馬引退）" : "")+(h.breedRetired ? "（繁殖引退）" : "")+"</dd>"
     + "<dt>血統</dt><dd>父 "+h.sire+" ／ 母 "+h.dam+" ／ 母父 "+h.bms+"</dd>"
+    + familyLineRow(h)
     + (h.coat ? "<dt>毛色</dt><dd>"+h.coat+"</dd>" : "")
     + (h.matureWeight != null ? "<dt>馬体重</dt><dd>"+weightNow(h)+"kg <span class='sub'>（成熟時は約"+h.matureWeight+"kg）</span></dd>" : "")
     + "<dt>適性</dt><dd>"+h.surface+" "+h.distMin+"-"+h.distMax+"m・"+h.growth+"</dd>"
@@ -2386,6 +2514,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>競馬シミュレーター（趣味） v0.54</footer>
+<footer>競馬シミュレーター（趣味） v0.55</footer>
 </body>
 </html>
