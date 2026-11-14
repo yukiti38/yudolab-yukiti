@@ -645,7 +645,7 @@ function migrateV029(){
   if(S.stallions) for(const st of S.stallions){ if(!st.gtype) st.gtype = st.growth || "普通"; }
   /* v0.33 移行：年表から通常のレース結果・成長メモ・スキップ記録を取り除き（ビッグイベントのみにする）、
      マイルストーン状態を既存の戦績から復元する（達成済みの初制覇などが遡って発火しないように） */
-  if(S.chronicle) S.chronicle = S.chronicle.filter(c=>!/^【(レース|成長|スキップ|種付け|NKC年度記録|命名|繁殖引退|種牡馬引退)】/.test(c.text) && !/は引退/.test(c.text) && !/は2歳になり、現役馬に編入された/.test(c.text));
+  if(S.chronicle) S.chronicle = S.chronicle.filter(c=>!/^【(レース|成長|スキップ|種付け|NKC年度記録|命名|繁殖引退|種牡馬引退|売却)】/.test(c.text) && !/は引退/.test(c.text) && !/は2歳になり、現役馬に編入された/.test(c.text));
   for(const h of S.horses) if(h.status==="stallion" && h.studYear==null) h.studYear = S.year;
   if(S.salePool) S.salePool = S.salePool.filter(m=>!m.special); S.specialMaresAdded = true; /* v0.42：未承認だった特別牝馬を取り下げ */
   /* 種牡馬ロスターの同期（v0.45）：セーブ作成時点のロスターが固定される問題への対処。
@@ -1853,7 +1853,6 @@ function openHorse(id){
     const price = marePriceShown != null ? marePriceShown : marePrice(h);
     S.funds += price;
     S.horses = S.horses.filter(x=>x.id!==h.id);
-    chron("【売却】繁殖牝馬 "+h.name+" を "+man(price)+" で売却した");
     topic("💴 "+h.name+" を "+man(price)+" で売却しました");
     $("#horseModal").style.display = "none"; save(); render();
   };
@@ -1861,7 +1860,6 @@ function openHorse(id){
     const price = youngPrice(h);
     S.funds += price;
     S.horses = S.horses.filter(x=>x.id!==h.id);
-    chron("【売却】若馬 "+h.name+"（"+ageOf(h)+"歳）を "+man(price)+" で売却した");
     topic("💴 "+h.name+" を "+man(price)+" で売却しました");
     $("#horseModal").style.display = "none"; save(); render();
   };
@@ -1936,6 +1934,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>競馬シミュレーター（趣味） v0.46</footer>
+<footer>競馬シミュレーター（趣味） v0.47</footer>
 </body>
 </html>
