@@ -228,7 +228,8 @@ const FOAL_B = ["ノカゼ","ノヒカリ","ノソラ","ダンサー","ランナ
    衝突したら引き直し、プールが埋まっていれば決定的な順序で空きを探し、最終手段は連番サフィックス */
 /* 仮名（v0.35・Terai発案）：生まれた時は「母名のYY」で、正式な名前は2歳までに付ける */
 function provisionalName(damName, year){ return damName + "の" + String(year % 100).padStart(2, "0"); }
-/* 自動命名（v0.34）：冠名が設定されていれば頭に付ける。重複は避ける。2歳で未命名の馬への自動付与と、命名候補の提示に使う */
+/* 自動命名（v0.34）：冠名が設定されていれば頭に付ける。重複は避ける。2歳で未命名の馬への自動付与と、命名候補の提示に使う。
+   プレイヤーの馬になる自動名はすべてこちら（贈呈馬・デバッグ馬の自動名も v0.58 で統一）。外部馬（開始候補・セール牝馬・架空の母名など）は foalName のまま冠名を付けない */
 function farmFoalName(){
   const k = (S.kanmuri || "").trim();
   if(!k) return foalName();
@@ -1512,7 +1513,8 @@ function makeGift(kind){
   const sire = pick(sts);
   const is2 = kind === "2yo";
   const base = is2?irnd(58,78):irnd(56,76); // v0.50: 新スケール（平均65前後）に合わせた値
-  const h = newHorse({ name:foalName(), sex:Math.random()<0.5?"牡":"牝", birthYear: is2?2024:2025, sire:sire.name, dam:foalName(), bms:pick(sts).name,
+  /* 贈呈馬の名前は farmFoalName で冠名を効かせる（v0.58・Terai指摘）。母名は外部の架空名なので foalName のまま冠名を付けない */
+  const h = newHorse({ name:farmFoalName(), sex:Math.random()<0.5?"牡":"牝", birthYear: is2?2024:2025, sire:sire.name, dam:foalName(), bms:pick(sts).name,
     status: is2?"racehorse":"yearling", surface:sire.surface, distMin:sire.dist[0], distMax:sire.dist[1], growth:sire.growth, gtype:stGtype(sire), ability: base, coat:randomCoat() });
   setParams(h, base + irnd(-6,6), base + irnd(-6,6), base + irnd(-6,6));
   h.jizoku = Math.random() < (sire.jizoku ? 0.05 : 0.001); /* 持続：父が持続なら5%、他は突然変異0.1%（v0.50） */
@@ -1555,7 +1557,7 @@ function createDebugHorse(){
   const dd = gv("#dbgDist", "1800-2400").split("-").map(Number);
   const coatSel = gv("#dbgCoat", "random");
   const q = gv("#dbgQuirk", "none");
-  const name = (gv("#dbgName", "") || "").trim() || foalName();
+  const name = (gv("#dbgName", "") || "").trim() || farmFoalName(); /* 自動名は自家馬扱いで冠名を効かせる（v0.58）。母名は架空の外部名なので foalName のまま */
   const h = newHorse({ name, sex: gv("#dbgSex", "牡"), birthYear: S.year - age,
     sire: pick(S.stallions).name, dam: foalName(), bms: pick(S.stallions).name,
     status: age === 0 ? "foal" : age === 1 ? "yearling" : "racehorse",
@@ -2579,6 +2581,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>競馬シミュレーター（趣味） v0.57</footer>
+<footer>競馬シミュレーター（趣味） v0.58</footer>
 </body>
 </html>
