@@ -555,6 +555,29 @@ function monthlyTraining(){
     else if(h.policy==="train"){ const ks = ["spd","sta","gut"]; gain(ks[(S.month + (h.id ? h.id.charCodeAt(0) : 0)) % 3]); }
   }
 }
+/* 経費の項目立て（v0.56・1.00経済パッケージ、Terai決定 2026-11-14）：月末（月替わり時）に一括精算し、内訳をトピックで出す。
+   従来の「維持費」は経済モデル（data/economy_model.md v0.1）の設計のみで、コード上は実際には一度も徴収されていなかった
+   （v0.51で判明した旧遠征費800万円と同じ「文書だけ」の状態）。v0.56で実徴収化するにあたり、Terai決定の項目立てに置き換える。
+   委託費：現役馬（放牧・休養中も厩舎への預託は継続するので現役扱い）。育成費：当歳・1歳。繋養費：繁殖牝馬・自家製種牡馬。
+   経営費：頭数によらない牧場の固定費（開始直後から毎月かかる）。
+   引退した牡馬（種牡馬入りしなかった馬）は旧設計でも維持費の対象外だったため、経費もかからない（そのまま据え置き）。
+   資金はマイナスになってもペナルティなし（従来どおり） */
+const COST_ITAKU = 50, COST_IKUSEI = 20, COST_KEIYO = 20, COST_KEIEI = 100; /* 万円／月 */
+function monthlyCosts(prevMonth){
+  const nItaku = S.horses.filter(h=>h.status==="racehorse" && !h.retired).length;
+  const nIkusei = S.horses.filter(h=>h.status==="foal" || h.status==="yearling").length;
+  const nKeiyo = S.horses.filter(h=>h.status==="broodmare" || h.status==="stallion").length;
+  const parts = [];
+  let total = COST_KEIEI;
+  if(nItaku > 0) parts.push("委託費 " + nItaku + "頭×" + man(COST_ITAKU) + "＝" + man(nItaku * COST_ITAKU));
+  if(nIkusei > 0) parts.push("育成費 " + nIkusei + "頭×" + man(COST_IKUSEI) + "＝" + man(nIkusei * COST_IKUSEI));
+  if(nKeiyo > 0) parts.push("繋養費 " + nKeiyo + "頭×" + man(COST_KEIYO) + "＝" + man(nKeiyo * COST_KEIYO));
+  total += nItaku * COST_ITAKU + nIkusei * COST_IKUSEI + nKeiyo * COST_KEIYO;
+  parts.push("経営費 " + man(COST_KEIEI));
+  S.funds -= total;
+  topic("💰 " + prevMonth + "月分の経費を精算しました：" + parts.join("／") + "｜合計 " + man(total));
+  return total;
+}
 function growthStage(h){
   if(h.status==="foal") return "当歳・成長中";
   if(h.status==="yearling") return "1歳・成長中";
@@ -1125,6 +1148,27 @@ function weightFactor(w){ return 1 - (w - WEIGHT_REF) * KG_SCORE; }
    年齢で故障率は変えない（Terai指示）。スコアへの斤量反映は従来どおりハンデ・別定のみ */
 function weightBurden(w){ return clamp(Math.round(((w != null ? w : 57) - 54) * 1.5), 0, 12); }
 function injuryChance(w){ return 0.35 + clamp((((w != null ? w : 57) - 57) * 0.02), 0, 0.10); }
+/* ================= 賞金の支払い（v0.56・1.00経済パッケージ、Terai決定 2026-11-14） =================
+   進上金：賞金総額から調教師10%・騎手5%・厩務員5%を差し引き、残りが馬主（プレイヤー）の取り分になる。
+   各取り分は万円単位で切り捨て、馬主取り分＝総額−3者の合計として端数を吸収する（4者の合計は必ず総額に一致）。
+   源泉徴収（簡易版・Terai決定）：1レースの賞金総額が50万円を超える場合、（総額−50万円）×10.21%を馬主取り分から差し引く。
+   円単位では（総額万円−50）×1021円が正確な額だが、ゲーム内通貨は万円単位のため万円未満を切り捨てる。
+   年末の精算・還付は再現しない。記録（獲得賞金・年次合計・殿堂条件など）はすべて総額のまま。資金に入るのは手取りだけ */
+function prizePayout(prize){
+  if(!prize || prize <= 0) return { gross:0, trainer:0, jockey:0, groom:0, owner:0, tax:0, net:0 };
+  const trainer = Math.floor(prize * 10 / 100);
+  const jockey = Math.floor(prize * 5 / 100);
+  const groom = Math.floor(prize * 5 / 100);
+  const owner = prize - trainer - jockey - groom;
+  const tax = prize > 50 ? Math.floor((prize - 50) * 1021 / 10000) : 0;
+  return { gross:prize, trainer, jockey, groom, owner, tax, net: owner - tax };
+}
+/* レース結果に出す賞金の内訳（1行・コンパクト） */
+function payoutText(h, pay){
+  let s = "💴 " + h.name + " の賞金 " + man(pay.gross) + "（進上金：調教師 " + man(pay.trainer) + "・騎手 " + man(pay.jockey) + "・厩務員 " + man(pay.groom);
+  if(pay.tax > 0) s += "／源泉徴収 −" + man(pay.tax);
+  return s + "）→ 手取り " + man(pay.net);
+}
 /* ================= レース実行 ================= */
 function runRace(race, entries){
   const fs = Math.max(fieldSize(race), entries.length+6);
@@ -1180,7 +1224,9 @@ function runRace(race, entries){
       pass: passPositions(styleOf(h), finish, fs, h.quirk), comment: raceComment(styleOf(h), pace, finish, h.quirk),
       weight: r.wall, transport: tfMap.get(h) || 0, bodyWeight: bw, weightDiff: (bw != null && prevBw != null) ? bw - prevBw : null,
       time: race.distance_m ? (baseTime + idx*0.35 + rnd(0,0.5)).toFixed(1) : "", agari: (rnd(33.2,36.8)).toFixed(1), prize };
-    h.results.push(rec); h.earnings += prize; S.funds += prize;
+    const pay = prizePayout(prize); /* v0.56：記録は総額、資金に入るのは進上金・源泉徴収を引いた手取り */
+    h.results.push(rec); h.earnings += prize; S.funds += pay.net;
+    if(prize > 0) topic(payoutText(h, pay));
     revealAffinities(h, race, tfMap.get(h) || 0); /* 相性は走って初めて確定する（v0.52） */
     if(finish===1){ h.wins++; if(["GI","GII","GIII","JpnI","JpnII","JpnIII","L"].includes(race.grade)) h.gradedWin = true; }
     h.fatigue = clamp(h.fatigue + irnd(34,52) + weightBurden(r.wall), 0, 100);
@@ -1194,7 +1240,7 @@ function runRace(race, entries){
       }
     }
     h.lastRaceAbs = absWeek(); h.enteredStyle = null;
-    resultsOut.push({h, finish, prize});
+    resultsOut.push({h, finish, prize, pay});
     /* 年表には通常のレース結果を書かない（v0.33）。ビッグイベントだけ raceMilestones が記録する */
     if(finish===1) topic("🏆 "+h.name+" が "+race.name+" を勝ちました");
     raceMilestones(h, race, finish, prize);
@@ -1240,7 +1286,7 @@ function advanceWeek(){
   const prevMonth = S.month;
   S.week++; if(S.week>4){ S.week=1; S.month++; }
   if(S.month>12){ S.month=1; S.year++; onNewYear(); }
-  if(S.month !== prevMonth) monthlyTraining();
+  if(S.month !== prevMonth){ monthlyCosts(prevMonth); monthlyTraining(); } /* v0.56：月替わりで前月分の経費を精算 */
   // 4) 新しい週のイベント
   weeklyEvents();
   if(!S.silent){ save(); render(); }
@@ -2514,6 +2560,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>競馬シミュレーター（趣味） v0.55</footer>
+<footer>競馬シミュレーター（趣味） v0.56</footer>
 </body>
 </html>
