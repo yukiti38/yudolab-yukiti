@@ -312,4 +312,81 @@ T('three roster stallions carry jizoku', DATA.stallions.filter(s => s.jizoku).le
   T('effAvg reflects decline, not ceiling', effAvg(old) < 40 && effAvg(old) > 20);
 }
 
+
+// ---- v0.51 stage2: stables, transport tiers, staying, expeditions, weight burden ----
+T('course regions', courseRegion('東京') === 'east' && courseRegion('京都') === 'west' && courseRegion('札幌') === 'hokkaido' && courseRegion('函館') === 'hokkaido' && courseRegion('大井') === null);
+{
+  freshS({ year: 2032, month: 4, week: 1 });
+  const miho = mk({ name: '美浦馬', birthYear: 2028, stable: '美浦' });
+  const ritto = mk({ name: '栗東馬', birthYear: 2028, stable: '栗東' });
+  const race = (course) => ({ name: 'テスト', grade: 'OP', sector: 'central', racecourse: course, surface: '芝', distance_m: 2000, general: false, conditions: '', weight_type: '馬齢' });
+  T('miho tiers', transportFatigue(miho, race('東京')) === 5 && transportFatigue(miho, race('新潟')) === 12 && transportFatigue(miho, race('京都')) === 20 && transportFatigue(miho, race('札幌')) === 20);
+  T('ritto tiers', transportFatigue(ritto, race('阪神')) === 5 && transportFatigue(ritto, race('中京')) === 12 && transportFatigue(ritto, race('中山')) === 20 && transportFatigue(ritto, race('函館')) === 20);
+  const two = mk({ name: '二歳馬', birthYear: 2030, stable: '美浦' });
+  T('2yo transport x1.5 ceil', transportFatigue(two, race('東京')) === 8 && transportFatigue(two, race('京都')) === 30);
+  miho.stayRegion = 'west'; miho.stayUntilAbs = absWeek() + 8;
+  T('staying treats far region as near', transportFatigue(miho, race('京都')) === 5 && transportFatigue(miho, race('阪神')) === 5);
+  miho.stayUntilAbs = absWeek() - 1;
+  T('staying expires after ~2 months', transportFatigue(miho, race('京都')) === 20);
+}
+T('weight burden curve', weightBurden(54) === 0 && weightBurden(57) === 5 && weightBurden(62) === 12 && weightBurden(48) === 0);
+T('injury chance weight add-on', Math.abs(injuryChance(57) - 0.35) < 1e-9 && Math.abs(injuryChance(62) - 0.45) < 1e-9 && Math.abs(injuryChance(50) - 0.35) < 1e-9);
+{
+  freshS({ year: 2032, month: 4, week: 1, funds: 5000 });
+  const h = mk({ name: '遠征馬', birthYear: 2028, stable: '美浦', gradedWin: true, wins: 3 });
+  setParams(h, 75, 75, 75);
+  h.fatigue = 10; h.condition = 90;
+  S.horses = [h];
+  const race = { name: 'テストG1', grade: 'GI', sector: 'overseas', racecourse: 'ロンシャン（フランス）', surface: '芝', distance_m: 2400, general: false, conditions: '', weight_type: '馬齢' };
+  runRace(race, [h]);
+  T('expedition fee 1000 charged', S.funds <= 5000 - 1000 + 100000);
+  T('expedition fee deducted exactly once', (() => { const f = S.funds; return f === 5000 - 1000 + (h.results[0].prize || 0); })());
+  T('return week set after overseas race', h.expedReturnAbs === absWeek() + 1);
+  T('no domestic transport for overseas', h.results[0].transport === 0);
+}
+{
+  freshS({ year: 2032, month: 4, week: 1 });
+  const h = mk({ name: '遠方馬', birthYear: 2028, stable: '美浦' });
+  setParams(h, 70, 70, 70);
+  h.fatigue = 0; h.condition = 90;
+  S.horses = [h];
+  const race = { name: '京都テスト', grade: 'OP', sector: 'central', racecourse: '京都', surface: '芝', distance_m: 2000, general: false, conditions: '', weight_type: '馬齢' };
+  runRace(race, [h]);
+  T('far race applies transport 20 before race', h.results[0].transport === 20);
+  T('far race sets staying', h.stayRegion === 'west' && h.stayUntilAbs === absWeek() + 8);
+}
+{
+  freshS({ year: 2032, month: 4, week: 1 });
+  const h = mk({ name: '出発週馬', birthYear: 2028, policy: 'rest' });
+  h.fatigue = 50; h.condition = 60;
+  h.entries = {}; h.entries[absWeek() + 1] = { key: 'x', sector: 'overseas' };
+  S.horses = [h];
+  advanceWeek();
+  T('travel week adds fatigue 10, no recovery', h.fatigue === 60 && h.condition === 60);
+}
+{
+  freshS({ year: 2032, month: 4, week: 1 });
+  const h = mk({ name: '帰国週馬', birthYear: 2028, policy: 'train' });
+  h.fatigue = 60; h.condition = 50; h.expedReturnAbs = absWeek();
+  S.horses = [h];
+  advanceWeek();
+  T('return week recovers at rest rate', h.fatigue === 20 && h.condition === 60);
+}
+{
+  freshS({ year: 2032, month: 4, week: 1 });
+  const h = mk({ name: '登録判定', birthYear: 2028, gradedWin: true, wins: 2 });
+  setParams(h, 70, 70, 70);
+  S.horses = [h];
+  const ov = { name: '海外G1', grade: 'GI', sector: 'overseas', racecourse: 'アスコット（イギリス）', surface: '芝', distance_m: 2000, general: false, conditions: '' };
+  entryWeekAhead = 0;
+  T('overseas same-week entry blocked', /当週登録できません/.test(eligibility(h, ov) || ''));
+  entryWeekAhead = 1;
+  T('overseas advance entry allowed', eligibility(h, ov) === null);
+  const dom = { name: '国内OP', grade: 'OP', sector: 'central', racecourse: '東京', surface: '芝', distance_m: 2000, general: false, conditions: '' };
+  h.entries = {}; h.entries[absWeek() + 1] = { key: 'x', sector: 'overseas' };
+  entryWeekAhead = 0;
+  T('travel week blocks domestic entry', /出発・検疫週/.test(eligibility(h, dom) || ''));
+  entryWeekAhead = 0;
+}
+
 console.log('\nRESULT: ' + pass + ' passed, ' + fail + ' failed');
