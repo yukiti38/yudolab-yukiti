@@ -2360,6 +2360,38 @@ function viewLineage(){
   }
   return html;
 }
+/* 牡馬の引退メニュー（v0.57・Terai決定）：牝馬の引退（v0.33）と対称の3択にする。
+   種牡馬入り（資格馬のみ）／引退馬として残る／売却して引退。
+   売却額はページを開いた時点で確定してメニューに表示＝売却価格（牝馬の引退売却と同じ凍結方式）。
+   価格式は marePrice ではなく youngPrice（若馬売却の大改修式：8×e^(0.08×3パラ平均)、100〜12000万円）を使う。
+   marePrice は繁殖牝馬の相場（繁殖牝馬の購入価格帯に連動し、呼ぶたび乱数が入る牝馬専用の式）のため */
+function coltRetireMenuHtml(h, price){
+  const stud = canEnterStud(h);
+  const why = stud ? ((h.gradedWin ? "重賞勝ち" : "") + (h.gradedWin && h.earnings>=10000 ? "・" : "") + (h.earnings>=10000 ? "通算賞金1億円以上" : "")) : "";
+  return "<details class='sellmenu'><summary>引退させる</summary><div class='sellmenu-body'>"
+    + (stud ? "<div class='sub'>この馬は種牡馬入りの資格があります（"+why+"）</div><button id='retireStudBtn'>種牡馬として引退する</button> " : "")
+    + "<button id='retirePlainBtn' class='ghost'>引退馬として残る</button> <button id='retireSellColtBtn' class='ghost'>売却して引退する</button>"
+    + "<span class='sub'>売却する場合は、そのまま <b>"+man(price)+"</b> で売却されます</span>"
+    + "</div></details>";
+}
+/* 牡馬の引退実行（種牡馬入り／引退馬として残る）：従来の doRetireColt クロージャと同一の挙動（殿堂マイルストーン確認を含む） */
+function doRetireColt(h, toStud){
+  h.retired = true;
+  if(toStud){
+    h.status="stallion"; h.studYear = S.year; S.stallions.push({name:h.name, sire:h.sire, region:"domestic", surface:h.surface, dist:[h.distMin,h.distMax], growth:h.growth, gtype:gtypeOf(h), fee_tier:"B", fresh:true, jizoku: !!h.jizoku});
+    topic("✨ "+h.name+" が種牡馬入りしました");
+  }
+  checkHofMilestone(h);
+  $("#horseModal").style.display = "none"; save(); render();
+}
+/* 牡馬の売却して引退（v0.57）：牝馬の引退売却（retireSellBtn ハンドラ）と対称の処理。
+   殿堂マイルストーンの確認は牝馬側に合わせて行わない（売却した馬はそのまま牧場を離れる） */
+function doRetireSellColt(h, price){
+  S.funds += price;
+  S.horses = S.horses.filter(x=>x.id!==h.id);
+  topic("💴 "+h.name+" を引退・売却しました（"+man(price)+"）");
+  $("#horseModal").style.display = "none"; save(); render();
+}
 function openHorse(id){
   const h = S.horses.find(x=>x.id===id); if(!h) return;
   const gw = gradedWinList(h);
@@ -2370,16 +2402,11 @@ function openHorse(id){
     actions = "<div class='flex' style='margin:10px 0;'><label>方針：</label><select id='policySel'>"
       + ["train","spd","sta","gut","pasture","rest"].map(p=>"<option value='"+p+"'"+(h.policy===p?" selected":"")+">"+({train:"調教（バランス）",spd:"スピード調教",sta:"スタミナ調教",gut:"根性調教",pasture:"放牧",rest:"休養"})[p]+"</option>").join("")
       + "</select></div>";
-    /* 牡馬の引退（v0.36）：確認ダイアログをやめてプルダウン式に（牝馬と同じ扱い）。種牡馬資格がある馬は2ボタン */
+    /* 牡馬の引退は3択（v0.57・Terai決定）：種牡馬入り（資格馬のみ）／引退馬として残る／売却して引退。
+       メニュー生成は coltRetireMenuHtml、売却額は開いた時点で youngPrice で確定し retireSalePrice に凍結（牝馬と同じ方式） */
     if(h.sex==="牡"){
-      if(canEnterStud(h)){
-        const why = (h.gradedWin ? "重賞勝ち" : "") + (h.gradedWin && h.earnings>=10000 ? "・" : "") + (h.earnings>=10000 ? "通算賞金1億円以上" : "");
-        actions += "<details class='sellmenu'><summary>引退させる</summary><div class='sellmenu-body'>"
-          + "<div class='sub'>この馬は種牡馬入りの資格があります（"+why+"）</div>"
-          + "<button id='retireStudBtn'>種牡馬として引退する</button> <button id='retirePlainBtn' class='ghost'>種牡馬にせず引退する</button></div></details>";
-      } else {
-        actions += "<details class='sellmenu'><summary>引退させる</summary><div class='sellmenu-body'><button id='retirePlainBtn'>引退する</button></div></details>";
-      }
+      retireSalePrice = youngPrice(h);
+      actions += coltRetireMenuHtml(h, retireSalePrice);
     }
     /* 牝馬の引退は選択式（v0.33・Terai決定）：繁殖入りするか、その場で売却するか。売却額は開いた時点で確定して表示＝売却価格 */
     if(h.sex==="牝"){
@@ -2450,17 +2477,9 @@ function openHorse(id){
     topic("✏️ "+oldName+" を「"+v+"」と命名しました");
     $("#horseModal").style.display = "none"; save(); render();
   };
-  const doRetireColt = (toStud) => {
-    h.retired = true;
-    if(toStud){
-      h.status="stallion"; h.studYear = S.year; S.stallions.push({name:h.name, sire:h.sire, region:"domestic", surface:h.surface, dist:[h.distMin,h.distMax], growth:h.growth, gtype:gtypeOf(h), fee_tier:"B", fresh:true, jizoku: !!h.jizoku});
-      topic("✨ "+h.name+" が種牡馬入りしました");
-    }
-    checkHofMilestone(h);
-    $("#horseModal").style.display = "none"; save(); render();
-  };
-  const rstud = $("#retireStudBtn"); if(rstud) rstud.onclick = () => doRetireColt(true);
-  const rplain = $("#retirePlainBtn"); if(rplain) rplain.onclick = () => doRetireColt(false);
+  const rstud = $("#retireStudBtn"); if(rstud) rstud.onclick = () => doRetireColt(h, true);
+  const rplain = $("#retirePlainBtn"); if(rplain) rplain.onclick = () => doRetireColt(h, false);
+  const rscolt = $("#retireSellColtBtn"); if(rscolt) rscolt.onclick = () => doRetireSellColt(h, retireSalePrice != null ? retireSalePrice : youngPrice(h));
   const rbb = $("#retireBroodBtn"); if(rbb) rbb.onclick = () => {
     if(mareCapReached()){ alert("繁殖牝馬が上限の"+MARE_CAP+"頭に達しています（現在"+mareCount()+"頭）。繁殖入りはできません"); return; }
     h.status = "broodmare"; h.retired = false;
@@ -2560,6 +2579,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>競馬シミュレーター（趣味） v0.56</footer>
+<footer>競馬シミュレーター（趣味） v0.57</footer>
 </body>
 </html>
