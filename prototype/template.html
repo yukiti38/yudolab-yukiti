@@ -648,6 +648,16 @@ function migrateV029(){
   if(S.chronicle) S.chronicle = S.chronicle.filter(c=>!/^【(レース|成長|スキップ|種付け|NKC年度記録)】/.test(c.text) && !/は2歳になり、現役馬に編入された/.test(c.text));
   for(const h of S.horses) if(h.status==="stallion" && h.studYear==null) h.studYear = S.year;
   if(S.salePool) S.salePool = S.salePool.filter(m=>!m.special); S.specialMaresAdded = true; /* v0.42：未承認だった特別牝馬を取り下げ */
+  /* 種牡馬ロスターの同期（v0.45）：セーブ作成時点のロスターが固定される問題への対処。
+     現在のデータにある種牡馬が欠けていれば追加し、既存の頭には血統データ（父・系統・母系）だけを補完する。
+     遺伝値のキャッシュ（genSpd等）と自家製種牡馬には触らない */
+  if(S.stallions){
+    for(const dst of DATA.stallions){
+      const cur = S.stallions.find(s=>s.name===dst.name);
+      if(!cur){ S.stallions.push(JSON.parse(JSON.stringify(dst))); continue; }
+      for(const k of ["sire","line","dam","bms","grandam","gbms","bmsLine","mutation","region","surface","dist","growth","fee_tier"]) if(dst[k]!==undefined) cur[k] = dst[k];
+    }
+  }
   if(S.saleYear==null) S.saleYear = S.year>2026 ? S.year-1 : 2026;
   if(!S.usedTemplates) S.usedTemplates = [];
   ensureMile();
@@ -1933,6 +1943,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>競馬シミュレーター（趣味） v0.44</footer>
+<footer>競馬シミュレーター（趣味） v0.45</footer>
 </body>
 </html>
