@@ -645,7 +645,11 @@ function migrateV029(){
   /* v0.33 移行：年表から通常のレース結果・成長メモ・スキップ記録を取り除き（ビッグイベントのみにする）、
      マイルストーン状態を既存の戦績から復元する（達成済みの初制覇などが遡って発火しないように） */
   if(S.chronicle && !S.statsBirths){ S.statsBirths = {}; for(const c of S.chronicle) if(c.text.indexOf("【誕生】")===0) S.statsBirths[c.y] = (S.statsBirths[c.y]||0)+1; }
-  if(S.chronicle) S.chronicle = S.chronicle.filter(c=>/^【(初制覇|二冠|三冠|殿堂入り)】/.test(c.text)); /* v0.48：年表は牧場初の記録のみ（Terai決定） */
+  if(S.chronicle) S.chronicle = S.chronicle.filter(c=>{
+    if(/^【(初制覇|二冠|三冠|殿堂入り)】/.test(c.text)) return true;
+    if(c.text.indexOf("【牧場レコード】")===0){ const nm = c.text.slice(8).split(" が")[0]; const hh = (S.horses||[]).find(x=>x.name===nm); return !!hh && (hh.earnings||0) >= 1000000; }
+    return false;
+  }); /* v0.48-0.49：年表は牧場初の記録＋牧場レコード（10億円以上の馬）のみ（Terai決定） */
   for(const h of S.horses) if(h.status==="stallion" && h.studYear==null) h.studYear = S.year;
   if(S.salePool) S.salePool = S.salePool.filter(m=>!m.special); S.specialMaresAdded = true; /* v0.42：未承認だった特別牝馬を取り下げ */
   /* 種牡馬ロスターの同期（v0.45）：セーブ作成時点のロスターが固定される問題への対処。
@@ -725,7 +729,7 @@ function raceMilestones(h, race, finish, prize){
   if((h.earnings||0) > M.topEarn){
     const newHolder = M.topName !== h.name;
     M.topEarn = h.earnings; M.topName = h.name;
-    if(newHolder && M.topEarn >= 100000){ topic("🏆 "+h.name+" が牧場の賞金レコードを更新しました（"+man(M.topEarn)+"）"); }
+    if(newHolder && M.topEarn >= 1000000){ chron("【牧場レコード】"+h.name+" が通算獲得賞金の牧場記録を更新（"+man(M.topEarn)+"）"); topic("🏆 "+h.name+" が牧場の賞金レコードを更新しました（"+man(M.topEarn)+"）"); } /* v0.49：牧場レコードは生涯10億円以上の馬から */
   }
   if(finish!==1) return;
   S.farmWins++;
@@ -1923,6 +1927,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>競馬シミュレーター（趣味） v0.48</footer>
+<footer>競馬シミュレーター（趣味） v0.49</footer>
 </body>
 </html>
