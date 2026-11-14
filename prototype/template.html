@@ -645,7 +645,7 @@ function migrateV029(){
   if(S.stallions) for(const st of S.stallions){ if(!st.gtype) st.gtype = st.growth || "普通"; }
   /* v0.33 移行：年表から通常のレース結果・成長メモ・スキップ記録を取り除き（ビッグイベントのみにする）、
      マイルストーン状態を既存の戦績から復元する（達成済みの初制覇などが遡って発火しないように） */
-  if(S.chronicle) S.chronicle = S.chronicle.filter(c=>!/^【(レース|成長|スキップ|種付け|NKC年度記録)】/.test(c.text) && !/は2歳になり、現役馬に編入された/.test(c.text));
+  if(S.chronicle) S.chronicle = S.chronicle.filter(c=>!/^【(レース|成長|スキップ|種付け|NKC年度記録|命名|繁殖引退|種牡馬引退)】/.test(c.text) && !/は引退/.test(c.text) && !/は2歳になり、現役馬に編入された/.test(c.text));
   for(const h of S.horses) if(h.status==="stallion" && h.studYear==null) h.studYear = S.year;
   if(S.salePool) S.salePool = S.salePool.filter(m=>!m.special); S.specialMaresAdded = true; /* v0.42：未承認だった特別牝馬を取り下げ */
   /* 種牡馬ロスターの同期（v0.45）：セーブ作成時点のロスターが固定される問題への対処。
@@ -980,10 +980,8 @@ function onNewYear(){
           h.pregnant = null;
           chron("【出産】"+h.name+"（"+ageOf(h)+"歳）の産駒は育たなかった");
           topic("🌧 "+h.name+" の産駒は育ちませんでした");
-          if(endBreed) chron("【繁殖引退】"+h.name+" はこの出産で繁殖生活を終えた");
           continue;
         }
-        chron("【繁殖引退】"+h.name+" は出産を機に繁殖生活を終えた");
         topic("🌸 "+h.name+" は繁殖生活を終えました（産駒は無事に生まれます）");
       }
       const st = S.stallions.find(s=>s.name===h.pregnant.sire) || DATA.stallions[0];
@@ -1039,20 +1037,19 @@ function onNewYear(){
   for(const h of S.horses){
     if(h.status==="foal" && ageOf(h)>=1) h.status="yearling";
     else if(h.status==="yearling" && ageOf(h)>=2){
-      if(h.unnamed){ const oldName = h.name; h.name = farmFoalName(); h.unnamed = false; chron("【命名】"+oldName+" は2歳になるまでに名前が決まらなかったため、「"+h.name+"」と自動で命名された"); }
+      if(h.unnamed){ h.name = farmFoalName(); h.unnamed = false; } /* 命名は年表に残さない（v0.46・Terai判断：命名はビッグニュースではない） */
       h.status="racehorse";
     }
   }
   // 繁殖牝馬の年齢上限（v0.40）：17歳以上は繁殖引退
   for(const h of S.horses){
-    if(h.status==="broodmare" && !h.breedRetired && ageOf(h)>=17){ h.breedRetired = true; chron("【繁殖引退】"+h.name+" は高齢のため繁殖を引退した"); topic("🌸 "+h.name+" が繁殖を引退しました"); }
+    if(h.status==="broodmare" && !h.breedRetired && ageOf(h)>=17){ h.breedRetired = true; topic("🌸 "+h.name+" が繁殖を引退しました"); }
   }
   // 自家製種牡馬の供用リミット（v0.40）：供用20年で種牡馬を引退する（実在ロスターは対象外・固定のまま）
   for(const h of S.horses){
     if(h.status==="stallion" && !h.studRetired && h.studYear!=null && S.year - h.studYear >= 20){
       S.stallions = S.stallions.filter(s=>s.name!==h.name);
       h.studRetired = true;
-      chron("【種牡馬引退】"+h.name+" は供用20年を迎え、種牡馬を引退した");
       topic("🌿 "+h.name+" が種牡馬を引退しました（供用20年）");
     }
   }
@@ -1824,7 +1821,6 @@ function openHorse(id){
     if(S.horses.some(x=>x.id!==h.id && x.name===v) || S.stallions.some(s=>s.name===v)){ alert("その名前は既に使われています"); return; }
     const oldName = h.name;
     h.name = v; h.unnamed = false;
-    chron("【命名】"+oldName+" を「"+v+"」と命名した");
     topic("✏️ "+oldName+" を「"+v+"」と命名しました");
     $("#horseModal").style.display = "none"; save(); render();
   };
@@ -1832,10 +1828,8 @@ function openHorse(id){
     h.retired = true;
     if(toStud){
       h.status="stallion"; h.studYear = S.year; S.stallions.push({name:h.name, sire:h.sire, region:"domestic", surface:h.surface, dist:[h.distMin,h.distMax], growth:h.growth, gtype:gtypeOf(h), fee_tier:"B", fresh:true});
-      chron(h.name+" は引退し、種牡馬入りした"); topic("✨ "+h.name+" が種牡馬入りしました");
+      topic("✨ "+h.name+" が種牡馬入りしました");
     }
-    else if(canEnterStud(h)){ chron(h.name+" は引退した（種牡馬入りは見送り）"); }
-    else { chron(h.name+" は引退した"); }
     checkHofMilestone(h);
     $("#horseModal").style.display = "none"; save(); render();
   };
@@ -1844,7 +1838,7 @@ function openHorse(id){
   const rbb = $("#retireBroodBtn"); if(rbb) rbb.onclick = () => {
     if(mareCapReached()){ alert("繁殖牝馬が上限の"+MARE_CAP+"頭に達しています（現在"+mareCount()+"頭）。繁殖入りはできません"); return; }
     h.status = "broodmare"; h.retired = false;
-    chron(h.name+" は引退し、繁殖牝馬になった"); topic(h.name+" が繁殖入りしました");
+    topic(h.name+" が繁殖入りしました");
     checkHofMilestone(h);
     $("#horseModal").style.display = "none"; save(); render();
   };
@@ -1852,7 +1846,6 @@ function openHorse(id){
     const price = retireSalePrice != null ? retireSalePrice : marePrice(h);
     S.funds += price;
     S.horses = S.horses.filter(x=>x.id!==h.id);
-    chron("【売却】"+h.name+" は引退し、そのまま "+man(price)+" で売却した");
     topic("💴 "+h.name+" を引退・売却しました（"+man(price)+"）");
     $("#horseModal").style.display = "none"; save(); render();
   };
@@ -1943,6 +1936,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>競馬シミュレーター（趣味） v0.45</footer>
+<footer>競馬シミュレーター（趣味） v0.46</footer>
 </body>
 </html>
