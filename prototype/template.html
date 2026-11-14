@@ -1521,57 +1521,130 @@ function makeGift(kind){
   h.matureWeight = Math.round((sire.weight != null ? sire.weight : 490) + triSpread(25)); /* 馬体重（v0.53・フレーバーのみ） */
   h.temp = clamp(Math.round(stallionGen(sire).temp + triSpread(12)), 25, 98);
   h.quirk = rollQuirk(h.temp);
+  ensureAffinities(h); /* 相性（v0.59）：生成時に初期化しておく。従来は再読込時の ensureParams で初めて付き、受け取り直後の馬ページで相性欄が出なかった */
   h.giftKind = kind;
   return h;
 }
 /* ---- 初年度ギフト馬 ---- */
-/* ---- デバッグ用：ステータスを設定して馬を作成（旧・最強馬ボタンの置き換え） ---- */
+/* ---- デバッグ用：ステータスを設定して馬を作成（旧・最強馬ボタンの置き換え） ----
+   v0.59：大規模改修（v0.50〜 新スケール／相性／持続／所属／馬体重）に合わせて設定項目を現行仕様化。
+   血統の UI は Terai 指定の形：牡馬系（父・母父）は種牡馬リストから選択、牝馬（母）は名前の自由入力。
+   構築は buildDebugHorse(opts) に分離し、createDebugHorse は DOM から値を読んで渡すだけにする（テスト用） */
 let debugOpen = false;
+function buildDebugHorse(o){
+  o = o || {};
+  const age = o.age != null ? o.age : 3;
+  const clampP = v => clamp(Math.round(v != null ? v : 85), 1, 99); /* 新スケール（通常35〜85・上限85）に合わせる。旧スケールの150は廃止し、検証用に上限を少しだけ超えられる範囲にした */
+  const spd = clampP(o.spd), sta = clampP(o.sta), gut = clampP(o.gut);
+  const gt = G_CHAIN.includes(o.gtype) ? o.gtype : "普通";
+  const sireName = o.sire || pick(S.stallions).name;
+  const bmsName = o.bms || pick(S.stallions).name;
+  const damName = (o.dam && String(o.dam).trim()) ? String(o.dam).trim() : foalName();
+  const name = (o.name && String(o.name).trim()) ? String(o.name).trim() : farmFoalName(); /* 自動名は自家馬扱いで冠名を効かせる（v0.58）。母名は入力があればそのまま（既存牝馬の名前を入れれば牝系に繋がる）、なければ架空の外部名 */
+  const h = newHorse({ name, sex: o.sex || "牡", birthYear: S.year - age,
+    sire: sireName, dam: damName, bms: bmsName,
+    status: age === 0 ? "foal" : age === 1 ? "yearling" : "racehorse",
+    surface: o.surface || "芝", distMin: o.distMin != null ? o.distMin : 1800, distMax: o.distMax != null ? o.distMax : 2400,
+    growth: G_DISP[gt], gtype: gt, /* 表示成長型は通常産駒と同じく G_DISP で内部7種から導出 */
+    ability: Math.round((spd+sta+gut)/3), coat: !o.coat || o.coat === "random" ? randomCoat() : o.coat });
+  h.spd = spd; h.sta = sta; h.gut = gut;
+  h.temp = o.temp != null ? o.temp : 55;
+  h.quirk = o.quirk ? o.quirk : null;
+  h.jizoku = !!o.jizoku;
+  if(o.superMax) h.superMax = true;
+  const rec = o.record || 0;
+  if(rec > 0){ h.wins = rec; h.gradedWin = true; h.earnings = 5000 * rec; h.preStarts = rec; } // 付与勝ち数ぶんを通算出走数にも加える（戦績表の行は作らない）
+  if(age >= 2 && o.stable) h.stable = o.stable; /* 所属は2歳から。それ未満は通常馬と同じく未定のまま */
+  /* 相性：土台は通常生成（genAffinities）し、明示指定があれば上書きする。
+     デバッグ用なので、根幹/非根幹の排他ルールより明示指定を優先する */
+  const aff = genAffinities(h);
+  if(o.rootDist) aff.rootDist = o.rootDist;
+  if(o.rootAff) aff.rootAff = o.rootAff;
+  if(o.nonRoot) aff.nonRoot = o.nonRoot;
+  if(o.yuso != null) aff.yuso = !!o.yuso;
+  if(o.distBulk){ aff.distAff = {}; if(o.distBulk !== "-") for(const b of AFF_BANDS) if(b >= h.distMin && b <= h.distMax) aff.distAff[b] = o.distBulk; }
+  if(o.courseBulk){ aff.courseAff = {}; if(o.courseBulk !== "-") for(const c of COURSES10) aff.courseAff[c] = o.courseBulk; }
+  h.aff = aff;
+  ensureAffinities(h); /* 2歳以上はスタッフ予測まで付けて、作成直後から馬ページに相性欄が出るようにする */
+  if(o.weight != null && o.weight !== "") h.matureWeight = clamp(Math.round(o.weight), 250, 800);
+  else ensureWeight(h); /* 未指定なら通常の生成（両親からの推定）に任せる */
+  h.rankBase = { spd: effRank(h,"spd"), sta: effRank(h,"sta"), gut: effRank(h,"gut") };
+  return h;
+}
 function debugPanel(){
   const num = (id, v) => "<input id='"+id+"' type='number' value='"+v+"' style='width:64px;'>";
   const sel = (id, opts, cur) => "<select id='"+id+"'>" + opts.map(o=>"<option value='"+o[0]+"'"+(o[0]===cur?" selected":"")+">"+o[1]+"</option>").join("") + "</select>";
+  const stOpts = [["","ランダム"]].concat((typeof S !== "undefined" && S && S.stallions ? S.stallions : []).map(s=>[s.name, s.name])); /* ロスター54頭＋自家製種牡馬（S.stallions に同居） */
+  const markOpts = [["","ランダム"],["○","○"],["✕","✕"],["-","−（なし）"]];
+  const bulkOpts = [["","ランダム"],["○","すべて○"],["✕","すべて✕"],["-","すべて−（なし）"]];
   return "<div class='topic' style='border-color:#c9a227;'><b>🐛 デバッグ馬の作成</b>（数値はそのまま反映されます）<br>"
     + "<div class='flex' style='flex-wrap:wrap;gap:8px;margin-top:6px;'>"
     + "<label>名前 <input id='dbgName' type='text' maxlength='18' placeholder='空欄なら自動' style='width:130px;'></label>"
     + "<label>性別 " + sel("dbgSex", [["牡","牡"],["牝","牝"]], "牡") + "</label>"
     + "<label>年齢 " + sel("dbgAge", [["0","当歳"],["1","1歳"],["2","2歳"],["3","3歳"],["4","4歳"],["5","5歳"],["6","6歳"],["7","7歳"]], "3") + "</label>"
+    + "<label>馬場 " + sel("dbgSurf", [["芝","芝"],["ダート","ダート"],["両刀","両刀"]], "芝") + "</label>"
+    + "<label>距離 " + sel("dbgDist", [["1000-4000","万能 1000-4000"],["1000-1600","短距離 1000-1600"],["1400-1800","マイル 1400-1800"],["1800-2400","中距離 1800-2400"],["2200-3600","長距離 2200-3600"]], "1800-2400") + "</label>"
+    + "<label>戦績 " + sel("dbgRecord", [["0","未勝利"],["1","1勝（重賞勝ち）"],["3","3勝（重賞勝ち）"]], "0") + "</label>"
+    + "<label><input id='dbgMax' type='checkbox'> 成熟度を無視（常に最大）</label>"
+    + "</div>"
+    + "<div class='flex' style='flex-wrap:wrap;gap:8px;margin-top:6px;'><span class='sub'>血統：</span>"
+    + "<label>父 " + sel("dbgSire", stOpts, "") + "</label>"
+    + "<label>母 <input id='dbgDam' type='text' maxlength='18' placeholder='空欄なら自動（名前入力）' style='width:160px;'></label>"
+    + "<label>母父 " + sel("dbgBms", stOpts, "") + "</label>"
+    + "</div>"
+    + "<div class='flex' style='flex-wrap:wrap;gap:8px;margin-top:6px;'><span class='sub'>能力：</span>"
     + "<label>スピード " + num("dbgSpd", 85) + "</label>"
     + "<label>スタミナ " + num("dbgSta", 85) + "</label>"
     + "<label>根性 " + num("dbgGut", 85) + "</label>"
-    + "<label>馬場 " + sel("dbgSurf", [["芝","芝"],["ダート","ダート"],["両刀","両刀"]], "芝") + "</label>"
-    + "<label>距離 " + sel("dbgDist", [["1000-4000","万能 1000-4000"],["1000-1600","短距離 1000-1600"],["1400-1800","マイル 1400-1800"],["1800-2400","中距離 1800-2400"],["2200-3600","長距離 2200-3600"]], "1800-2400") + "</label>"
-    + "<label>成長 " + sel("dbgGrowth", [["早熟","早熟"],["普通","普通"],["晩成","晩成"],["超晩成","超晩成"]], "普通") + "</label>"
+    + "<span class='sub'>（パラメータ通常 35〜85）</span>"
+    + "<label>成長 " + sel("dbgGrowth", G_CHAIN.map(g=>[g,g]), "普通") + "</label>"
+    + "<label>持続 " + sel("dbgJizoku", [["no","なし"],["yes","あり"]], "no") + "</label>"
+    + "<label>所属 " + sel("dbgStable", [["","未定"],["栗東","栗東"],["美浦","美浦"]], "") + "</label>"
+    + "<label>成熟体重 <input id='dbgWeight' type='number' placeholder='自動' style='width:64px;'>kg</label>"
     + "<label>気性 " + sel("dbgTemp", [["35","穏やか"],["55","普通"],["80","気性難"]], "55") + "</label>"
     + "<label>癖 " + sel("dbgQuirk", [["none","なし"],["pack","馬群を嫌う"],["keen","前に行きたがる"]], "none") + "</label>"
     + "<label>毛色 " + sel("dbgCoat", [["random","ランダム"],["鹿毛","鹿毛"],["黒鹿毛","黒鹿毛"],["栗毛","栗毛"],["芦毛","芦毛"],["青鹿毛","青鹿毛"],["青毛","青毛"],["栃栗毛","栃栗毛"],["白毛","白毛"]], "random") + "</label>"
-    + "<label>戦績 " + sel("dbgRecord", [["0","未勝利"],["1","1勝（重賞勝ち）"],["3","3勝（重賞勝ち）"]], "0") + "</label>"
-    + "<label><input id='dbgMax' type='checkbox'> 成熟度を無視（常に最大）</label>"
+    + "</div>"
+    + "<div class='flex' style='flex-wrap:wrap;gap:8px;margin-top:6px;'><span class='sub'>相性（特性）：</span>"
+    + "<label>根幹距離 " + sel("dbgRootDist", [["","ランダム"]].concat(AFF_BANDS.map(b=>[String(b), b+"m"])), "") + "</label>"
+    + "<label>根幹相性 " + sel("dbgRootAff", markOpts, "") + "</label>"
+    + "<label>非根幹距離 " + sel("dbgNonRoot", markOpts, "") + "</label>"
+    + "<label>輸送 " + sel("dbgYuso", [["","ランダム"],["○","○（強い）"],["-","−（なし）"]], "") + "</label>"
+    + "<label>距離別 " + sel("dbgDistBulk", bulkOpts, "") + "</label>"
+    + "<label>競馬場別 " + sel("dbgCourseBulk", bulkOpts, "") + "</label>"
     + "</div>"
     + "<div style='margin-top:8px;'><button data-debug-create='1'>この内容で作成</button> <button data-debug-cancel='1' class='ghost'>閉じる</button></div></div>";
 }
 function createDebugHorse(){
   const gv = (id, fb) => { const el = document.querySelector(id); return el && el.value !== "" ? el.value : fb; };
-  const num = (id, fb) => { const v = parseInt(gv(id, ""), 10); return isNaN(v) ? fb : clamp(v, 1, 150); };
-  const age = parseInt(gv("#dbgAge", "3"), 10);
-  const spd = num("#dbgSpd", 85), sta = num("#dbgSta", 85), gut = num("#dbgGut", 85);
+  const num = (id, fb) => { const v = parseInt(gv(id, ""), 10); return isNaN(v) ? fb : clamp(v, 1, 99); };
   const dd = gv("#dbgDist", "1800-2400").split("-").map(Number);
-  const coatSel = gv("#dbgCoat", "random");
-  const q = gv("#dbgQuirk", "none");
-  const name = (gv("#dbgName", "") || "").trim() || farmFoalName(); /* 自動名は自家馬扱いで冠名を効かせる（v0.58）。母名は架空の外部名なので foalName のまま */
-  const h = newHorse({ name, sex: gv("#dbgSex", "牡"), birthYear: S.year - age,
-    sire: pick(S.stallions).name, dam: foalName(), bms: pick(S.stallions).name,
-    status: age === 0 ? "foal" : age === 1 ? "yearling" : "racehorse",
-    surface: gv("#dbgSurf", "芝"), distMin: dd[0], distMax: dd[1], growth: gv("#dbgGrowth", "普通"), gtype: gv("#dbgGrowth", "普通"),
-    ability: Math.round((spd+sta+gut)/3), coat: coatSel === "random" ? randomCoat() : coatSel });
-  h.spd = spd; h.sta = sta; h.gut = gut;
-  h.temp = parseInt(gv("#dbgTemp", "55"), 10);
-  h.quirk = q === "none" ? null : q;
-  if(document.querySelector("#dbgMax") && document.querySelector("#dbgMax").checked) h.superMax = true;
-  const rec = parseInt(gv("#dbgRecord", "0"), 10);
-  if(rec > 0){ h.wins = rec; h.gradedWin = true; h.earnings = 5000 * rec; h.preStarts = rec; } // 付与勝ち数ぶんを通算出走数にも加える（戦績表の行は作らない）
-  h.rankBase = { spd: effRank(h,"spd"), sta: effRank(h,"sta"), gut: effRank(h,"gut") };
+  const wRaw = parseInt(gv("#dbgWeight", ""), 10);
+  const yusoSel = gv("#dbgYuso", "");
+  const rootDistSel = gv("#dbgRootDist", "");
+  const h = buildDebugHorse({
+    name: gv("#dbgName", ""), sex: gv("#dbgSex", "牡"), age: parseInt(gv("#dbgAge", "3"), 10),
+    sire: gv("#dbgSire", ""), bms: gv("#dbgBms", ""), dam: gv("#dbgDam", ""),
+    spd: num("#dbgSpd", 85), sta: num("#dbgSta", 85), gut: num("#dbgGut", 85),
+    surface: gv("#dbgSurf", "芝"), distMin: dd[0], distMax: dd[1],
+    gtype: gv("#dbgGrowth", "普通"),
+    temp: parseInt(gv("#dbgTemp", "55"), 10),
+    quirk: gv("#dbgQuirk", "none") === "none" ? null : gv("#dbgQuirk", "none"),
+    coat: gv("#dbgCoat", "random"),
+    record: parseInt(gv("#dbgRecord", "0"), 10),
+    superMax: !!(document.querySelector("#dbgMax") && document.querySelector("#dbgMax").checked),
+    jizoku: gv("#dbgJizoku", "no") === "yes",
+    stable: gv("#dbgStable", ""),
+    weight: isNaN(wRaw) ? null : wRaw,
+    rootDist: rootDistSel === "" ? null : parseInt(rootDistSel, 10),
+    rootAff: gv("#dbgRootAff", "") || null,
+    nonRoot: gv("#dbgNonRoot", "") || null,
+    yuso: yusoSel === "" ? null : yusoSel === "○",
+    distBulk: gv("#dbgDistBulk", "") || null,
+    courseBulk: gv("#dbgCourseBulk", "") || null
+  });
   S.horses.push(h);
-  topic("🐛 デバッグ馬「"+name+"」を作成しました");
+  topic("🐛 デバッグ馬「"+h.name+"」を作成しました");
   debugOpen = false;
   save(); render();
 }
@@ -2581,6 +2654,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>競馬シミュレーター（趣味） v0.58</footer>
+<footer>競馬シミュレーター（趣味） v0.59</footer>
 </body>
 </html>
