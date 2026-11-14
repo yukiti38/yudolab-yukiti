@@ -180,7 +180,7 @@ T('stud needs graded win or 100M', canEnterStud(mk({ sex: '牡', gradedWin: true
 
 
 // ---- v0.50 stage1: new scale, tendential inheritance, decline curves, jizoku ----
-T('save key is v7 (old saves not loaded)', SAVE_KEY === 'nkc_whc_keiba_proto_v7');
+T('save key is v8 (old saves not loaded)', SAVE_KEY === 'nkc_whc_keiba_proto_v8'); /* v1.00：カレンダー再編で v7→v8 */
 T('rank bands new scale', rankOf(85) === 'S' && rankOf(83) === 'S' && rankOf(82) === 'A' && rankOf(78) === 'A' && rankOf(77) === 'B' && rankOf(53) === 'F' && rankOf(52) === 'G');
 T('clampParam 35..85', clampParam(120) === 85 && clampParam(10) === 35 && clampParam(70) === 70);
 {
@@ -340,7 +340,7 @@ T('injury chance weight add-on', Math.abs(injuryChance(57) - 0.35) < 1e-9 && Mat
   const race = { name: 'テストG1', grade: 'GI', sector: 'overseas', racecourse: 'ロンシャン（フランス）', surface: '芝', distance_m: 2400, general: false, conditions: '', weight_type: '馬齢' };
   runRace(race, [h]);
   T('expedition fee 1000 charged', S.funds <= 5000 - 1000 + 100000);
-  T('expedition fee deducted exactly once', (() => { const f = S.funds; return f === 5000 - 1000 + (h.results[0].prize || 0); })());
+  T('expedition fee deducted exactly once', (() => { const f = S.funds; return f === 5000 - 1000 + prizePayout(h.results[0].prize || 0).net; })()); /* v0.56：資金に入るのは手取り */
   T('return week set after overseas race', h.expedReturnAbs === absWeek() + 1);
   T('no domestic transport for overseas', h.results[0].transport === 0);
 }
@@ -504,6 +504,673 @@ T('all templates have weights', DATA.mareTemplates.every(t => t.weight >= 400 &&
   T('weight does not affect affinity factor', affinityFactor(a, race) === affinityFactor(b, race));
   T('weight does not affect transport', transportFatigue(a, race) === transportFatigue(b, race));
   T('weight does not affect injury chance inputs', injuryChance(assignedWeight({ weight_type: '馬齢' }, a)) === injuryChance(assignedWeight({ weight_type: '馬齢' }, b)));
+}
+
+
+// ---- v0.54: sire-line traits （系統の個性） + broodmare jizoku display ----
+{
+  const EXPECT = {
+    'キタサンブラック':'サンデーサイレンス系','コントレイル':'サンデーサイレンス系','オルフェーヴル':'サンデーサイレンス系','ゴールドシップ':'サンデーサイレンス系','スワーヴリチャード':'サンデーサイレンス系','フィエールマン':'サンデーサイレンス系','ワールドプレミア':'サンデーサイレンス系','シュヴァルグラン':'サンデーサイレンス系','イスラボニータ':'サンデーサイレンス系','アドマイヤマーズ':'サンデーサイレンス系','サリオス':'サンデーサイレンス系','ミッキーアイル':'サンデーサイレンス系','コパノリッキー':'サンデーサイレンス系','エスポワールシチー':'サンデーサイレンス系','ドウデュース':'サンデーサイレンス系','シャフリヤール':'サンデーサイレンス系','イクイノックス':'サンデーサイレンス系','ソールオリエンス':'サンデーサイレンス系','ディープボンド':'サンデーサイレンス系','ダイワメジャー':'サンデーサイレンス系','デュランダル':'サンデーサイレンス系',
+    'Sea The Stars':'ノーザンダンサー系','Kingman':'ノーザンダンサー系','Frankel':'ノーザンダンサー系','グレナディアガーズ':'ノーザンダンサー系','ヘニーヒューズ':'ノーザンダンサー系','ドレフォン':'ノーザンダンサー系','Justify':'ノーザンダンサー系','Lope de Vega':'ノーザンダンサー系','Into Mischief':'ノーザンダンサー系','Siyouni':'ノーザンダンサー系','サトノクラウン':'ノーザンダンサー系','タスティエーラ':'ノーザンダンサー系','マインドユアビスケッツ':'ノーザンダンサー系',
+    'サートゥルナーリア':'キングマンボ系','タイトルホルダー':'キングマンボ系','ロードカナロア':'キングマンボ系','リオンディーズ':'キングマンボ系','ホッコータルマエ':'キングマンボ系','ルーラーシップ':'キングマンボ系','レイデオロ':'キングマンボ系',
+    'Dubawi':'ミスタープロスペクター系','Wootton Bassett':'ミスタープロスペクター系','ニューイヤーズデイ':'ミスタープロスペクター系','Gun Runner':'ミスタープロスペクター系','フォーウィールドライブ':'ミスタープロスペクター系',
+    'エピファネイア':'ロベルト系','エフフォーリア':'ロベルト系','モーリス':'ロベルト系',
+    'シニスターミニスター':'シアトルスルー系','マジェスティックウォリアー':'シアトルスルー系',
+    'ビッグアーサー':'ナスルーラ系','メルトスイート':'ナスルーラ系',
+    'カルストンライトオ':'マンノウォー系'
+  };
+  let allOk = Object.keys(EXPECT).length === 54;
+  for(const st of DATA.stallions){ const got = stallionMajorLine(st); if(got !== EXPECT[st.name]){ allOk = false; console.log('line mismatch:', st.name, 'got', got, 'want', EXPECT[st.name]); } }
+  T('all 54 stallions map to the confirmed major lines', allOk);
+  T('every line trait is balanced (one +1.5 / one -1.5, sum zero)', Object.keys(LINE_TRAITS).every(ln => { const b = lineBlend(ln, null); const vs = [b.spd, b.sta, b.gut]; return Math.max(...vs) === 1.5 && Math.min(...vs) === -1.5 && vs.reduce((a, v) => a + v, 0) === 0; }));
+  T('all 41 template sires resolve to a major line', DATA.mareTemplates.every(t => !!majorLineOfChain([t.sire].concat(t.sireLine || []))));
+  const bmsNulls = DATA.mareTemplates.filter(t => !majorLineOfChain([t.bms].concat(t.bmsLine || []))).map(t => t.bms);
+  T('template BMS resolve except Mejiro McQueen (documented minor line)', bmsNulls.length === 2 && bmsNulls.every(n => n === 'メジロマックイーン'));
+  T('name resolution spot checks', majorLineOfName('キングカメハメハ') === 'キングマンボ系' && majorLineOfName('トニービン') === 'ナスルーラ系' && majorLineOfName('クロフネ') === 'ノーザンダンサー系' && majorLineOfName('ゴールドシップ') === 'サンデーサイレンス系' && majorLineOfName('メジロマックイーン') === null && majorLineOfName('存在しない馬') === null);
+  freshS({});
+  T('homebred stallion inherits its sire line', stallionMajorLine({ name: '自家テスト', sire: 'コントレイル', surface: '芝', dist: [1600, 2400], growth: '普通', fee_tier: 'B' }) === 'サンデーサイレンス系');
+}
+{
+  const bl = lineBlend('サンデーサイレンス系', 'ミスタープロスペクター系');
+  T('blend params include BMS half weight', bl.gut === 1.5 && bl.spd === -0.75 && bl.sta === -0.75);
+  T('blend distance includes BMS half weight', bl.dist === -150);
+  T('blend surface includes BMS half weight', bl.surf === 2.5);
+  T('blend nudges are sire 10% / BMS 5%', bl.nudges.length === 2 && bl.nudges[0][0] === '晩成' && bl.nudges[0][1] === 0.10 && bl.nudges[1][0] === '早熟' && bl.nudges[1][1] === 0.05);
+  T('blend with unresolvable BMS line is sire only', lineBlend('ロベルト系', null).dist === 200 && lineBlend('ロベルト系', null).nudges.length === 1);
+  const origRandom = Math.random;
+  Math.random = () => 0;
+  T('growth nudge shifts one step toward target', nudgeGrowthType('普通', '晩成', 0.10) === '普通遅' && nudgeGrowthType('晩成', '早熟', 0.10) === '普通遅');
+  T('growth nudge is a no-op inside the target family', nudgeGrowthType('晩成', '晩成', 0.10) === '晩成');
+  Math.random = () => 0.99;
+  T('growth nudge respects its probability', nudgeGrowthType('普通', '晩成', 0.10) === '普通');
+  Math.random = origRandom;
+}
+{
+  // birth wiring: same parents, only the sire line differs (seeded LCG -> deterministic)
+  let seed = 987654321;
+  const origRandom = Math.random;
+  const lcg = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
+  function birthRound(sireName){
+    seed = 987654321; Math.random = lcg;
+    freshS({ year: 2032, month: 1, week: 1 });
+    const st = S.stallions.find(s => s.name === sireName);
+    st.genSpd = 70; st.genSta = 70; st.genGut = 70; st.genTemp = 55; st.gtype = '普通'; st.dist = [1600, 2400];
+    const mares = [];
+    for(let i = 0; i < 250; i++){
+      const mare = mk({ name: '系統母' + i, sex: '牝', status: 'broodmare', birthYear: 2024, sire: 'キングカメハメハ', surface: '芝', distMin: 1600, distMax: 2400 });
+      setParams(mare, 70, 70, 70);
+      mare.pregnant = { sire: sireName, dueYear: 2032 };
+      mares.push(mare);
+    }
+    S.horses = mares;
+    onNewYear();
+    Math.random = origRandom;
+    return S.horses.filter(h => h.status === 'foal');
+  }
+  const ssF = birthRound('コントレイル'); // SS: gut +1.5 / spd -1.5, dist 0
+  const mpF = birthRound('Dubawi');       // MrP: spd +1.5 / sta -1.5, dist -300 (BMS Kingmambo: spd +0.75, dist -50 in both rounds)
+  const mean = (arr, f) => arr.reduce((a, h) => a + f(h), 0) / arr.length;
+  T('line-trait birth rounds produce all foals', ssF.length === 250 && mpF.length === 250);
+  const dSpd = mean(mpF, h => h.spd) - mean(ssF, h => h.spd);
+  const dGut = mean(ssF, h => h.gut) - mean(mpF, h => h.gut);
+  const dDist = mean(ssF, h => (h.distMin + h.distMax) / 2) - mean(mpF, h => (h.distMin + h.distMax) / 2);
+  T('param centre shifts by sire line at birth (spd, expected ~3.0)', dSpd > 1.8 && dSpd < 4.2);
+  T('param centre shifts by sire line at birth (gut, expected ~1.5)', dGut > 0.5 && dGut < 2.5);
+  T('distance centre shifts by sire line at birth (expected ~300)', dDist > 180 && dDist < 420);
+}
+{
+  // surface wiring: 芝 sire x ダート mare; only the lines' turf/dirt bias differs
+  let seed = 555777;
+  const origRandom = Math.random;
+  const lcg = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
+  function surfRound(sireName, bmsName){
+    seed = 555777; Math.random = lcg;
+    freshS({ year: 2032, month: 1, week: 1 });
+    const st = S.stallions.find(s => s.name === sireName);
+    st.genSpd = 70; st.genSta = 70; st.genGut = 70; st.genTemp = 55; st.gtype = '普通';
+    const mares = [];
+    for(let i = 0; i < 300; i++){
+      const mare = mk({ name: '馬場母' + i, sex: '牝', status: 'broodmare', birthYear: 2024, sire: bmsName, surface: 'ダート', distMin: 1200, distMax: 1800 });
+      setParams(mare, 70, 70, 70);
+      mare.pregnant = { sire: sireName, dueYear: 2032 };
+      mares.push(mare);
+    }
+    S.horses = mares;
+    onNewYear();
+    Math.random = origRandom;
+    return S.horses.filter(h => h.status === 'foal');
+  }
+  const turfF = surfRound('Frankel', 'Galileo');        // ND x ND: net turf +15pp -> P(芝) ~0.60
+  const dirtF = surfRound('Dubawi', 'フォーティナイナー'); // MrP x MrP: net dirt -22.5pp -> P(芝) ~0.225
+  const pT = turfF.filter(h => h.surface === '芝').length / turfF.length;
+  const pD = dirtF.filter(h => h.surface === '芝').length / dirtF.length;
+  T('surface bias moves foals toward the line-preferred surface', turfF.length === 300 && dirtF.length === 300 && pT - pD > 0.22 && pT > 0.5 && pD < 0.32);
+}
+{
+  freshS({});
+  const html = viewStallions();
+  T('stallion list shows major lines and qualitative phrases', html.includes('系統') && html.includes('サンデーサイレンス系') && html.includes('根性に寄る・晩成気味') && html.includes('マンノウォー系'));
+  T('stallion list leaks no trait numbers', !html.includes('pp') && !html.includes('1.5') && !html.includes('±'));
+}
+{
+  freshS({ year: 2032, month: 3, week: 1 });
+  const mare = mk({ name: '配合母', sex: '牝', status: 'broodmare', birthYear: 2026, sire: 'キングカメハメハ', surface: '芝', distMin: 1600, distMax: 2400 });
+  S.horses = [mare];
+  mateMareId = null;
+  const html = broodmareTable();
+  T('mating screen shows the combined colour in words', html.includes('配合の色'));
+  T('mating screen leaks no trait numbers', !html.includes('pp') && !html.includes('1.5') && !html.includes('±'));
+}
+{
+  const names = Object.keys(LINE_TRAITS);
+  let clean = true;
+  for(const a of names) for(const b of names){ const t = lineColourText(lineBlend(a, b)); if(/[0-9０-９±]/.test(t) || t.includes('pp')) clean = false; }
+  T('all 64 sire x BMS colour texts are number-free', clean);
+  T('line phrases are number-free', Object.values(LINE_TRAITS).every(t => !/[0-9０-９±]/.test(t.phrase) && !t.phrase.includes('pp')));
+}
+{
+  T('broodmare with unrevealed jizoku shows no row', jizokuRow(mk({ status: 'broodmare', sex: '牝', jizoku: true })) === '' && jizokuRow(mk({ status: 'broodmare', sex: '牝', jizoku: false })) === '');
+  T('broodmare with revealed jizoku shows the trait', jizokuRow(mk({ status: 'broodmare', sex: '牝', jizoku: true, jizokuRevealed: true })).includes('持続の特性あり'));
+  T('stallion jizoku display unchanged', jizokuRow(mk({ status: 'stallion', jizoku: true })).includes('持続の特性あり') && jizokuRow(mk({ status: 'stallion', jizoku: false })).includes('なし'));
+  T('racehorse with unrevealed jizoku shows no row', jizokuRow(mk({ status: 'racehorse' })) === '');
+}
+
+{
+  // v0.54 exception (オーナー, 2026-11-14): Mejiro McQueen stays lineless/colourless, but as the
+  // dam-record BMS he adds a stamina-only plus at the normal BMS weight (+1.5 x 0.5 = +0.75)
+  const sireOnly = lineBlend('サンデーサイレンス系', null);
+  const mj = lineBlend('サンデーサイレンス系', null, 'メジロマックイーン');
+  T('Mejiro McQueen BMS bonus is exactly stamina +0.75', mj.sta === 0.75 && mj.sta === sireOnly.sta + 0.75);
+  T('Mejiro bonus touches no other blend component', mj.spd === sireOnly.spd && mj.gut === sireOnly.gut && mj.dist === sireOnly.dist && mj.surf === sireOnly.surf && JSON.stringify(mj.nudges) === JSON.stringify(sireOnly.nudges));
+  T('Mejiro bonus stacks additively on a resolved BMS line', lineBlend('ロベルト系', 'キングマンボ系', 'メジロマックイーン').sta === lineBlend('ロベルト系', 'キングマンボ系').sta + 0.75);
+  T('other BMS names trigger no Mejiro bonus', lineBlend('ロベルト系', null, 'キングカメハメハ').sta === lineBlend('ロベルト系', null).sta && !lineBlend('ロベルト系', null, 'キングカメハメハ').mejiroSta && !lineBlend('ロベルト系', null).mejiroSta);
+  T('Mejiro McQueen line resolution stays null', majorLineOfName('メジロマックイーン') === null);
+  T('the two Mejiro templates keep null BMS line yet trigger the bonus', ['コハクドリーム', 'ツキノプリンセス'].every(nm => { const t = DATA.mareTemplates.find(x => x.name === nm); return !!t && t.bms === 'メジロマックイーン' && majorLineOfChain([t.bms].concat(t.bmsLine || [])) === null && lineBlend('ロベルト系', null, t.bms).sta === 0.75; }));
+  let mjNamed = true, mjClean = true;
+  for(const a of Object.keys(LINE_TRAITS)){ const t = lineColourText(lineBlend(a, null, 'メジロマックイーン')); if(!t.includes('スタミナ寄り')) mjNamed = false; if(/[0-9０-９±]/.test(t) || t.includes('pp')) mjClean = false; }
+  T('Mejiro colour text names the stamina lean for every sire line', mjNamed);
+  T('Mejiro colour texts stay number-free', mjClean);
+}
+{
+  freshS({ year: 2032, month: 3, week: 1 });
+  const mare = mk({ name: 'メジロ母', sex: '牝', status: 'broodmare', birthYear: 2026, sire: 'キングカメハメハ', bms: 'メジロマックイーン', surface: '芝', distMin: 1600, distMax: 2400 });
+  S.horses = [mare];
+  mateMareId = null;
+  const html = broodmareTable();
+  T('mating screen shows the Mejiro stamina lean in words', html.includes('配合の色') && html.includes('スタミナ寄り'));
+  T('mating screen with Mejiro BMS leaks no trait numbers', !html.includes('pp') && !html.includes('1.5') && !html.includes('±'));
+}
+{
+  // birth wiring: paired LCG rounds, identical except the dam-record bms name
+  let seed = 424242;
+  const origRandom = Math.random;
+  const lcg = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
+  function mjBirthRound(bmsName){
+    seed = 424242; Math.random = lcg;
+    freshS({ year: 2032, month: 1, week: 1 });
+    const st = S.stallions.find(s => s.name === 'コントレイル');
+    st.genSpd = 70; st.genSta = 70; st.genGut = 70; st.genTemp = 55; st.gtype = '普通'; st.dist = [1600, 2400];
+    const mares = [];
+    for(let i = 0; i < 250; i++){
+      const mare = mk({ name: '系統母' + i, sex: '牝', status: 'broodmare', birthYear: 2024, sire: 'キングカメハメハ', bms: bmsName, surface: '芝', distMin: 1600, distMax: 2400 });
+      setParams(mare, 70, 70, 70);
+      mare.pregnant = { sire: 'コントレイル', dueYear: 2032 };
+      mares.push(mare);
+    }
+    S.horses = mares;
+    onNewYear();
+    Math.random = origRandom;
+    return S.horses.filter(h => h.status === 'foal');
+  }
+  const ctlF = mjBirthRound('ダイワメジャー');
+  const mjF = mjBirthRound('メジロマックイーン');
+  const mean = (arr, f) => arr.reduce((a, h) => a + f(h), 0) / arr.length;
+  T('Mejiro birth rounds produce all foals', ctlF.length === 250 && mjF.length === 250);
+  const bSta = mean(mjF, h => h.sta) - mean(ctlF, h => h.sta);
+  const bSpd = mean(mjF, h => h.spd) - mean(ctlF, h => h.spd);
+  const bGut = mean(mjF, h => h.gut) - mean(ctlF, h => h.gut);
+  T('Mejiro BMS shifts foal stamina centre by +0.75 at birth', bSta > 0.4 && bSta < 1.1);
+  T('Mejiro BMS leaves foal speed/guts centres unchanged at birth', Math.abs(bSpd) < 0.2 && Math.abs(bGut) < 0.2);
+}
+
+// ---- v0.55: 牝系図（牝系の計算・成立条件・系図表示・馬ページの牝系表示） ----
+function g1win(){ return { finish:1, grade:'GI', race:'テスト記念', when:'2035年5月第1週', prize:10000, course:'東京', surface:'芝', dist:2000, field:16, time:'2:00.0', agari:'34.0' }; }
+function buildFamily(P, dauCount, grandPer){
+  const all = [];
+  const F = mk({ name: P+'根元', sex:'牝', birthYear:2028, dam:'外部の母'+P, status:'broodmare' });
+  all.push(F);
+  const daus = [];
+  for(let i=1;i<=dauCount;i++){
+    const d = mk({ name: P+'娘'+i, sex:'牝', birthYear:2030+i, dam:F.name, status:'broodmare' });
+    daus.push(d); all.push(d);
+  }
+  const grands = [];
+  for(const d of daus){
+    for(let j=1;j<=grandPer;j++){
+      const g = mk({ name: d.name+'の子'+j, sex:(j%2 ? '牝' : '牡'), birthYear:2036+j, dam:d.name, status:'racehorse' });
+      grands.push(g); all.push(g);
+    }
+  }
+  return { F, daus, grands, all };
+}
+{
+  freshS({ year: 2040 });
+  const fam = buildFamily('リン', 5, 3); // 直仔5 + 孫15 = 子孫20（ちょうど閾値）
+  S.horses = fam.all;
+  fam.grands[0].results = [g1win()];
+  fam.grands[1].results = [g1win()];
+  fam.daus[0].results = [g1win()];
+  const lines = femaleLines();
+  T('v55 founder detected (dam outside farm)', lines.length === 1 && lines[0].founder.name === 'リン根元');
+  T('v55 direct kids counted', lines[0].directKids.length === 5);
+  T('v55 descendants counted', lines[0].descendants.length === 20);
+  T('v55 G1 winners counted', lines[0].g1Winners.length === 3);
+  const est = establishedLines();
+  T('v55 established at exact thresholds', est.length === 1 && est[0].name === 'リン根元系');
+  T('v55 colt grandchild is a member', !!lineOfHorse(fam.grands[1]) && lineOfHorse(fam.grands[1]).name === 'リン根元系');
+  T('v55 founder belongs to own line', !!lineOfHorse(fam.F) && lineOfHorse(fam.F).name === 'リン根元系');
+  T('v55 profile row shows family name', familyLineRow(fam.grands[0]).includes('牝系') && familyLineRow(fam.grands[0]).includes('リン根元系'));
+  const html = viewLineage();
+  T('v55 view names the line', html.includes('リン根元系'));
+  T('v55 view order founder < daughter < grandkid', html.indexOf('リン根元') < html.indexOf('リン娘1') && html.indexOf('リン娘1') < html.indexOf('リン娘1の子1'));
+  T('v55 grandkid nested under its dam (before next daughter)', html.indexOf('リン娘1の子1') < html.indexOf('リン娘2'));
+  T('v55 card notes sire', html.includes('父 コントレイル'));
+  T('v55 card marks representative G1 win', html.includes('🏆') && html.includes('テスト記念（GI）'));
+  T('v55 tree has collapse toggles', html.includes('data-ltoggle'));
+  lineCollapsed.add(fam.daus[0].id);
+  const htmlC = viewLineage();
+  T('v55 collapsed branch hides its grandkids, shows count', !htmlC.includes('リン娘1の子1') && htmlC.includes('子孫 3頭'));
+  T('v55 collapse leaves other branches open', htmlC.includes('リン娘2の子1'));
+  lineCollapsed.delete(fam.daus[0].id);
+  T('v55 re-expanded branch shows grandkids again', viewLineage().includes('リン娘1の子1'));
+}
+{
+  freshS({ year: 2040 });
+  const fam = buildFamily('ソラ', 4, 4); // 直仔4 + 孫16 = 子孫20・G1 3頭でも直仔不足で未成立
+  S.horses = fam.all;
+  fam.grands[0].results = [g1win()]; fam.grands[1].results = [g1win()]; fam.grands[2].results = [g1win()];
+  T('v55 4 offspring fails despite 20 descendants + 3 G1', femaleLines()[0].directKids.length === 4 && femaleLines()[0].descendants.length === 20 && establishedLines().length === 0);
+  T('v55 unestablished member has no profile row', familyLineRow(fam.grands[0]) === '');
+  T('v55 view excludes unestablished line', !viewLineage().includes('ソラ根元系') && viewLineage().includes('まだ成立した牝系はありません'));
+}
+{
+  freshS({ year: 2040 });
+  const fam = buildFamily('ツキ', 5, 3);
+  S.horses = fam.all.slice(0, -1); // 孫を1頭欠いて子孫19
+  fam.grands[0].results = [g1win()]; fam.grands[1].results = [g1win()]; fam.grands[2].results = [g1win()];
+  T('v55 19 descendants fails', femaleLines()[0].descendants.length === 19 && establishedLines().length === 0);
+}
+{
+  freshS({ year: 2040 });
+  const fam = buildFamily('ハナ', 5, 3);
+  S.horses = fam.all;
+  fam.grands[0].results = [g1win(), g1win()]; // 同じ馬のG1 2勝は1頭分
+  fam.grands[1].results = [g1win()];
+  T('v55 two distinct G1 winners fails (same horse counts once)', femaleLines()[0].g1Winners.length === 2 && establishedLines().length === 0);
+  fam.grands[2].results = [g1win()];
+  T('v55 third distinct G1 winner establishes', establishedLines().length === 1);
+}
+{
+  freshS({ year: 2040 });
+  const colt = mk({ name:'流れ者', sex:'牡', dam:'外部の母Z' });
+  const orphanMare = mk({ name:'孤高', sex:'牝', dam:'売却された母', status:'broodmare' });
+  S.horses = [colt, orphanMare];
+  const fl = femaleLines();
+  T('v55 colt with external dam is no founder; mare with absent dam is', fl.length === 1 && fl[0].founder.name === '孤高');
+  T('v55 colt belongs to no line', lineOfHorse(colt) === null && familyLineRow(colt) === '');
+}
+{
+  freshS({ year: 2040 });
+  S.horses = [];
+  T('v55 no horses -> no lines, empty message', establishedLines().length === 0 && viewLineage().includes('まだ成立した牝系はありません'));
+}
+{
+  freshS({ year: 2040 });
+  const big = buildFamily('オオ', 6, 4); // 子孫30・全31頭の合成ライン
+  const small = buildFamily('チイ', 2, 1);
+  S.horses = big.all.concat(small.all);
+  big.grands[0].results = [g1win()]; big.grands[1].results = [g1win()]; big.daus[0].results = [g1win()];
+  const html = viewLineage();
+  T('v55 ~30-horse line renders as the only established line', establishedLines().length === 1 && html.includes('オオ根元系') && html.includes('子孫30頭'));
+  T('v55 small line not rendered at all', !html.includes('チイ根元'));
+  T('v55 deepest grandkid present in tree', html.includes('オオ娘6の子4'));
+}
+{
+  const multi = mk({ name:'複数G1', results: [Object.assign(g1win(), { race:'小さい記念', prize:5000 }), Object.assign(g1win(), { race:'大きい記念', prize:20000 })] });
+  T('v55 representative G1 win picks richest', repG1Win(multi).race === '大きい記念');
+  const g2only = mk({ name:'G2のみ', results: [Object.assign(g1win(), { grade:'GII' })] });
+  T('v55 G2 win is not a G1 win', repG1Win(g2only) === null && !hasG1Win(g2only));
+}
+
+// ---- v0.56: 進上金・源泉徴収（賞金の支払い） ----
+{
+  const gi = prizePayout(20000); // GI 1着 2億円（万円単位）
+  T('v56 GI split 10/5/5, owner 80%', gi.trainer === 2000 && gi.jockey === 1000 && gi.groom === 1000 && gi.owner === 16000);
+  T('v56 GI withholding (20000-50)*10.21% floored to 万円 = 2036', gi.tax === 2036);
+  T('v56 GI net to funds = 13964万円', gi.net === 13964);
+  const sh = prizePayout(550); // 未勝利 1着 550万円
+  T('v56 small prize split floors each share', sh.trainer === 55 && sh.jockey === 27 && sh.groom === 27 && sh.owner === 441);
+  T('v56 small prize withholding = 51', sh.tax === 51 && sh.net === 390);
+  T('v56 prize exactly 50万円: no withholding', prizePayout(50).tax === 0 && prizePayout(50).net === 41);
+  T('v56 prize below 50万円: no withholding', prizePayout(49).tax === 0 && prizePayout(10).tax === 0);
+  T('v56 withholding starts appearing at 60万円', prizePayout(51).tax === 0 && prizePayout(60).tax === 1);
+  T('v56 zero prize pays nothing', prizePayout(0).net === 0 && prizePayout(0).owner === 0);
+  T('v56 shares always sum to gross', [1, 7, 49, 50, 51, 550, 12345, 20000, 99999].every(p => { const x = prizePayout(p); return x.trainer + x.jockey + x.groom + x.owner === p && x.net === x.owner - x.tax; }));
+  const dummy = { name: '内訳馬' };
+  T('v56 breakdown text shows withholding for big prize', payoutText(dummy, gi).includes('進上金') && payoutText(dummy, gi).includes('源泉徴収 −') && payoutText(dummy, gi).includes('手取り'));
+  T('v56 breakdown text omits withholding when none', !payoutText(dummy, prizePayout(40)).includes('源泉徴収'));
+}
+{
+  freshS({ year: 2032, month: 4, week: 1, funds: 10000 });
+  const h = mk({ name: '賞金テスト', birthYear: 2029, stable: '美浦' });
+  setParams(h, 85, 85, 85);
+  h.fatigue = 0; h.condition = 100;
+  S.horses = [h];
+  ensureMile(); // 実プレイではロード時の migrateV029 が先に初期化する（freshS 直後の mile:null を実フローに合わせる）
+  const race = { name: '未勝利テスト', grade: '未勝利', sector: 'central', racecourse: '東京', surface: '芝', distance_m: 2000, general: false, conditions: '', weight_type: '馬齢' };
+  const out = runRace(race, [h]);
+  const prize = h.results[0].prize || 0;
+  T('v56 strong horse wins the maiden', out[0].finish === 1 && prize > 0);
+  T('v56 earnings record stays gross', h.earnings === prize && S.farmPrize === prize);
+  T('v56 funds receive net only', S.funds === 10000 + prizePayout(prize).net && prizePayout(prize).net < prize);
+  T('v56 payout breakdown topic shown', S.topics.some(t => t.includes('進上金') && t.includes(h.name)));
+}
+
+// ---- v0.56: 経費の項目立て（月末精算） ----
+{
+  freshS({ year: 2032, month: 3, week: 1, funds: 10000 });
+  const r1 = mk({ name: '現役A', status: 'racehorse' });
+  const r2 = mk({ name: '現役B', status: 'racehorse', policy: 'pasture' }); // 放牧中も委託費
+  const colt = mk({ name: '引退牡', status: 'racehorse' }); colt.retired = true; // 引退牡馬は対象外
+  const foal = mk({ name: '当歳馬', status: 'foal', birthYear: 2032 });
+  const yrl = mk({ name: '一歳馬', status: 'yearling', birthYear: 2031 });
+  const mare = mk({ name: '繁殖牝', status: 'broodmare', sex: '牝' });
+  const stud = mk({ name: '自家種牡', status: 'stallion' });
+  S.horses = [r1, r2, colt, foal, yrl, mare, stud];
+  const total = monthlyCosts(3);
+  T('v56 monthly costs total: 委託2x50+育成2x20+繋養2x20+経営100=280', total === 280 && S.funds === 10000 - 280);
+  const topicText = S.topics[S.topics.length - 1] || '';
+  T('v56 settlement topic is itemised', topicText.includes('委託費 2頭×50万円＝100万円') && topicText.includes('育成費 2頭×20万円＝40万円') && topicText.includes('繋養費 2頭×20万円＝40万円') && topicText.includes('経営費 100万円') && topicText.includes('合計 280万円'));
+}
+{
+  freshS({ year: 2032, month: 3, week: 1, funds: 500 });
+  S.horses = [];
+  const total = monthlyCosts(3);
+  T('v56 empty farm pays 経営費 only', total === 100 && S.funds === 400);
+}
+{
+  freshS({ year: 2032, month: 3, week: 5, funds: 10000 }); /* v1.00：3月は第5週まであるため月末は第5週 */
+  const r1 = mk({ name: '月替わり現役', status: 'racehorse', birthYear: 2029 });
+  S.horses = [r1];
+  advanceWeek(); // 3月第5週 → 4月第1週で3月分を精算
+  T('v56 month rollover charges costs once', S.month === 4 && S.funds === 10000 - 150);
+  advanceWeek(); advanceWeek(); advanceWeek(); // 4月内の週送りでは精算しない
+  T('v56 no mid-month re-charge', S.funds === 10000 - 150);
+}
+
+// ---- v0.57: colt retirement 3-way choice ----
+{
+  freshS({ funds: 10000 });
+  const q = mk({ name: '資格牡', sex: '牡', status: 'racehorse', gradedWin: true });
+  const price = youngPrice(q);
+  const html = coltRetireMenuHtml(q, price);
+  T('v57 qualified colt menu shows 3 options', html.includes("id='retireStudBtn'") && html.includes("id='retirePlainBtn'") && html.includes("id='retireSellColtBtn'"));
+  T('v57 qualified colt menu labels', html.includes('種牡馬として引退する') && html.includes('引退馬として残る') && html.includes('売却して引退する') && html.includes('種牡馬入りの資格があります'));
+  T('v57 qualified colt menu shows frozen price', html.includes(man(price)) && html.includes('で売却されます'));
+  T('v57 colt price is youngPrice (deterministic)', youngPrice(q) === price);
+}
+{
+  freshS({ funds: 10000 });
+  const u = mk({ name: '無資格牡', sex: '牡', status: 'racehorse', earnings: 5000 });
+  const price = youngPrice(u);
+  const html = coltRetireMenuHtml(u, price);
+  T('v57 unqualified colt menu shows 2 options (no stud)', !html.includes("id='retireStudBtn'") && html.includes("id='retirePlainBtn'") && html.includes("id='retireSellColtBtn'"));
+  T('v57 unqualified colt menu shows price', html.includes(man(price)));
+}
+{
+  freshS({ funds: 1000 });
+  const c = mk({ name: '売却牡', sex: '牡', status: 'racehorse' });
+  S.horses = [c];
+  const price = youngPrice(c);
+  doRetireSellColt(c, price);
+  T('v57 sell credits exact displayed price', S.funds === 1000 + price);
+  T('v57 sell removes the horse', S.horses.length === 0 && !S.horses.some(x => x.id === c.id));
+  const t = S.topics[S.topics.length - 1] || '';
+  T('v57 sell topic matches filly wording', t.includes('引退・売却しました') && t.includes(man(price)));
+}
+{
+  freshS({ funds: 1000 });
+  const c = mk({ name: '残留牡', sex: '牡', status: 'racehorse' });
+  S.horses = [c];
+  doRetireColt(c, false);
+  T('v57 stay keeps horse, retired=true, funds unchanged', S.horses.some(x => x.id === c.id) && c.retired === true && c.status === 'racehorse' && S.funds === 1000);
+}
+{
+  freshS({ funds: 1000 });
+  const c = mk({ name: '種牡馬牡', sex: '牡', status: 'racehorse', gradedWin: true });
+  S.horses = [c];
+  doRetireColt(c, true);
+  const t = S.topics[S.topics.length - 1] || '';
+  T('v57 stud path unchanged', c.status === 'stallion' && c.retired === true && S.stallions.some(s => s.name === '種牡馬牡') && t.includes('種牡馬入りしました') && S.funds === 1000);
+}
+{
+  // HoF consistency with fillies: sell path must NOT fire checkHofMilestone; stay path keeps firing it
+  freshS({ funds: 1000 });
+  const seller = mk({ name: '殿堂級売却牡', sex: '牡', status: 'racehorse', earnings: 60000 });
+  seller.results = [g1win()];
+  S.horses = [seller];
+  doRetireSellColt(seller, youngPrice(seller));
+  T('v57 sell path does not fire HoF milestone (mirrors filly sell)', !(S.mile && S.mile.hof));
+  const stayer = mk({ name: '殿堂級残留牡', sex: '牡', status: 'racehorse', earnings: 60000 });
+  stayer.results = [g1win()];
+  S.horses = [stayer];
+  doRetireColt(stayer, false);
+  T('v57 stay path still fires HoF milestone', !!(S.mile && S.mile.hof));
+}
+{
+  // filly flow untouched (source-level): filly buttons + marePrice-based freeze still present, old colt label gone
+  const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
+  T('v57 filly retirement flow untouched in build', src.includes("id='retireSellBtn'") && src.includes("id='retireBroodBtn'") && src.includes('繁殖入りしない場合は、そのまま'));
+  T('v57 old colt label removed', !src.includes('種牡馬にせず引退する'));
+  T('v57 footer bumped', src.includes('競馬シミュレーター（趣味） v1.00')); /* フッターは現行版に追随（v1.00） */
+}
+
+// ---- v0.58: kanmuri applies to gift / debug auto-names (regression: suite had NO kanmuri coverage) ----
+{
+  // distinctive kanmuri: plain foal names (FOAL_A+FOAL_B combos) can never start with it
+  freshS({});
+  S.kanmuri = 'テストカンムリ';
+  const n1 = farmFoalName();
+  T('v58 farmFoalName applies kanmuri when set', n1.startsWith('テストカンムリ') && n1.length > 'テストカンムリ'.length);
+  S.kanmuri = '';
+  const n2 = farmFoalName();
+  T('v58 farmFoalName is plain when kanmuri unset', !n2.startsWith('テストカンムリ') && FOAL_A.some(a => n2.startsWith(a)));
+}
+{
+  freshS({ year: 2030, month: 1, week: 1 });
+  S.kanmuri = 'テストカンムリ';
+  const y = mk({ name: 'テスト母の28', sex: '牝', status: 'yearling', birthYear: 2028, unnamed: true });
+  S.horses = [y];
+  onNewYear();
+  T('v58 age-2 auto-name in onNewYear applies kanmuri', y.status === 'racehorse' && y.unnamed === false && y.name.startsWith('テストカンムリ'));
+}
+{
+  freshS({ year: 2026, month: 4, week: 1 });
+  S.kanmuri = 'テストカンムリ';
+  const g2 = makeGift('2yo');
+  T('v58 gift 2yo name carries kanmuri', g2.name.startsWith('テストカンムリ'));
+  T('v58 gift 2yo dam name has NO kanmuri', !g2.dam.startsWith('テストカンムリ'));
+  const g1 = makeGift('1yo');
+  T('v58 gift 1yo name carries kanmuri, dam does not', g1.name.startsWith('テストカンムリ') && !g1.dam.startsWith('テストカンムリ'));
+  S.kanmuri = '';
+  const g0 = makeGift('2yo');
+  T('v58 gift name is plain when kanmuri unset', !g0.name.startsWith('テストカンムリ'));
+}
+{
+  // external horses must NOT get the kanmuri: starting candidates / sale-pool mares from makeMare
+  freshS({});
+  S.kanmuri = 'テストカンムリ';
+  const m = makeMare(S.stallions);
+  T('v58 external mare has NO kanmuri (own/dam/grandam)', !m.name.startsWith('テストカンムリ') && !m.dam.startsWith('テストカンムリ') && !m.grandam.startsWith('テストカンムリ'));
+}
+{
+  // debug horse: player-owned, so its auto-name (blank input) carries the kanmuri; its fictional dam does not
+  freshS({ year: 2030 });
+  S.kanmuri = 'テストカンムリ';
+  let dbgErr = null, d = null;
+  try { createDebugHorse(); d = S.horses[S.horses.length - 1]; } catch(e) { dbgErr = e; }
+  T('v58 debug horse auto-name carries kanmuri', !dbgErr && !!d && d.name.startsWith('テストカンムリ'));
+  T('v58 debug horse dam has NO kanmuri', !dbgErr && !!d && !d.dam.startsWith('テストカンムリ'));
+}
+{
+  // naming-candidate suggestion rendered on an unnamed foal's horse page
+  freshS({ year: 2029, month: 6, week: 1 });
+  S.kanmuri = 'テストカンムリ';
+  const f = mk({ name: 'テスト母の29', sex: '牝', status: 'yearling', birthYear: 2029, unnamed: true });
+  S.horses = [f];
+  const origQS = document.querySelector;
+  const box = { innerHTML: '' };
+  document.querySelector = (sel) => sel === '#horseModalBox' ? box : origQS(sel);
+  let pageErr = null;
+  try { openHorse(f.id); } catch(e) { pageErr = e; } finally { document.querySelector = origQS; }
+  T('v58 naming candidate on horse page includes kanmuri', !pageErr && box.innerHTML.includes('候補：テストカンムリ'));
+}
+{
+  const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
+  T('v58 build: makeGift uses farmFoalName', src.includes('name:farmFoalName()'));
+  T('v58 build: debug fallback uses farmFoalName', src.includes(': farmFoalName()')); /* v0.59 で buildDebugHorse に分離されても自動名は farmFoalName のまま */
+  T('v58 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.00')); /* フッターは現行版に追随（v1.00） */
+}
+
+// ---- v0.59: debug creator brought up to current spec + gift affinities initialised at creation ----
+{
+  freshS({ year: 2026 });
+  const h = buildDebugHorse({ name: 'デバ検証', sex: '牝', age: 3, sire: 'コントレイル', bms: 'キタサンブラック', dam: 'デバ母', spd: 80, sta: 70, gut: 60 });
+  T('v59 debug pedigree stored verbatim', h.sire === 'コントレイル' && h.bms === 'キタサンブラック' && h.dam === 'デバ母');
+  T('v59 debug sire line resolves like a real foal', stallionMajorLine(S.stallions.find(s => s.name === h.sire)) === 'サンデーサイレンス系');
+  T('v59 debug params honoured', h.spd === 80 && h.sta === 70 && h.gut === 60);
+}
+{
+  freshS({ year: 2026 });
+  T('v59 debug params clamp at 99 (old 150 scale gone)', (() => { const h = buildDebugHorse({ spd: 150, sta: 120, gut: 100 }); return h.spd === 99 && h.sta === 99 && h.gut === 99; })());
+  T('v59 debug params clamp at 1 below', buildDebugHorse({ spd: 0 }).spd === 1);
+  T('v59 debug params default 85', (() => { const h = buildDebugHorse({}); return h.spd === 85 && h.sta === 85 && h.gut === 85; })());
+}
+{
+  freshS({ year: 2026 });
+  const a = buildDebugHorse({ gtype: '普通遅' });
+  T('v59 debug gtype subtype kept, display derived via G_DISP', a.gtype === '普通遅' && a.growth === '普通');
+  const b = buildDebugHorse({ gtype: '超早熟' });
+  T('v59 debug gtype 超早熟 displays 早熟', b.gtype === '超早熟' && b.growth === '早熟');
+  const c = buildDebugHorse({ gtype: '超晩成' });
+  T('v59 debug gtype 超晩成 displays 超晩成', c.gtype === '超晩成' && c.growth === '超晩成');
+  const d = buildDebugHorse({ gtype: '存在しない型' });
+  T('v59 debug invalid gtype falls back to 普通', d.gtype === '普通' && d.growth === '普通');
+}
+{
+  freshS({ year: 2026 });
+  T('v59 debug jizoku honoured', buildDebugHorse({ jizoku: true }).jizoku === true);
+  T('v59 debug jizoku defaults to none', buildDebugHorse({}).jizoku === false);
+}
+{
+  freshS({ year: 2026 });
+  T('v59 debug stable honoured at age>=2', buildDebugHorse({ age: 3, stable: '栗東' }).stable === '栗東' && buildDebugHorse({ age: 2, stable: '美浦' }).stable === '美浦');
+  T('v59 debug stable not applied before age 2', !buildDebugHorse({ age: 1, stable: '栗東' }).stable && !buildDebugHorse({ age: 0, stable: '美浦' }).stable);
+}
+{
+  freshS({ year: 2026 });
+  T('v59 debug mature weight honoured', buildDebugHorse({ weight: 512 }).matureWeight === 512);
+  T('v59 debug weight auto-generated when unset', buildDebugHorse({}).matureWeight != null);
+}
+{
+  freshS({ year: 2026 });
+  const h = buildDebugHorse({ age: 3, distMin: 1600, distMax: 2400, rootDist: 2400, rootAff: '○', nonRoot: '○', yuso: true, distBulk: '○', courseBulk: '✕' });
+  T('v59 debug aff root explicit', h.aff.rootDist === 2400 && h.aff.rootAff === '○');
+  T('v59 debug aff explicit beats root/nonRoot exclusion', h.aff.nonRoot === '○');
+  T('v59 debug aff yuso explicit', h.aff.yuso === true);
+  T('v59 debug aff dist bulk applies in range only', [1600, 1800, 2000, 2200, 2400].every(b => h.aff.distAff[b] === '○') && h.aff.distAff[1000] === undefined);
+  T('v59 debug aff course bulk applies to all 10', COURSES10.every(c => h.aff.courseAff[c] === '✕'));
+  T('v59 debug aff predictions ready at age>=2', !!h.aff.pred);
+  const sec = affinitySection(h);
+  T('v59 debug horse page shows affinity section immediately', sec.includes('相性') && sec.includes('根幹距離 2400m'));
+}
+{
+  freshS({ year: 2026 });
+  const h = buildDebugHorse({ age: 4, distBulk: '-', courseBulk: '-' });
+  T('v59 debug aff bulk minus clears marks', Object.keys(h.aff.distAff).length === 0 && Object.keys(h.aff.courseAff).length === 0);
+  const r = buildDebugHorse({ age: 4 });
+  T('v59 debug aff random base generated', !!r.aff && AFF_BANDS.includes(r.aff.rootDist) && typeof r.aff.yuso === 'boolean');
+}
+{
+  // dam name typed to match an existing mare attaches the debug horse to her female line (name matching only, no special code)
+  freshS({ year: 2040 });
+  const fam = buildFamily('デバ', 5, 3);
+  S.horses = fam.all.slice();
+  fam.grands[0].results = [g1win()]; fam.grands[1].results = [g1win()]; fam.daus[0].results = [g1win()];
+  T('v59 synthetic line established', establishedLines().length === 1 && establishedLines()[0].name === 'デバ根元系');
+  const h = buildDebugHorse({ name: 'デバ接続仔', sex: '牝', age: 3, dam: fam.daus[1].name });
+  S.horses.push(h);
+  T('v59 debug horse joins line via dam name', !!lineOfHorse(h) && lineOfHorse(h).name === 'デバ根元系');
+  T('v59 debug horse profile shows family row', familyLineRow(h).includes('デバ根元系'));
+}
+{
+  freshS({ year: 2026, month: 4, week: 1 });
+  const g = makeGift('2yo');
+  T('v59 gift aff initialised at creation', !!g.aff && AFF_BANDS.includes(g.aff.rootDist) && !!g.aff.pred);
+  S.giftQueue = [g];
+  acceptGift('');
+  const acc = S.horses[S.horses.length - 1];
+  T('v59 accepted gift keeps aff', !!acc.aff);
+  T('v59 accepted gift page shows affinity section', affinitySection(acc).includes('相性'));
+  const g1 = makeGift('1yo');
+  T('v59 gift 1yo aff initialised (pred comes at 2)', !!g1.aff && AFF_BANDS.includes(g1.aff.rootDist));
+}
+{
+  const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
+  T('v59 build: debug pedigree selects + dam input present', src.includes('"dbgSire"') && src.includes("id='dbgDam'") && src.includes('"dbgBms"'));
+  T('v59 build: affinity controls present', src.includes('"dbgRootDist"') && src.includes('"dbgYuso"') && src.includes('"dbgCourseBulk"'));
+  T('v59 build: param range note present', src.includes('パラメータ通常 35〜85'));
+  T('v59 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.00'));
+}
+
+
+// ---- v1.00: calendar rework (Sunday-start basis, 5-week months, 52-week year) ----
+{
+  T('v100 WEEKS_IN_MONTH sums to 52', WEEKS_IN_MONTH.reduce((a, b) => a + b, 0) === 52);
+  T('v100 WEEKS_BEFORE is cumulative', WEEKS_BEFORE.every((v, i) => i === 0 ? v === 0 : v === WEEKS_BEFORE[i - 1] + WEEKS_IN_MONTH[i - 1]));
+  T('v100 5-week months are Mar/May/Aug/Nov', [3, 5, 8, 11].every(m => WEEKS_IN_MONTH[m - 1] === 5) && WEEKS_IN_MONTH.filter(w => w === 5).length === 4);
+  T('v100 absOf samples', absOf(2026, 1, 1) === 0 && absOf(2026, 5, 5) === 21 && absOf(2026, 12, 4) === 51 && absOf(2027, 1, 1) === 52 && absOf(2026, 3, 5) === 12);
+  T('v100 fromAbs inverts absOf', [[2026,1,1],[2026,3,5],[2026,5,4],[2026,5,5],[2026,6,1],[2026,8,5],[2026,11,5],[2026,12,4],[2027,1,1],[2030,8,5]].every(t => { const u = fromAbs(absOf(t[0], t[1], t[2])); return u[0] === t[0] && u[1] === t[1] && u[2] === t[2]; }));
+  T('v100 shiftWeek crosses 5th week and month ends', (() => { const a = shiftWeek(2026, 5, 4, 1); const b = shiftWeek(2026, 5, 5, 1); const c = shiftWeek(2026, 12, 4, 1); return a[1] === 5 && a[2] === 5 && b[1] === 6 && b[2] === 1 && c[0] === 2027 && c[1] === 1 && c[2] === 1; })());
+  T('v100 absLabel shows week 5', absLabel(absOf(2026, 11, 5)) === '11月第5週' && absLabel(absOf(2026, 5, 4)) === '5月第4週');
+}
+{
+  const slot = n => { const r = DATA.domestic.find(x => x.name === n); return r ? r.month * 100 + r.wom : -1; };
+  T('v100 Oaks (2026-05-24) -> May w4', slot('オークス') === 504);
+  T('v100 Derby (2026-05-31) -> May w5', slot('日本ダービー') === 505);
+  T('v100 Oaks and Derby no longer share a slot', slot('オークス') !== slot('日本ダービー'));
+  T('v100 Victoria Mile (05-17) -> May w3', slot('ヴィクトリアマイル') === 503);
+  T('v100 Yasuda Kinen (06-07) -> Jun w1', slot('安田記念') === 601);
+  T('v100 Takamatsunomiya (03-29) -> Mar w5', slot('高松宮記念') === 305);
+  T('v100 Nikkei Sho (03-28, same weekend) -> Mar w5', slot('日経賞') === 305);
+  T('v100 Oka Sho (04-12) -> Apr w2', slot('桜花賞') === 402);
+  T('v100 Satsuki Sho (04-19) -> Apr w3', slot('皐月賞') === 403);
+  T('v100 Kikuka Sho (10-25) -> Oct w4', slot('菊花賞') === 1004);
+  T('v100 Shuka Sho (10-18) -> Oct w3', slot('秋華賞') === 1003);
+  T('v100 Mile CS (11-22) -> Nov w4', slot('マイルチャンピオンシップ') === 1104);
+  T('v100 Japan Cup (11-29) -> Nov w5', slot('ジャパンC') === 1105);
+  T('v100 Niigata Nisai (08-23) -> Aug w4', slot('新潟2歳S') === 804);
+  T('v100 Niigata Kinen (08-30) -> Aug w5', slot('新潟記念') === 805);
+  T('v100 Arima Kinen (12-27) -> Dec w4', slot('有馬記念') === 1204);
+  T('v100 Tokyo Daishoten (12-29, year-end clamp) -> Dec w4', slot('東京大賞典') === 1204);
+  T('v100 every race wom within its month length', DATA.domestic.concat(DATA.overseas).every(r => r.wom >= 1 && r.wom <= WEEKS_IN_MONTH[r.month - 1]));
+  T('v100 graded races exist in all four 5th weeks', [3, 5, 8, 11].every(m => DATA.domestic.some(r => r.month === m && r.wom === 5 && ['GI','GII','GIII','JpnI','JpnII','JpnIII'].includes(r.grade))));
+  T('v100 October stays 4 weeks (Oct 31 races sit in Nov w1)', !DATA.domestic.some(r => r.month === 10 && r.wom === 5) && DATA.domestic.some(r => r.month === 11 && r.wom === 1));
+}
+{
+  freshS({ year: 2026, month: 1, week: 1, phase: 'play' });
+  S.horses = [];
+  const seen = [];
+  let mono = true, prev = absWeek();
+  for (let i = 0; i < 52; i++) {
+    seen.push(S.year * 10000 + S.month * 100 + S.week);
+    advanceWeek();
+    if (absWeek() !== prev + 1) mono = false;
+    prev = absWeek();
+  }
+  T('v100 walking a year visits 52 distinct weeks', new Set(seen).size === 52);
+  T('v100 absWeek strictly increases by 1 each advance', mono);
+  T('v100 after 52 advances it is 2027 Jan w1', S.year === 2027 && S.month === 1 && S.week === 1 && absWeek() === 52);
+}
+{
+  freshS({ year: 2026, month: 5, week: 1, phase: 'play' });
+  S.horses = [];
+  const derby = DATA.domestic.find(r => r.name === '日本ダービー');
+  const h = mk({ name: 'カレンダー登録馬', status: 'racehorse' });
+  const key = absOf(S.year, 5, derby.wom) + '@' + derby.name + '|' + derby.racecourse + '|' + derby.grade;
+  h.entries = {}; h.entries[absOf(S.year, 5, derby.wom)] = { key, style: null };
+  S.horses = [h];
+  calMonth = 5;
+  const html = viewCalendar();
+  T('v100 calendar tab renders week-5 section', html.includes('第5週'));
+  T('v100 calendar tab shows Derby in week 5', html.includes('日本ダービー'));
+  T('v100 calendar tab marks week-5 entry', html.includes('登録：カレンダー登録馬'));
+  calMonth = 0;
+}
+{
+  freshS({ year: 2030, month: 5, week: 5, funds: 12345 });
+  T('v100 new state is stamped calVer 2', S.calVer === 2);
+  save();
+  const keptFunds = S.funds;
+  S.funds = -999; S.year = 1999;
+  T('v100 save/load roundtrip under v8 key', load() === true && S.funds === keptFunds && S.year === 2030 && S.month === 5 && S.week === 5 && S.calVer === 2);
+}
+{
+  const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
+  T('v100 build: SAVE_KEY bumped to v8', src.includes('nkc_whc_keiba_proto_v8'));
+  T('v100 build: import refuses pre-rework saves', src.includes('data.calVer !== 2') && src.includes('カレンダー再編（v1.00）より前の形式のため読み込めません'));
+  T('v100 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.00'));
+  T('v100 build: skip week 5 option exists', src.includes('<option>5</option>'));
 }
 
 console.log('\nRESULT: ' + pass + ' passed, ' + fail + ' failed');
