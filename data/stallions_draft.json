@@ -38,7 +38,8 @@
    "dam": "シュガーハート",
    "bms": "サクラバクシンオー",
    "grandam": "オトメゴコロ",
-   "gbms": "ジャッジアンジェルーチ"
+   "gbms": "ジャッジアンジェルーチ",
+   "weight": 540
   },
   {
    "dist": [
@@ -64,7 +65,8 @@
     "スペシャルウィーク",
     "サンデーサイレンス",
     "ヘイロー"
-   ]
+   ],
+   "weight": 510
   },
   {
    "dist": [
@@ -90,7 +92,8 @@
     "Unbridled's Song",
     "Unbridled",
     "Fappiano"
-   ]
+   ],
+   "weight": 462
   },
   {
    "dist": [
@@ -116,7 +119,8 @@
     "スペシャルウィーク",
     "サンデーサイレンス",
     "ヘイロー"
-   ]
+   ],
+   "weight": 482
   },
   {
    "dist": [
@@ -142,7 +146,8 @@
     "メジロマックイーン",
     "メジロティターン",
     "メジロアサマ"
-   ]
+   ],
+   "weight": 452
   },
   {
    "dist": [
@@ -169,7 +174,8 @@
     "メジロティターン",
     "メジロアサマ"
    ],
-   "jizoku": true
+   "jizoku": true,
+   "weight": 522
   },
   {
    "dist": [
@@ -195,7 +201,8 @@
     "トニービン",
     "カンパラ",
     "カラムーン"
-   ]
+   ],
+   "weight": 512
   },
   {
    "dist": [
@@ -216,7 +223,8 @@
    "dam": "ラドラーダ",
    "bms": "シンボリクリスエス",
    "grandam": "レディブロンド",
-   "gbms": "Seeking the Gold"
+   "gbms": "Seeking the Gold",
+   "weight": 488
   },
   {
    "dist": [
@@ -242,7 +250,8 @@
     "Unbridled's Song",
     "Unbridled",
     "Fappiano"
-   ]
+   ],
+   "weight": 514
   },
   {
    "dist": [
@@ -268,7 +277,8 @@
     "Rossini",
     "Miswaki",
     "Mr. Prospector"
-   ]
+   ],
+   "weight": 492
   },
   {
    "dist": [
@@ -294,7 +304,8 @@
     "Green Tune",
     "Green Dancer",
     "Nijinsky"
-   ]
+   ],
+   "weight": 452
   },
   {
    "dist": [
@@ -320,7 +331,8 @@
     "Motivator",
     "Montjeu",
     "Sadler's Wells"
-   ]
+   ],
+   "weight": 464
   },
   {
    "dist": [
@@ -346,7 +358,8 @@
     "Acatenango",
     "Surumu",
     "Literat"
-   ]
+   ],
+   "weight": 474
   },
   {
    "dist": [
@@ -368,7 +381,8 @@
    "bms": "Machiavellian",
    "grandam": "ハルーワソング",
    "gbms": "Nureyev",
-   "jizoku": true
+   "jizoku": true,
+   "weight": 476
   },
   {
    "dist": [
@@ -395,7 +409,8 @@
     "キングヘイロー",
     "ダンシングブレーヴ",
     "リファール"
-   ]
+   ],
+   "weight": 472
   },
   {
    "dist": [
@@ -416,7 +431,8 @@
    "dam": "レディブロッサム",
    "bms": "Storm Cat",
    "grandam": "サラトガデュー",
-   "gbms": "Cormorant"
+   "gbms": "Cormorant",
+   "weight": 504
   },
   {
    "dist": [
@@ -442,7 +458,8 @@
     "カーネギー",
     "Sadler's Wells",
     "Northern Dancer"
-   ]
+   ],
+   "weight": 508
   },
   {
    "dist": [
@@ -468,7 +485,8 @@
     "Cozzene",
     "Caro",
     "Fortino"
-   ]
+   ],
+   "weight": 470
   },
   {
    "dist": [
@@ -494,7 +512,8 @@
     "Medicean",
     "Machiavellian",
     "Mr. Prospector"
-   ]
+   ],
+   "weight": 482
   },
   {
    "dist": [
@@ -520,7 +539,8 @@
     "Lomitas",
     "Niniski",
     "Nijinsky"
-   ]
+   ],
+   "weight": 512
   },
   {
    "dist": [
@@ -546,7 +566,8 @@
     "Harlington",
     "Unbridled",
     "Fappiano"
-   ]
+   ],
+   "weight": 484
   },
   {
    "dist": [
@@ -567,7 +588,8 @@
    "dam": "シヤボナ",
    "bms": "キングマンボ",
    "grandam": "Relish",
-   "gbms": "Sadler's Wells"
+   "gbms": "Sadler's Wells",
+   "weight": 522
   },
   {
    "dist": [
@@ -593,7 +615,8 @@
     "ロックオブジブラルタル",
     "デインヒル",
     "ダンジグ"
-   ]
+   ],
+   "weight": 482
   },
   {
    "dist": [
@@ -619,7 +642,8 @@
     "スペシャルウィーク",
     "サンデーサイレンス",
     "ヘイロー"
-   ]
+   ],
+   "weight": 492
   },
   {
    "dist": [
@@ -646,7 +670,8 @@
     "ノーザンテースト",
     "ノーザンダンサー",
     "ニアークティック"
-   ]
+   ],
+   "weight": 522
   },
   {
    "dist": [
@@ -672,7 +697,8 @@
     "Meadowlake",
     "Hold Your Peace",
     "Speak John"
-   ]
+   ],
+   "weight": 502
   },
   {
    "dist": [
@@ -698,7 +724,8 @@
     "Ghostzapper",
     "Awesome Again",
     "Deputy Minister"
-   ]
+   ],
+   "weight": 512
   },
   {
    "dist": [
@@ -719,7 +746,8 @@
    "dam": "ドリームスプリーム",
    "bms": "Seeking the Gold",
    "grandam": "Spinning Round",
-   "gbms": "Dixieland Band"
+   "gbms": "Dixieland Band",
+   "weight": 505
   },
   {
    "dist": [
@@ -744,7 +772,8 @@
     "The Prime Minister",
     "Deputy Minister",
     "Vice Regent"
-   ]
+   ],
+   "weight": 520
   },
   {
    "dist": [
@@ -770,7 +799,8 @@
     "Cherokee Run",
     "Runaway Groom",
     "Blushing Groom"
-   ]
+   ],
+   "weight": 532
   },
   {
    "dist": [
@@ -796,7 +826,8 @@
     "ティンバーカントリー",
     "Woodman",
     "Mr. Prospector"
-   ]
+   ],
+   "weight": 512
   },
   {
    "dist": [
@@ -822,7 +853,8 @@
     "ブライアンズタイム",
     "ロベルト",
     "ヘイルトゥリーズン"
-   ]
+   ],
+   "weight": 532
   },
   {
    "dist": [
@@ -848,7 +880,8 @@
     "Dixie Union",
     "Dixieland Band",
     "Northern Dancer"
-   ]
+   ],
+   "weight": 492
   },
   {
    "dist": [
@@ -874,7 +907,8 @@
     "Toccet",
     "Awesome Again",
     "Deputy Minister"
-   ]
+   ],
+   "weight": 482
   },
   {
    "dist": [
@@ -900,7 +934,8 @@
     "More Than Ready",
     "Southern Halo",
     "Halo"
-   ]
+   ],
+   "weight": 492
   },
   {
    "dist": [
@@ -926,7 +961,8 @@
     "Danehill",
     "Danzig",
     "Northern Dancer"
-   ]
+   ],
+   "weight": 512
   },
   {
    "dist": [
@@ -952,7 +988,8 @@
     "Deploy",
     "Shirley Heights",
     "Mill Reef"
-   ]
+   ],
+   "weight": 482
   },
   {
    "dist": [
@@ -978,7 +1015,8 @@
     "Miswaki",
     "Mr. Prospector",
     "Raise a Native"
-   ]
+   ],
+   "weight": 502
   },
   {
    "dist": [
@@ -1004,7 +1042,8 @@
     "Zamindar",
     "Gone West",
     "Mr. Prospector"
-   ]
+   ],
+   "weight": 502
   },
   {
    "dist": [
@@ -1030,7 +1069,8 @@
     "Primo Dominie",
     "Dominion",
     "Derring-Do"
-   ]
+   ],
+   "weight": 494
   },
   {
    "dist": [
@@ -1056,7 +1096,8 @@
     "Danehill",
     "Danzig",
     "Northern Dancer"
-   ]
+   ],
+   "weight": 484
   },
   {
    "dist": [
@@ -1082,7 +1123,8 @@
     "Vettori",
     "Machiavellian",
     "Mr. Prospector"
-   ]
+   ],
+   "weight": 502
   },
   {
    "dist": [
@@ -1108,7 +1150,8 @@
     "Tricky Creek",
     "Clever Trick",
     "Icecapade"
-   ]
+   ],
+   "weight": 502
   },
   {
    "dist": [
@@ -1134,7 +1177,8 @@
     "Ghostzapper",
     "Awesome Again",
     "Deputy Minister"
-   ]
+   ],
+   "weight": 562
   },
   {
    "dist": [
@@ -1155,7 +1199,8 @@
    "dam": "Quiet Giant",
    "bms": "Giant's Causeway",
    "grandam": "Quiet Dance",
-   "gbms": "Quiet American"
+   "gbms": "Quiet American",
+   "weight": 512
   },
   {
    "name": "ドウデュース",
@@ -1182,7 +1227,8 @@
     "Vindication",
     "Seattle Slew",
     "Bold Reasoning"
-   ]
+   ],
+   "weight": 472
   },
   {
    "name": "エフフォーリア",
@@ -1204,7 +1250,8 @@
    "dam": "ケイティーズハート",
    "bms": "ハーツクライ",
    "grandam": "ケイティーズファースト",
-   "gbms": "Kris"
+   "gbms": "Kris",
+   "weight": 506
   },
   {
    "name": "シャフリヤール",
@@ -1231,7 +1278,8 @@
     "Essence of Dubai",
     "Pulpit",
     "A.P. Indy"
-   ]
+   ],
+   "weight": 452
   },
   {
    "name": "ソールオリエンス",
@@ -1258,7 +1306,8 @@
     "Motivator",
     "Montjeu",
     "Sadler's Wells"
-   ]
+   ],
+   "weight": 472
   },
   {
    "name": "タスティエーラ",
@@ -1285,7 +1334,8 @@
     "マンハッタンカフェ",
     "サンデーサイレンス",
     "ヘイロー"
-   ]
+   ],
+   "weight": 482
   },
   {
    "name": "カルストンライトオ",
@@ -1309,7 +1359,8 @@
     "リアルシャダイ",
     "ロベルト",
     "ヘイルトゥリーズン"
-   ]
+   ],
+   "weight": 470
   },
   {
    "name": "デュランダル",
@@ -1333,7 +1384,8 @@
     "ノーザンテースト",
     "ノーザンダンサー",
     "ニアークティック"
-   ]
+   ],
+   "weight": 478
   },
   {
    "name": "ディープボンド",
@@ -1360,7 +1412,8 @@
     "ダンシングブレーヴ",
     "リファール"
    ],
-   "jizoku": true
+   "jizoku": true,
+   "weight": 484
   },
   {
    "name": "メルトスイート",
@@ -1387,7 +1440,8 @@
     "クロフネ",
     "フレンチデピュティ",
     "デピュティミニスター"
-   ]
+   ],
+   "weight": 486
   }
  ]
 }

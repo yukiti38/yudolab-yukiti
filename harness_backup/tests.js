@@ -10,7 +10,7 @@ render = function(){};
 T('domestic races 965', DATA.domestic.length === 965);
 T('overseas races 585', DATA.overseas.length === 585);
 T('stallions 54', DATA.stallions.length === 54);
-T('templates 40', DATA.mareTemplates.length === 40);
+T('templates 41 (incl. Big Okojo)', DATA.mareTemplates.length === 41);
 
 // ---- class system ----
 T('class winless', horseClass(mk({ wins: 0 })) === '未勝利');
@@ -84,7 +84,7 @@ T('stud needs graded win or 100M', canEnterStud(mk({ sex: '牡', gradedWin: true
   T('personRec stallion dam', personRec('キタサンブラック').dam === 'シュガーハート');
   T('personRec dam resolves bms+grandam', (() => { const r = personRec('シュガーハート'); return r && r.sire === 'サクラバクシンオー' && r.dam === 'オトメゴコロ'; })());
   T('personRec grandam resolves gbms', personRec('オトメゴコロ').sire === 'ジャッジアンジェルーチ');
-  T('templates in 4 groups of 10', ['sunday', 'kingmambo', 'overseas', 'other'].every(g => DATA.mareTemplates.filter(t => t.group === g).length === 10));
+  T('template groups: 10/10/10/11', ['sunday', 'kingmambo', 'overseas'].every(g => DATA.mareTemplates.filter(t => t.group === g).length === 10) && DATA.mareTemplates.filter(t => t.group === 'other').length === 11);
   T('templates carry rank and 3 sires', DATA.mareTemplates.every(t => t.rank && t.sire && t.bms && t.gbms));
 }
 {
@@ -443,6 +443,67 @@ T('snapBand nearest', snapBand(2050) === 2000 && snapBand(2150) === 2200 && snap
   runRace(race, [h]);
   T('racing reveals root, course, dist, yuso', h.aff.known.root === true && h.aff.courseKnown['東京'] === true && h.aff.distKnown[2000] === true && h.aff.known.yuso === true);
   T('yuso halves transport', transportFatigue(h, { racecourse: '京都', sector: 'central' }) === 10);
+}
+
+
+// ---- v0.53 stage4: body weight (pure flavour), white coat, Big Okojo ----
+T('all stallions have mature weights', DATA.stallions.every(s => s.weight >= 400 && s.weight <= 600));
+T('all templates have weights', DATA.mareTemplates.every(t => t.weight >= 400 && t.weight <= 560));
+{
+  const t = DATA.mareTemplates.find(x => x.name === 'ビッグオコジョ');
+  T('Big Okojo template per spec', !!t && t.group === 'other' && t.rank === 'B' && t.coat === '白毛' && t.sire === 'クロフネ' && t.dam === 'シロオコジョ' && t.bms === 'ゴールドシップ' && t.grandam === 'ハクノユキ' && t.gbms === 'ステイゴールド' && t.surface === '芝' && t.dist[0] === 1600 && t.dist[1] === 2200 && t.growth === '普通' && t.weight === 540 && t.sireLine[0] === 'クロフネ' && t.sireLine[1] === 'フレンチデピュティ');
+  freshS({});
+  const m = makeTemplateMare(t);
+  T('Big Okojo mare is white and 540kg', m.coat === '白毛' && m.matureWeight === 540);
+}
+{
+  const origRandom = Math.random;
+  Math.random = () => 0.4;
+  T('white inherits 50% from one parent', inheritCoat('白毛', '鹿毛') === '白毛');
+  Math.random = () => 0.6;
+  T('white can be missed at 50%', inheritCoat('白毛', '鹿毛') !== '白毛');
+  Math.random = () => 0.7;
+  T('white inherits 75% from both parents', inheritCoat('白毛', '白毛') === '白毛');
+  Math.random = () => 0.8;
+  T('white can be missed at 75%', inheritCoat('白毛', '白毛') !== '白毛');
+  Math.random = origRandom;
+  let whiteSeen = false;
+  for (let i = 0; i < 300; i++) if (randomCoat() === '白毛') whiteSeen = true;
+  T('random coat never yields white', !whiteSeen);
+}
+{
+  freshS({ year: 2032, month: 1, week: 1 });
+  const h = mk({ name: '体重馬', birthYear: 2032, status: 'foal', matureWeight: 500 });
+  T('foal displays ~55%', weightNow(h) === 275);
+  h.birthYear = 2031; T('1yo displays ~75%', weightNow(h) === 375);
+  h.birthYear = 2030; T('2yo displays ~90%', weightNow(h) === 450);
+  h.birthYear = 2029; T('3yo displays ~97%', weightNow(h) === 485);
+  h.birthYear = 2028; T('4yo displays 100%', weightNow(h) === 500);
+}
+{
+  freshS({ year: 2032, month: 1, week: 1 });
+  const mare = mk({ name: '体重母', sex: '牝', status: 'broodmare', birthYear: 2024, matureWeight: 480 });
+  setParams(mare, 70, 70, 70);
+  mare.pregnant = { sire: 'ゴールドシップ', dueYear: 2032 };
+  S.horses = [mare];
+  onNewYear();
+  const foal = S.horses.find(h => h.status === 'foal');
+  const sireW = DATA.stallions.find(s => s.name === 'ゴールドシップ').weight;
+  T('foal weight is parental average +-20', !!foal && Math.abs(foal.matureWeight - (sireW + 480) / 2) <= 20);
+}
+{
+  // body weight must not affect any calculation: identical horses, different weights
+  freshS({ year: 2032, month: 4, week: 1 });
+  const a = mk({ name: '軽い馬', birthYear: 2028, stable: '美浦', matureWeight: 420 });
+  const b = mk({ name: '重い馬', birthYear: 2028, stable: '美浦', matureWeight: 580 });
+  setParams(a, 72, 72, 72); setParams(b, 72, 72, 72);
+  a.condition = b.condition = 90; a.fatigue = b.fatigue = 10;
+  a.aff = b.aff = { rootDist: 2000, rootAff: '○', nonRoot: '-', distAff: {}, distKnown: {}, courseAff: {}, courseKnown: {}, known: { root: false, nonRoot: false, yuso: false }, yuso: false };
+  const race = { racecourse: '京都', distance_m: 2000, surface: '芝', sector: 'central' };
+  T('weight does not affect race base', raceBase(a, race) === raceBase(b, race));
+  T('weight does not affect affinity factor', affinityFactor(a, race) === affinityFactor(b, race));
+  T('weight does not affect transport', transportFatigue(a, race) === transportFatigue(b, race));
+  T('weight does not affect injury chance inputs', injuryChance(assignedWeight({ weight_type: '馬齢' }, a)) === injuryChance(assignedWeight({ weight_type: '馬齢' }, b)));
 }
 
 console.log('\nRESULT: ' + pass + ' passed, ' + fail + ' failed');
