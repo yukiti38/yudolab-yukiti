@@ -89,7 +89,7 @@
     <span class="sub">年</span>
     <select id="skipMonth"></select>
     <span class="sub">月 第</span>
-    <select id="skipWeek"><option>1</option><option>2</option><option>3</option><option>4</option></select>
+    <select id="skipWeek"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select>
     <span class="sub">週まで</span>
     <button id="skipBtn">スキップ ⏭</button>
   </div>
@@ -137,7 +137,13 @@ const man = yen => yen >= 10000 ? (Math.round(yen/100)/100).toLocaleString()+"�
 const GRADE_ORDER = ["GI","GII","GIII","JpnI","JpnII","JpnIII","L","OP","3勝クラス","2勝クラス","1勝クラス","未勝利","新馬"];
 function hashStr(s){ let h=0; for(let i=0;i<s.length;i++) h=(h*31 + s.charCodeAt(i))>>>0; return h; }
 /* ================= カレンダー ================= */
-// 1年 = 12ヶ月 × 4週 = 48週。「何月・第何週」表示。
+// v1.00：日曜始まり基準（Terai決定）。週は日曜で数え、日曜が5回ある月
+// （3・5・8・11月）には第5週が立つ。1年 = 52週。「何月・第何週」表示。
+// レースの日付→(月,週) の変換は build.py の month_wom が同じ基準で行う。
+const WEEKS_IN_MONTH = [4,4,5,4,5,4,4,5,4,4,5,4];
+const WEEKS_BEFORE = [0,4,8,13,17,22,26,30,35,39,43,48];
+function absOf(y,m,w){ return (y-2026)*52 + WEEKS_BEFORE[m-1] + (w-1); }
+function fromAbs(a){ const y = 2026 + Math.floor(a/52); let r = a - (y-2026)*52; let m = 1; while(r >= WEEKS_IN_MONTH[m-1]){ r -= WEEKS_IN_MONTH[m-1]; m++; } return [y, m, r+1]; }
 function weekKey(y,m,w){ return y*10000 + m*100 + w; }
 function racesThisWeek(y,m,w){
   const out = [];
@@ -220,7 +226,7 @@ function fieldSize(race){
 <script>
 "use strict";
 /* ================= 状態 ================= */
-const SAVE_KEY = "nkc_whc_keiba_proto_v7"; // v0.50 大改修：新セーブキー（旧セーブは読み込まない。Terai判断 2026-11-14）
+const SAVE_KEY = "nkc_whc_keiba_proto_v8"; // v1.00 カレンダー再編：新セーブキー（旧セーブは読み込まない。週計算が変わるため）
 let S = null;
 const FOAL_A = ["ハル","ユキ","ソラ","カゼ","ホシ","ツキ","ウミ","リク","ヒカリ","サクラ","モモ","アンズ","フジ","タケ","マツ","ウメ"];
 const FOAL_B = ["ノカゼ","ノヒカリ","ノソラ","ダンサー","ランナー","クイーン","キング","ハート","ドリーム","スター","ウィング","リバー","マウンテン","フィールド","ブライト","グローリー"];
@@ -258,7 +264,7 @@ function newHorse(o){
   return Object.assign({ id: Math.random().toString(36).slice(2,10), wins:0, earnings:0, results:[], fatigue:0,
     condition:80, policy:"train", pregnant:null, entries:{}, lastRaceAbs:-9, retired:false }, o);
 }
-function absWeek(){ return (S.year-2026)*48 + (S.month-1)*4 + (S.week-1); }
+function absWeek(){ return absOf(S.year, S.month, S.week); }
 function ageOf(h){ return S.year - h.birthYear; }
 /* 成長型：表示は4種（早熟／普通／晩成／超晩成）のまま、内部は7種に細分化する（v0.29・Terai決定）。
    内部型はプレイヤーに表示しない。ピーク年齢と出生パラメータの偏りが内部型で決まる */
@@ -699,7 +705,7 @@ function refreshSale(){
   S.salePool = pool;
 }
 function initState(){
-  S = { year:2026, month:1, week:1, funds:30000, horses:[], stallions: JSON.parse(JSON.stringify(DATA.stallions)),
+  S = { year:2026, month:1, week:1, calVer:2, funds:30000, horses:[], stallions: JSON.parse(JSON.stringify(DATA.stallions)),
         chronicle:[], statsBirths:{}, topics:[], yearEndDone:false, phase:"choose", candidates:[], salePool:[], saleYear:2026, usedTemplates:[], firstMatingDone:false,
         giftQueue:[], giftAprDone:false, giftDecDone:false, favs:[], mile:null, farmWins:0, farmPrize:0, kanmuri:"" };
   const sts = S.stallions;
@@ -852,8 +858,8 @@ function entryListText(h){
   const ks = Object.keys(h.entries).map(Number).sort((a,b)=>a-b);
   return ks.length ? ks.map(a=>absLabel(a)).join("・") : "";
 }
-function shiftWeek(y,m,w,k){ const a = (y-2026)*48 + (m-1)*4 + (w-1) + k; return [2026 + Math.floor(a/48), Math.floor((a%48)/4)+1, (a%4)+1]; }
-function absLabel(a){ return (Math.floor((a%48)/4)+1) + "月第" + ((a%4)+1) + "週"; }
+function shiftWeek(y,m,w,k){ return fromAbs(absOf(y,m,w)+k); }
+function absLabel(a){ const t = fromAbs(a); return t[1] + "月第" + t[2] + "週"; }
 /* ================= 輸送・遠征（v0.51） =================
    所属（栗東／美浦）は2歳で決めて固定。国内輸送は現代競馬に寄せて軽め（近場+5／中距離+12／遠方+20）、
    ただし2歳は精神面が幼く長距離輸送が敬遠されるため×1.5。遠方で走った馬は約2か月「滞在」扱いで、
@@ -1285,7 +1291,7 @@ function advanceWeek(){
   }
   // 3) カレンダーを進める
   const prevMonth = S.month;
-  S.week++; if(S.week>4){ S.week=1; S.month++; }
+  S.week++; if(S.week > WEEKS_IN_MONTH[S.month-1]){ S.week=1; S.month++; }
   if(S.month>12){ S.month=1; S.year++; onNewYear(); }
   if(S.month !== prevMonth){ monthlyCosts(prevMonth); monthlyTraining(); } /* v0.56：月替わりで前月分の経費を精算 */
   // 4) 新しい週のイベント
@@ -1475,10 +1481,11 @@ function nextEvent(){
 }
 function skipTo(y, m, w){
   // 指定した年・月・週まで進める（最大50年分）。途中の出来事は年表に残る。
-  const target = (y-2026)*48 + (m-1)*4 + (w-1);
+  w = Math.min(w, WEEKS_IN_MONTH[m-1]); /* 第5週のない月は末週に寄せる */
+  const target = absOf(y, m, w);
   let guard = 0;
   S.silent = true;
-  while(absWeek() < target && guard++ < 2400) advanceWeek();
+  while(absWeek() < target && guard++ < 2700) advanceWeek();
   S.silent = false;
   /* スキップ自体は年表に残さない（v0.33）。途中のビッグイベントは通常どおり記録される */
   save(); render();
@@ -2066,13 +2073,13 @@ function viewCalendar(){
   /* 今月分は登録中の馬を印付けする（登録キーは週番号を含むので当月分だけ照合できる） */
   const entered = {};
   if(m===S.month){
-    for(let w=1; w<=4; w++){
-      const a = (S.year-2026)*48 + (m-1)*4 + (w-1);
+    for(let w=1; w<=WEEKS_IN_MONTH[m-1]; w++){
+      const a = absOf(S.year, m, w);
       for(const h of S.horses) if(h.entries && h.entries[a]) (entered[h.entries[a].key] = entered[h.entries[a].key] || []).push(h.name);
     }
   }
   const rowOf = r => {
-    const key = ((S.year-2026)*48 + (m-1)*4 + (r.wom-1)) + "@" + r.name + "|" + (r.racecourse||"") + "|" + (r.grade||"");
+    const key = absOf(S.year, m, r.wom) + "@" + r.name + "|" + (r.racecourse||"") + "|" + (r.grade||"");
     const en = entered[key];
     return "<tr><td>"+raceLabel(r)+((r.labels && r.labels.length) ? " <span class='sub'>"+r.labels.join("・")+"</span>" : "")+(en ? " <span class='ok'>登録："+en.join("、")+"</span>" : "")+"</td><td>"+man(prizeTable(r)[0])+"</td></tr>";
   };
@@ -2603,6 +2610,7 @@ $("#nextEventBtn").onclick = () => { nextEvent(); };
   $("#skipBtn").onclick = () => {
     const y = parseInt($("#skipYear").value,10), m = parseInt(sm.value,10), w = parseInt($("#skipWeek").value,10);
     if(!y || y < S.year || (y===S.year && (m < S.month || (m===S.month && w <= S.week)))){ alert("今より先の週を指定してください"); return; }
+    if(w > WEEKS_IN_MONTH[m-1]){ alert(m + "月は第" + WEEKS_IN_MONTH[m-1] + "週までです（第5週があるのは3・5・8・11月だけです）"); return; }
     skipTo(y, m, w);
   };
   // かんたんスキップ：相対チップ（今の週を起点にnヶ月先へ）と節目ジャンプ。
@@ -2616,7 +2624,7 @@ $("#nextEventBtn").onclick = () => { nextEvent(); };
   document.querySelectorAll("[data-milestone]").forEach(btn => btn.onclick = () => {
     const [m, w] = MILESTONES[btn.getAttribute("data-milestone")];
     for(let y=S.year; y<=S.year+1; y++){
-      const target = (y-2026)*48 + (m-1)*4 + (w-1);
+      const target = absOf(y, m, w);
       if(target > absWeek()){ skipTo(y, m, w); return; }
     }
   });
@@ -2641,6 +2649,7 @@ $("#importFile").onchange = (ev) => {
     try {
       const data = JSON.parse(rd.result);
       if(!data || !Array.isArray(data.horses) || typeof data.year !== "number" || !Array.isArray(data.stallions)) throw new Error("bad save");
+      if(data.calVer !== 2){ alert("このセーブはカレンダー再編（v1.00）より前の形式のため読み込めません。週の割り当てが変わっているので、そのまま読み込むと予定が壊れてしまいます"); return; }
       if(!confirm("このセーブを読み込みますか？（今のデータは置き換わります）")) return;
       S = data; migrateV029(); ensureParams(); save(); render();
       topic("📥 セーブを読み込みました");
@@ -2654,6 +2663,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>競馬シミュレーター（趣味） v0.59</footer>
+<footer>競馬シミュレーター（趣味） v1.00</footer>
 </body>
 </html>
