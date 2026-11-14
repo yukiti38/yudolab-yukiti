@@ -1122,7 +1122,13 @@ function buildFamily(P, dauCount, grandPer){
   T('v100 Niigata Nisai (08-23) -> Aug w4', slot('新潟2歳S') === 804);
   T('v100 Niigata Kinen (08-30) -> Aug w5', slot('新潟記念') === 805);
   T('v100 Arima Kinen (12-27) -> Dec w4', slot('有馬記念') === 1204);
-  T('v100 Tokyo Daishoten (12-29, year-end clamp) -> Dec w4', slot('東京大賞典') === 1204);
+  T('v100 Tokyo Daishoten (12-29 Tue, weekday rule: week starts Sun 12-27) -> Dec w4', slot('東京大賞典') === 1204);
+  /* v1.00 refinement (オーナー, 2026-11-15): weekday races anchor to the Sunday STARTING their week;
+     Sat keeps the next Sunday, Sun keeps itself — the Sat/Sun slots above must not move */
+  T('v100r Kakitsubata Kinen (2026-02-23 Mon) -> Feb w4 (was Mar w1 under next-Sunday rule)', slot('かきつばた記念') === 204);
+  T('v100r JBC Classic (2026-11-03 Tue, week starts Sun 11-01) -> Nov w1', slot('JBCクラシック') === 1101);
+  T('v100r Daio Lite Kinen (2026-03-11 Wed, week starts Sun 03-08) -> Mar w2', slot('ダイオライト記念') === 302);
+  T('v100r Teio Sho (2026-07-01 Wed, week starts Sun 06-28) -> Jun w4', slot('帝王賞') === 604);
   T('v100 every race wom within its month length', DATA.domestic.concat(DATA.overseas).every(r => r.wom >= 1 && r.wom <= WEEKS_IN_MONTH[r.month - 1]));
   T('v100 graded races exist in all four 5th weeks', [3, 5, 8, 11].every(m => DATA.domestic.some(r => r.month === m && r.wom === 5 && ['GI','GII','GIII','JpnI','JpnII','JpnIII'].includes(r.grade))));
   T('v100 October stays 4 weeks (Oct 31 races sit in Nov w1)', !DATA.domestic.some(r => r.month === 10 && r.wom === 5) && DATA.domestic.some(r => r.month === 11 && r.wom === 1));
