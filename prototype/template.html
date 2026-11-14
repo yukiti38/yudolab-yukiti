@@ -1262,7 +1262,7 @@ function onNewYear(){
       const nickShift = nick==="◎" ? 3 : nick==="○" ? 1.5 : nick==="×" ? -1.5 : 0;
       const spN = inbreedNote(h, st) ? 17 : 13;
       /* 系統の個性（v0.54）：父系フル＋母父系×0.5 の寄せ（父系は種牡馬の系、母父系は母の父の系） */
-      const lb = lineBlend(stallionMajorLine(st), majorLineOfName(h.sire));
+      const lb = lineBlend(stallionMajorLine(st), majorLineOfName(h.sire), h.bms);
       /* 成長型は内部7型で継承し、出生パラメータには内部型ごとの偏り（中心シフト＋ブレ倍率）を付ける。
          系統の成長寄せは継承の後に薄く乗せる（目標型の方向へ確率で1段） */
       let foalGt = inheritGrowth(stGtype(st), gtypeOf(h));
@@ -1842,7 +1842,7 @@ function broodmareTable(){
     for(const st of list){
       const note = inbreedNote(m, st);
       const hotNote = isHotCross(stallionGen(st).temp, m.temp) ? "気性が荒くなりやすい配合（確変）" : "";
-      html += "<tr><td><button data-fav='"+st.name+"' class='ghost' title='お気に入り'>"+((S.favs||[]).includes(st.name)?"★":"☆")+"</button></td><td>"+st.name+(isHomebredStallion(st)?" <span class='ok'>自家製</span>":"")+(st.sire?" <span class='sub'>父 "+st.sire+"</span>":"")+"<br><span class='sub'>配合の色："+lineColourText(lineBlend(stallionMajorLine(st), mareBmsLine))+"</span></td><td>"+(st.region==="overseas"?"海外":"国内")+"</td><td>"+st.surface+"</td><td>"+st.dist[0]+"-"+st.dist[1]+"m</td><td>"+st.growth+"</td><td>"+st.fee_tier+"</td><td>"+stallionTendency(st)+"</td><td>"+(stallionFee(st)===0 ? "無料" : man(stallionFee(st)))+"</td><td>"+compatMark(m, st)+(note?" <span class='bad'>"+note+"</span>":"")+(hotNote?" <span class='bad'>"+hotNote+"</span>":"")+"</td><td><button data-matewith='"+st.name+"'>種付け</button></td></tr>";
+      html += "<tr><td><button data-fav='"+st.name+"' class='ghost' title='お気に入り'>"+((S.favs||[]).includes(st.name)?"★":"☆")+"</button></td><td>"+st.name+(isHomebredStallion(st)?" <span class='ok'>自家製</span>":"")+(st.sire?" <span class='sub'>父 "+st.sire+"</span>":"")+"<br><span class='sub'>配合の色："+lineColourText(lineBlend(stallionMajorLine(st), mareBmsLine, m.bms))+"</span></td><td>"+(st.region==="overseas"?"海外":"国内")+"</td><td>"+st.surface+"</td><td>"+st.dist[0]+"-"+st.dist[1]+"m</td><td>"+st.growth+"</td><td>"+st.fee_tier+"</td><td>"+stallionTendency(st)+"</td><td>"+(stallionFee(st)===0 ? "無料" : man(stallionFee(st)))+"</td><td>"+compatMark(m, st)+(note?" <span class='bad'>"+note+"</span>":"")+(hotNote?" <span class='bad'>"+hotNote+"</span>":"")+"</td><td><button data-matewith='"+st.name+"'>種付け</button></td></tr>";
     }
     html += "</table>";
   }
@@ -2044,7 +2044,9 @@ function personRec(name){
      ／フォーティナイナー → ミスタープロスペクター系
    ・Northern Dancer の各分枝（Danzig／Sadler's Wells／Storm Cat／Nureyev／Deputy Minister／Vice Regent／
      Last Tycoon／Green Desert／Galileo／ノーザンテースト／リファール／ダンシングブレーヴ等）→ ノーザンダンサー系
-   どの系にも寄せられない祖先（例：メジロマックイーン＝パーソロン系の傍流）は null とし、母父効果は付けない */
+   どの系にも寄せられない祖先（例：メジロマックイーン＝パーソロン系の傍流）は null とする
+   （系統としての母父効果は付けない。ただしメジロマックイーンには lineBlend 側に
+   スタミナだけの特例がある——そちらを参照） */
 const LINE_MARKERS = [
   ["サンデーサイレンス系", ["サンデーサイレンス","ブラックタイド","ディープインパクト","ヘイロー"]],
   ["キングマンボ系", ["キングマンボ","キングカメハメハ"]],
@@ -2108,11 +2110,17 @@ const LINE_TRAITS = {
   "ナスルーラ系": { dist:-300, surf:10, plus:"spd", minus:"gut", growth:"早熟", phrase:"スピードに寄る・芝向き・早熟気味" },
   "マンノウォー系": { dist:300, surf:10, plus:"sta", minus:"spd", growth:"晩成", phrase:"スタミナに寄る・芝向き・晩成気味" },
 };
-/* 父系（フル）＋母父系（×0.5）の合成。nudges は [表示型, 確率]（父系10%／母父系5%） */
-function lineBlend(sireLine, bmsLine){
+/* 父系（フル）＋母父系（×0.5）の合成。nudges は [表示型, 確率]（父系10%／母父系5%）。
+   damBmsName は牝馬レコードの母父名（配合画面で「母父」として表示される欄の名前）。
+   特例（Terai決定 2026-11-14）：メジロマックイーンは系統には入れず無色のままにするが、
+   母父が彼の場合だけ、母父の通常ウェイト（×0.5）でスタミナに +1.5×0.5 の寄せを付ける。
+   「メジロだし」というフレーバー上の例外で、系統判定（null）は変えず、
+   距離・馬場・成長型の寄せには一切触らない */
+function lineBlend(sireLine, bmsLine, damBmsName){
   const bl = { spd:0, sta:0, gut:0, dist:0, surf:0, nudges:[] };
   const add = (ln, w, np) => { const t = ln && LINE_TRAITS[ln]; if(!t) return; bl[t.plus] += 1.5*w; bl[t.minus] -= 1.5*w; bl.dist += t.dist*w; bl.surf += t.surf*w; bl.nudges.push([t.growth, np]); };
   add(sireLine, 1, 0.10); add(bmsLine, 0.5, 0.05);
+  if(damBmsName === "メジロマックイーン"){ bl.sta += 1.5 * 0.5; bl.mejiroSta = true; }
   return bl;
 }
 /* 合成結果を言葉だけで表す（数字・記号は一切出さない） */
@@ -2120,6 +2128,7 @@ function lineColourText(bl){
   const parts = [];
   const ps = [["スピード", bl.spd], ["スタミナ", bl.sta], ["根性", bl.gut]].filter(x=>x[1] > 0).sort((a,b)=>b[1]-a[1]);
   if(ps.length && ps[0][1] >= 0.75) parts.push(ps[0][0]+"寄り");
+  if(bl.mejiroSta && !parts.includes("スタミナ寄り")) parts.push("スタミナ寄り"); /* メジロマックイーン特例の色も言葉だけで出す */
   if(bl.dist <= -100) parts.push("短め寄り"); else if(bl.dist >= 100) parts.push("長め寄り");
   if(bl.surf >= 8) parts.push("芝寄り"); else if(bl.surf <= -8) parts.push("ダート寄り");
   const gn = (bl.nudges||[]).find(n=>n[1] >= 0.10);
