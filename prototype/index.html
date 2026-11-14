@@ -611,7 +611,7 @@ function makeMare(sts, rankHint){
   m.temp = clamp(Math.round(stallionGen(sire).temp + triSpread(10)), 25, 98);
   m.quirk = rollQuirk(m.temp);
   m.matureWeight = irnd(440, 530); /* 馬体重（v0.53・フレーバーのみ） */
-  m.jizoku = Math.random() < (sire.jizoku ? 0.05 : 0.001); /* 持続（v0.50）：父が持続なら5%、他は突然変異0.1%。表示は「不明」のまま */
+  m.jizoku = Math.random() < (sire.jizoku ? 0.05 : 0.001); /* 持続（v0.50）：父が持続なら5%、他は突然変異0.1%。未判明の繁殖牝馬には表示しない（v0.54） */
   m.rank = rank; m.price = rankPrice(rank);
   return m;
 }
@@ -1261,16 +1261,36 @@ function onNewYear(){
       const nick = compatMark(h, st);
       const nickShift = nick==="◎" ? 3 : nick==="○" ? 1.5 : nick==="×" ? -1.5 : 0;
       const spN = inbreedNote(h, st) ? 17 : 13;
-      /* 成長型は内部7型で継承し、出生パラメータには内部型ごとの偏り（中心シフト＋ブレ倍率）を付ける */
-      const foalGt = inheritGrowth(stGtype(st), gtypeOf(h));
+      /* 系統の個性（v0.54）：父系フル＋母父系×0.5 の寄せ（父系は種牡馬の系、母父系は母の父の系） */
+      const lb = lineBlend(stallionMajorLine(st), majorLineOfName(h.sire));
+      /* 成長型は内部7型で継承し、出生パラメータには内部型ごとの偏り（中心シフト＋ブレ倍率）を付ける。
+         系統の成長寄せは継承の後に薄く乗せる（目標型の方向へ確率で1段） */
+      let foalGt = inheritGrowth(stGtype(st), gtypeOf(h));
+      for(const nd of lb.nudges) foalGt = nudgeGrowthType(foalGt, nd[0], nd[1]);
       const gb = G_BIAS[foalGt] || [0, 1];
-      /* 継承は「傾向的」（v0.50）：父母平均を平均65へ0.65倍に回帰させたものが中心。ブレは広く、保証なし */
-      const fp = (s, d) => 65 + 0.65*((s + d)/2 - 65) + nickShift + gb[0] + Math.round(triSpread(spN) * gb[1]);
-      const surf = st.surface===h.surface ? (Math.random()<0.9 ? st.surface : "両刀")
-        : (Math.random()<0.45 ? st.surface : Math.random()<0.82 ? h.surface : "両刀");
+      /* 継承は「傾向的」（v0.50）：父母平均を平均65へ0.65倍に回帰させたものが中心。ブレは広く、保証なし。
+         系統のパラメータ寄せはパラメータごとの中心へ加える（ニックスとは別枠で、相性の数値は変えない） */
+      const fp = (s, d, bias) => 65 + 0.65*((s + d)/2 - 65) + nickShift + gb[0] + bias + Math.round(triSpread(spN) * gb[1]);
+      let surf;
+      if(st.surface===h.surface){
+        surf = Math.random()<0.9 ? st.surface : "両刀";
+      } else {
+        /* 馬場が食い違う場合のみ、系統の芝/ダート寄せ（pp）を「寄せ先の馬場を持つ親」側の
+           継承確率へ移す（最大±25pp）。両刀になる確率は従来どおり約0.099、寄せが無ければ従来と同一分布 */
+        let pS = 0.45; const pBoth = 0.099;
+        const pref = lb.surf > 0 ? "芝" : lb.surf < 0 ? "ダート" : null;
+        if(pref){
+          const mag = Math.min(Math.abs(lb.surf), 25)/100;
+          if(st.surface===pref && h.surface!==pref) pS += mag;
+          else if(h.surface===pref && st.surface!==pref) pS -= mag;
+        }
+        pS = clamp(pS, 0.05, 0.90);
+        const rr = Math.random();
+        surf = rr < pS ? st.surface : rr < 1 - pBoth ? h.surface : "両刀";
+      }
       const bmsSt = S.stallions.find(s=>s.name===h.sire);
       const cS = (st.dist[0]+st.dist[1])/2, cD = (h.distMin+h.distMax)/2, cB = bmsSt ? (bmsSt.dist[0]+bmsSt.dist[1])/2 : cD;
-      const centre = cS*0.5 + cD*0.35 + cB*0.15 + irnd(-200,200);
+      const centre = cS*0.5 + cD*0.35 + cB*0.15 + lb.dist + irnd(-200,200);
       const width = Math.max(500, ((st.dist[1]-st.dist[0]) + (h.distMax-h.distMin))/2);
       const r50 = v => clamp(Math.round(v/50)*50, 1000, 4000);
       const sireCoat = (S.horses.find(x=>x.status==="stallion" && x.name===st.name) || {}).coat || st.coat;
@@ -1280,7 +1300,7 @@ function onNewYear(){
         growth: G_DISP[foalGt], gtype: foalGt, ability: 70 });
       foal.saleNoise = rnd(0.85, 1.15);
       foal.unnamed = true;
-      setParams(foal, fp(sg.spd, h.spd), fp(sg.sta, h.sta), fp(sg.gut, h.gut));
+      setParams(foal, fp(sg.spd, h.spd, lb.spd), fp(sg.sta, h.sta, lb.sta), fp(sg.gut, h.gut, lb.gut));
       foal.aff = genAffinities(foal, centre); /* 相性（v0.52）：根幹距離は継承中心から決める */
       { /* 馬体重（v0.53・フレーバーのみ）：両親の成熟体重の平均±三角ブレ20kg */
         const sireHorseW = S.horses.find(x => x.status === "stallion" && x.name === st.name);
@@ -1815,13 +1835,14 @@ function broodmareTable(){
       + fsel("mfSurface", mateFilter.surface, [["all","芝・ダート"],["芝","芝"],["ダート","ダート"]])
       + fsel("mfFeeMax", mateFilter.feeMax, [["all","種付料上限なし"],["3000","〜3,000万円"],["1500","〜1,500万円"],["800","〜800万円"],["400","〜400万円"]])
       + "<label><input type='checkbox' id='mfHome'"+(mateFilter.homeOnly?" checked":"")+"> 自家製だけ</label></div>";
+    const mareBmsLine = majorLineOfName(m.sire); /* この牝馬の父＝産駒の母父の系（系統の個性 v0.54） */
     const list = sortedForMating(m);
     html += "<div class='sub' style='margin-top:6px;'>"+m.name+"（"+m.surface+" "+m.distMin+"-"+m.distMax+"m・母父 "+m.bms+"）への種付け候補 "+list.length+" 頭。相性は馬場と距離の重なりから見た目安です。</div>";
     html += "<table><tr><th></th><th>種牡馬</th><th>地域</th><th>馬場</th><th>距離</th><th>成長</th><th>格</th><th>傾向</th><th>種付料</th><th>相性</th><th></th></tr>";
     for(const st of list){
       const note = inbreedNote(m, st);
       const hotNote = isHotCross(stallionGen(st).temp, m.temp) ? "気性が荒くなりやすい配合（確変）" : "";
-      html += "<tr><td><button data-fav='"+st.name+"' class='ghost' title='お気に入り'>"+((S.favs||[]).includes(st.name)?"★":"☆")+"</button></td><td>"+st.name+(isHomebredStallion(st)?" <span class='ok'>自家製</span>":"")+(st.sire?" <span class='sub'>父 "+st.sire+"</span>":"")+"</td><td>"+(st.region==="overseas"?"海外":"国内")+"</td><td>"+st.surface+"</td><td>"+st.dist[0]+"-"+st.dist[1]+"m</td><td>"+st.growth+"</td><td>"+st.fee_tier+"</td><td>"+stallionTendency(st)+"</td><td>"+(stallionFee(st)===0 ? "無料" : man(stallionFee(st)))+"</td><td>"+compatMark(m, st)+(note?" <span class='bad'>"+note+"</span>":"")+(hotNote?" <span class='bad'>"+hotNote+"</span>":"")+"</td><td><button data-matewith='"+st.name+"'>種付け</button></td></tr>";
+      html += "<tr><td><button data-fav='"+st.name+"' class='ghost' title='お気に入り'>"+((S.favs||[]).includes(st.name)?"★":"☆")+"</button></td><td>"+st.name+(isHomebredStallion(st)?" <span class='ok'>自家製</span>":"")+(st.sire?" <span class='sub'>父 "+st.sire+"</span>":"")+"<br><span class='sub'>配合の色："+lineColourText(lineBlend(stallionMajorLine(st), mareBmsLine))+"</span></td><td>"+(st.region==="overseas"?"海外":"国内")+"</td><td>"+st.surface+"</td><td>"+st.dist[0]+"-"+st.dist[1]+"m</td><td>"+st.growth+"</td><td>"+st.fee_tier+"</td><td>"+stallionTendency(st)+"</td><td>"+(stallionFee(st)===0 ? "無料" : man(stallionFee(st)))+"</td><td>"+compatMark(m, st)+(note?" <span class='bad'>"+note+"</span>":"")+(hotNote?" <span class='bad'>"+hotNote+"</span>":"")+"</td><td><button data-matewith='"+st.name+"'>種付け</button></td></tr>";
     }
     html += "</table>";
   }
@@ -1883,7 +1904,7 @@ function viewStallions(){
     document.querySelectorAll("[data-fav]").forEach(btn => btn.onclick = () => toggleFav(btn.getAttribute("data-fav")));
   }, 0);
   const list = sortedStallions();
-  const rows = list.map(st=>"<tr><td><button data-fav='"+st.name+"' class='ghost' title='お気に入り'>"+((S.favs||[]).includes(st.name)?"★":"☆")+"</button> "+st.name+(isHomebredStallion(st)?" <span class='ok'>自家製</span>":"")+(()=>{ const hh = S.horses.find(x=>x.name===st.name); return (hh && hh.studYear!=null) ? " <span class='sub'>供用"+(S.year-hh.studYear+1)+"年目（20年まで）</span>" : ""; })()+(st.fresh?" <span class='ok'>NEW</span>":"")+(st.mutation?" <span class='ok'>🧬変異因子</span>":"")+(st.jizoku?" <span class='ok'>🌱持続</span>":"")+(st.sire?" <span class='sub'>父 "+st.sire+"</span>":"")+"</td><td>"+(st.region==="overseas"?"海外":"国内")+"</td><td>"+st.surface+"</td><td>"+st.dist[0]+"-"+st.dist[1]+"m</td><td>"+st.growth+"</td><td>"+st.fee_tier+"</td><td>"+stallionTendency(st)+"</td><td>"+(stallionFee(st)===0 ? "無料" : fee(st.fee_tier))+"</td><td>"+(st.weight != null ? st.weight+"kg" : "―")+"</td></tr>").join("");
+  const rows = list.map(st=>"<tr><td><button data-fav='"+st.name+"' class='ghost' title='お気に入り'>"+((S.favs||[]).includes(st.name)?"★":"☆")+"</button> "+st.name+(isHomebredStallion(st)?" <span class='ok'>自家製</span>":"")+(()=>{ const hh = S.horses.find(x=>x.name===st.name); return (hh && hh.studYear!=null) ? " <span class='sub'>供用"+(S.year-hh.studYear+1)+"年目（20年まで）</span>" : ""; })()+(st.fresh?" <span class='ok'>NEW</span>":"")+(st.mutation?" <span class='ok'>🧬変異因子</span>":"")+(st.jizoku?" <span class='ok'>🌱持続</span>":"")+(st.sire?" <span class='sub'>父 "+st.sire+"</span>":"")+"</td><td>"+(st.region==="overseas"?"海外":"国内")+"</td><td>"+st.surface+"</td><td>"+st.dist[0]+"-"+st.dist[1]+"m</td><td>"+st.growth+"</td><td>"+st.fee_tier+"</td><td>"+stallionTendency(st)+"</td><td>"+(()=>{ const ln = stallionMajorLine(st); return ln ? ln+"<br><span class='sub'>"+LINE_TRAITS[ln].phrase+"</span>" : "―"; })()+"</td><td>"+(stallionFee(st)===0 ? "無料" : fee(st.fee_tier))+"</td><td>"+(st.weight != null ? st.weight+"kg" : "―")+"</td></tr>").join("");
   const fsel = (id, cur, pairs) => "<select id='"+id+"'>" + pairs.map(p=>"<option value='"+p[0]+"'"+(cur===p[0]?" selected":"")+">"+p[1]+"</option>").join("") + "</select>";
   return "<div class='sub'>プールは固定の54頭です（引退・世代交代はありません。自家生産の牡馬が重賞勝ちで引退すると種牡馬入りします）。現在"+S.stallions.length+"頭。種付け料はティア別の設計値です。</div>"
     + "<div class='flex' style='margin:6px 0;'><span>並び替え：</span><select id='sortSel'>"+opts+"</select><span>絞込み：</span>"
@@ -1894,7 +1915,7 @@ function viewStallions(){
     + "<label><input type='checkbox' id='sfFav'"+(stallionFilter.favOnly?" checked":"")+"> ★だけ</label>"
     + "<label><input type='checkbox' id='sfHome'"+(stallionFilter.homeOnly?" checked":"")+"> 自家製だけ</label></div>"
     + "<div class='sub'>表示 "+list.length+" 頭</div>"
-    + "<table><tr><th>種牡馬</th><th>地域</th><th>馬場</th><th>距離</th><th>成長</th><th>格</th><th>傾向</th><th>種付料</th><th>体重</th></tr>"+rows+"</table>";
+    + "<table><tr><th>種牡馬</th><th>地域</th><th>馬場</th><th>距離</th><th>成長</th><th>格</th><th>傾向</th><th>系統</th><th>種付料</th><th>体重</th></tr>"+rows+"</table>";
 }
 /* ================= レーシングカレンダー（v0.33） =================
    特別戦〜重賞を月ごとに、中央・NKC／地方・TKC／海外・WHC に分けて一覧する。一般戦（自動生成）は除く */
@@ -2004,6 +2025,124 @@ function personRec(name){
   if(PEDIGREE_LINES[name]) return { sire: PEDIGREE_LINES[name], dam: null };
   return null;
 }
+/* ================= 系統の個性（v0.54・Terai設計確定 2026-11-14） =================
+   全馬は父系で8つの大系（メジャーライン）のどれかに属し、産駒の系は父の系で決まる。
+   自家生産種牡馬も父の系を受け継ぐ。個性は出生時にだけ「適性の寄せ＋傾向の滲み」として
+   薄く効く（父系フル＋母父系×0.5）。ニックス（相性◎○×）には一切触らない。
+   上位互換／下位互換が出ないよう、全系ともパラメータ寄せは +1.5 と −1.5 を1つずつ持ち合計ゼロ。
+   具体的な数字はプレイヤーには見せない（見えるのは系統名と、色を言葉で表した定性表示だけ）。 */
+/* 大系の判定：父系チェーン（名前→父→父父…）を先頭から辿り、最初に一致したマーカー名の系を採る。
+   ・サンデーサイレンス／ブラックタイド／ディープインパクト／ヘイロー → サンデーサイレンス系
+     （ヘイローはサンデーの父。ロベルト系チェーンにヘイロー自体は現れないので誤判定しない）
+   ・キングマンボ／キングカメハメハ → キングマンボ系（チェーン後方のミスタープロスペクターより先に当たる）
+   ・ロベルト／クリスエス／シンボリクリスエス／シルヴァーホーク／グラスワンダー／ブライアンズタイム → ロベルト系
+   ・Seattle Slew／A.P. Indy → シアトルスルー系
+   ・ナスルーラ／テスコボーイ／プリンスリーギフト／ブラッシンググルーム／レッドゴッド／ナシュワン
+     ／トニービン／カンパラ／カラムーン → ナスルーラ系（トニービン系はカラムーン＝グレイソヴリン分枝として含める）
+   ・ノウンファクト／インリアリティ／マンノウォー → マンノウォー系
+   ・Mr. Prospector／Gone West／Fappiano／Unbridled／Empire Maker／Seeking the Gold／Machiavellian
+     ／フォーティナイナー → ミスタープロスペクター系
+   ・Northern Dancer の各分枝（Danzig／Sadler's Wells／Storm Cat／Nureyev／Deputy Minister／Vice Regent／
+     Last Tycoon／Green Desert／Galileo／ノーザンテースト／リファール／ダンシングブレーヴ等）→ ノーザンダンサー系
+   どの系にも寄せられない祖先（例：メジロマックイーン＝パーソロン系の傍流）は null とし、母父効果は付けない */
+const LINE_MARKERS = [
+  ["サンデーサイレンス系", ["サンデーサイレンス","ブラックタイド","ディープインパクト","ヘイロー"]],
+  ["キングマンボ系", ["キングマンボ","キングカメハメハ"]],
+  ["ロベルト系", ["ロベルト","クリスエス","シンボリクリスエス","シルヴァーホーク","グラスワンダー","ブライアンズタイム"]],
+  ["シアトルスルー系", ["シアトルスルー","Seattle Slew","A.P. Indy"]],
+  ["ナスルーラ系", ["ナスルーラ","Nasrullah","テスコボーイ","プリンスリーギフト","ブラッシンググルーム","Blushing Groom","レッドゴッド","Red God","ナシュワン","トニービン","カンパラ","カラムーン"]],
+  ["マンノウォー系", ["マンノウォー","Man o' War","ノウンファクト","インリアリティ"]],
+  ["ミスタープロスペクター系", ["ミスタープロスペクター","Mr. Prospector","Gone West","Fappiano","Unbridled","Empire Maker","Seeking the Gold","Machiavellian","フォーティナイナー"]],
+  ["ノーザンダンサー系", ["ノーザンダンサー","Northern Dancer","ノーザンテースト","ニアークティック","Nearctic","Danzig","ダンジグ","Sadler's Wells","Storm Cat","Nureyev","Deputy Minister","デピュティミニスター","Vice Regent","ヴァイスリージェント","Last Tycoon","Try My Best","Green Desert","Galileo","リファール","ダンシングブレーヴ"]],
+];
+function majorLineOfChain(chain){
+  if(!chain) return null;
+  for(const n of chain){
+    if(!n) continue;
+    for(const pair of LINE_MARKERS) if(pair[1].indexOf(n) >= 0) return pair[0];
+  }
+  return null;
+}
+/* 名前から父系チェーンを組み立てる：種牡馬レコード（line 付き）→テンプレの系統チェーン
+   →牧場の馬の父を再帰→PEDIGREE_LINES の順に辿る */
+function sireChainOf(name, depth){
+  if(!name) return [];
+  depth = depth || 0;
+  const chain = [name];
+  const seen = new Set([name]);
+  const push = n => { if(n && !seen.has(n)){ seen.add(n); chain.push(n); } };
+  const rec = (typeof S!=="undefined" && S && S.stallions ? S.stallions.find(s=>s.name===name) : null) || DATA.stallions.find(s=>s.name===name);
+  if(rec){
+    push(rec.sire);
+    for(const n of (rec.line||[])) push(n);
+    if(rec.sire && !(rec.line && rec.line.length) && depth < 10) for(const n of sireChainOf(rec.sire, depth+1)) push(n);
+    return chain;
+  }
+  for(const t of (DATA.mareTemplates||[])){
+    if(t.sire===name && t.sireLine){ for(const n of t.sireLine) push(n); return chain; }
+    if(t.bms===name && t.bmsLine){ for(const n of t.bmsLine) push(n); return chain; }
+    if(t.gbms===name && t.gbmsLine){ for(const n of t.gbmsLine) push(n); return chain; }
+  }
+  const asHorse = (typeof S!=="undefined" && S && S.horses) ? S.horses.find(x=>x.name===name) : null;
+  if(asHorse && asHorse.sire && depth < 10){ for(const n of sireChainOf(asHorse.sire, depth+1)) push(n); return chain; }
+  let cur = name;
+  for(let i=0;i<16;i++){ const nx = PEDIGREE_LINES[cur]; if(!nx || seen.has(nx)) break; push(nx); cur = nx; }
+  return chain;
+}
+function majorLineOfName(name){ return majorLineOfChain(sireChainOf(name)); }
+function stallionMajorLine(st){
+  if(!st) return null;
+  const chain = [st.name, st.sire].concat(st.line||[]);
+  return majorLineOfChain(chain) || (st.sire ? majorLineOfName(st.sire) : null);
+}
+/* 系統の個性テーブル（内部数値・プレイヤーには見せない）：
+   dist=距離中心の寄せ(m)、surf=馬場の寄せ(pp。+は芝寄り／−はダート寄り)、
+   plus/minus=パラメータ中心の寄せ（+1.5/−1.5）、growth=成長型の寄せ先（表示型）、phrase=定性表示 */
+const LINE_TRAITS = {
+  "サンデーサイレンス系": { dist:0, surf:10, plus:"gut", minus:"spd", growth:"晩成", phrase:"根性に寄る・晩成気味" },
+  "ノーザンダンサー系": { dist:-200, surf:10, plus:"spd", minus:"sta", growth:"早熟", phrase:"スピードに寄る・早熟気味" },
+  "キングマンボ系": { dist:-100, surf:0, plus:"spd", minus:"gut", growth:"普通", phrase:"スピードに寄る・成長は平均的" },
+  "ミスタープロスペクター系": { dist:-300, surf:-15, plus:"spd", minus:"sta", growth:"早熟", phrase:"スピードに寄る・ダート向き・早熟気味" },
+  "ロベルト系": { dist:200, surf:-10, plus:"gut", minus:"spd", growth:"晩成", phrase:"根性に寄る・ダートの色・晩成気味" },
+  "シアトルスルー系": { dist:100, surf:-15, plus:"sta", minus:"gut", growth:"普通", phrase:"スタミナに寄る・ダートの色が濃い" },
+  "ナスルーラ系": { dist:-300, surf:10, plus:"spd", minus:"gut", growth:"早熟", phrase:"スピードに寄る・芝向き・早熟気味" },
+  "マンノウォー系": { dist:300, surf:10, plus:"sta", minus:"spd", growth:"晩成", phrase:"スタミナに寄る・芝向き・晩成気味" },
+};
+/* 父系（フル）＋母父系（×0.5）の合成。nudges は [表示型, 確率]（父系10%／母父系5%） */
+function lineBlend(sireLine, bmsLine){
+  const bl = { spd:0, sta:0, gut:0, dist:0, surf:0, nudges:[] };
+  const add = (ln, w, np) => { const t = ln && LINE_TRAITS[ln]; if(!t) return; bl[t.plus] += 1.5*w; bl[t.minus] -= 1.5*w; bl.dist += t.dist*w; bl.surf += t.surf*w; bl.nudges.push([t.growth, np]); };
+  add(sireLine, 1, 0.10); add(bmsLine, 0.5, 0.05);
+  return bl;
+}
+/* 合成結果を言葉だけで表す（数字・記号は一切出さない） */
+function lineColourText(bl){
+  const parts = [];
+  const ps = [["スピード", bl.spd], ["スタミナ", bl.sta], ["根性", bl.gut]].filter(x=>x[1] > 0).sort((a,b)=>b[1]-a[1]);
+  if(ps.length && ps[0][1] >= 0.75) parts.push(ps[0][0]+"寄り");
+  if(bl.dist <= -100) parts.push("短め寄り"); else if(bl.dist >= 100) parts.push("長め寄り");
+  if(bl.surf >= 8) parts.push("芝寄り"); else if(bl.surf <= -8) parts.push("ダート寄り");
+  const gn = (bl.nudges||[]).find(n=>n[1] >= 0.10);
+  if(gn) parts.push(gn[0]+"気味");
+  return parts.length ? parts.join("・") : "バランスの取れた色";
+}
+/* 成長型の寄せ：内部7段階チェーンを、目標の表示型の方向へ1段だけずらす */
+function nudgeGrowthType(gt, targetDisp, p){
+  if(Math.random() >= p) return gt;
+  const order = ["早熟","普通","晩成","超晩成"];
+  const cur = order.indexOf(G_DISP[gt] || "普通"), tgt = order.indexOf(targetDisp);
+  if(cur < 0 || tgt < 0 || cur === tgt) return gt;
+  const i = G_CHAIN.indexOf(gt);
+  if(i < 0) return gt;
+  return G_CHAIN[clamp(i + (tgt > cur ? 1 : -1), 0, G_CHAIN.length-1)];
+}
+/* 持続の表示行（v0.54・Terai決定）：繁殖牝馬は未判明なら行ごと出さない（「不明」表示は廃止）。
+   種牡馬は有無を表示し、判明済みの馬は「あり」を出す従来仕様はそのまま */
+function jizokuRow(h){
+  if(h.status==="stallion") return "<dt>持続</dt><dd>"+(h.jizoku ? "🌱 持続の特性あり（衰えにくい）" : "なし")+"</dd>";
+  if(h.jizokuRevealed) return "<dt>持続</dt><dd>🌱 持続の特性あり（衰えにくい）</dd>";
+  return "";
+}
 function pedigreeTable(h){
   const cell = n => n ? n : "―";
   function build(name, gens, bms){
@@ -2101,7 +2240,7 @@ function openHorse(id){
     + ((h.status==="yearling" || h.status==="racehorse") ? "<dt>所属</dt><dd>"+(h.stable ? h.stable+"トレーニングセンター（変更できません）"+(h.stayRegion ? "／現在は遠征先に滞在中" : "") : "未定です <button id='stableMihoBtn'>美浦にする</button> <button id='stableRittoBtn'>栗東にする</button> <span class='sub'>一度決めると現役の間は変更できません</span>")+"</dd>" : "")
     + affinitySection(h)
     + (h.spd != null ? "<dt>パラメータ</dt><dd>スピード <b>"+effRank(h,"spd")+"</b>"+trendMark(h,"spd")+" ／ スタミナ <b>"+effRank(h,"sta")+"</b>"+trendMark(h,"sta")+" ／ 根性 <b>"+effRank(h,"gut")+"</b>"+trendMark(h,"gut")+"（総合 <b>"+rankOf(Math.round(effAvg(h)))+"</b>）<br><span class='sub'>素質（上限）：スピード "+rankOf(h.spd)+" ／ スタミナ "+rankOf(h.sta)+" ／ 根性 "+rankOf(h.gut)+"（総合 "+rankOf(Math.round((h.spd+h.sta+h.gut)/3))+"）</span></dd>" : "")
-    + (h.status==="stallion" ? "<dt>持続</dt><dd>"+(h.jizoku ? "🌱 持続の特性あり（衰えにくい）" : "なし")+"</dd>" : h.jizokuRevealed ? "<dt>持続</dt><dd>🌱 持続の特性あり（衰えにくい）</dd>" : h.status==="broodmare" ? "<dt>持続</dt><dd>不明</dd>" : "")
+    + jizokuRow(h)
     + (h.temp != null ? "<dt>気性</dt><dd>"+tempBand(h.temp)+(h.quirk ? "<span class='sub'> ― スタッフ談："+QUIRK_HINT[h.quirk]+"</span>" : "")+"</dd>" : "")
     + "<dt>成長</dt><dd>"+growthStage(h)+" <span style='display:inline-block;vertical-align:middle;width:130px;height:9px;background:#10160f;border:1px solid var(--line);border-radius:5px;'><span style='display:block;height:100%;width:"+Math.round(maturity(h)*100)+"%;background:var(--acc);border-radius:5px;'></span></span> <span class='sub'>成熟度"+Math.round(maturity(h)*100)+"%</span></dd>"
     + "<dt>スタッフ評価</dt><dd>"+evalComment(h)+"</dd>"
@@ -2238,6 +2377,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>競馬シミュレーター（趣味） v0.53</footer>
+<footer>競馬シミュレーター（趣味） v0.54</footer>
 </body>
 </html>
