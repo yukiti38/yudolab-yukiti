@@ -496,6 +496,7 @@ function raceComment(style, pace, finish, quirk){
 function monthlyTraining(){
   for(const h of S.horses){
     if(h.status!=="racehorse" || h.retired || h.spd == null) continue;
+    if(isTravelWeek(h, absWeek()) || isReturnWeek(h, absWeek()) || isTravelWeek(h, absWeek()-1) || isReturnWeek(h, absWeek()-1)) continue; /* v0.51：遠征の前後週は調教不可（月単位の近似） */
     const age = ageOf(h); if(age<2 || age>4) continue;
     h.trained = h.trained || { spd:0, sta:0, gut:0 };
     const gain = (k) => {
@@ -783,6 +784,58 @@ function entryListText(h){
 }
 function shiftWeek(y,m,w,k){ const a = (y-2026)*48 + (m-1)*4 + (w-1) + k; return [2026 + Math.floor(a/48), Math.floor((a%48)/4)+1, (a%4)+1]; }
 function absLabel(a){ return (Math.floor((a%48)/4)+1) + "月第" + ((a%4)+1) + "週"; }
+/* ================= 輸送・遠征（v0.51） =================
+   所属（栗東／美浦）は2歳で決めて固定。国内輸送は現代競馬に寄せて軽め（近場+5／中距離+12／遠方+20）、
+   ただし2歳は精神面が幼く長距離輸送が敬遠されるため×1.5。遠方で走った馬は約2か月「滞在」扱いで、
+   同じ地方の次のレースは滞在先発の近場（+5）になる。滞在自体に費用・疲労はない */
+const COURSES_EAST = ["東京","中山","福島","新潟"];
+const COURSES_WEST = ["京都","阪神","中京","小倉"];
+const COURSES_HOKKAIDO = ["札幌","函館"];
+function courseRegion(course){
+  if(!course) return null;
+  if(COURSES_HOKKAIDO.some(c => course.includes(c))) return "hokkaido";
+  if(COURSES_EAST.some(c => course.includes(c))) return "east";
+  if(COURSES_WEST.some(c => course.includes(c))) return "west";
+  return null; // 地方競馬場など：中距離扱い
+}
+function stableHomeRegion(h){ return h.stable === "美浦" ? "east" : h.stable === "栗東" ? "west" : null; }
+function ensureStable(h){
+  if(!h.stable) h.stable = ((String(h.id || h.name).split("").reduce((a, c) => a + c.charCodeAt(0), 0)) % 2 === 0) ? "栗東" : "美浦";
+  return h.stable;
+}
+function isFarCourse(h, race){
+  const region = courseRegion(race.racecourse);
+  if(!region || !h.stable) return false;
+  if(region === "hokkaido") return true;
+  return region !== stableHomeRegion(h);
+}
+function transportBase(h, race){
+  if(race.sector === "overseas") return 0; // 海外は遠征週の仕組み側で扱う
+  if(!h.stable) return 0;
+  const region = courseRegion(race.racecourse);
+  if(!region) return 12;
+  if(h.stayRegion && h.stayUntilAbs != null && absWeek() <= h.stayUntilAbs && h.stayRegion === region) return 5; // 滞在中
+  const home = stableHomeRegion(h);
+  if(region === "hokkaido") return 20;
+  if(region === home){
+    const near = home === "east" ? ["東京","中山"] : ["京都","阪神"];
+    return near.some(c => (race.racecourse || "").includes(c)) ? 5 : 12;
+  }
+  return 20;
+}
+function transportFatigue(h, race){
+  let base = transportBase(h, race);
+  if(base <= 0) return 0;
+  if(ageOf(h) === 2) base = Math.ceil(base * 1.5); // 2歳の輸送は重い
+  if(h.aff && h.aff.yuso) base = Math.round(base / 2); // 輸送○（Stage 3 で付与される特性へのフック）
+  return base;
+}
+/* 海外遠征：レース前週＝出発・検疫週（レース・調教不可、疲労+10）、翌週＝帰国・検疫週（レース・調教不可、休養同率で回復）。
+   遠征費は1レース一律1,000万円（v0.51。従来の800万円は実際には未徴収だった） */
+const EXPEDITION_FEE = 1000;
+function hasOverseasEntryAt(h, a){ const e = h.entries && h.entries[a]; return !!(e && e.sector === "overseas"); }
+function isTravelWeek(h, a){ return hasOverseasEntryAt(h, a + 1); }
+function isReturnWeek(h, a){ return h.expedReturnAbs != null && h.expedReturnAbs === a; }
 /* ================= レース適否 ================= */
 function eligibility(h, race){
   if(isInjured(h)) return "故障で休養中";
@@ -819,6 +872,17 @@ function eligibility(h, race){
   }
   if(age===2 && S.month<6 && !race.general) return "2歳の重賞出走は6月以降（試作ルール）";
   if(h.fatigue>=70) return "疲労が大きい";
+  /* 輸送・遠征の週制約（v0.51） */
+  const targetAbs = absWeek() + (typeof entryWeekAhead!=="undefined" ? entryWeekAhead : 0);
+  if(race.sector==="overseas"){
+    const key = targetAbs+"@"+race.name+"|"+(race.racecourse||"")+"|"+(race.grade||"");
+    const already = !!(h.entries && h.entries[targetAbs] && h.entries[targetAbs].key===key);
+    if(targetAbs===absWeek() && !already) return "海外遠征は当週登録できません（前週が出発・検疫週になるため事前登録のみ）";
+    if(h.entries && h.entries[targetAbs-1] && targetAbs-1>=absWeek()) return "出発・検疫週（前週）に別のレース登録があります";
+    if(h.entries && h.entries[targetAbs+1]) return "帰国・検疫週（翌週）に別のレース登録があります";
+  }
+  if(isReturnWeek(h, targetAbs)) return "海外遠征の帰国・検疫週です";
+  if(isTravelWeek(h, targetAbs)) return "海外遠征の出発・検疫週です";
   return null;
 }
 function aptitudeFactor(h, race){
@@ -881,18 +945,33 @@ function rivalWeight(race, strength){
   return WEIGHT_REF;
 }
 function weightFactor(w){ return 1 - (w - WEIGHT_REF) * KG_SCORE; }
+/* 斤量の負担（v0.51・ゆきち設計）：レース後の疲労は背負った斤量で増える（54kgで+0、1kgごとに+1.5、最大+12）。
+   故障判定にも重い斤量は小さく上乗せする（57kgで従来どおり35%、62kgで+10ポイントが上限）。
+   年齢で故障率は変えない（Terai指示）。スコアへの斤量反映は従来どおりハンデ・別定のみ */
+function weightBurden(w){ return clamp(Math.round(((w != null ? w : 57) - 54) * 1.5), 0, 12); }
+function injuryChance(w){ return 0.35 + clamp((((w != null ? w : 57) - 57) * 0.02), 0, 0.10); }
 /* ================= レース実行 ================= */
 function runRace(race, entries){
   const fs = Math.max(fieldSize(race), entries.length+6);
   const [rlo, rhi] = rivalStrength(race);
   const pace = pickPace();
   const wtActive = weightTypeOf(race)==="ハンデ" || weightTypeOf(race)==="別定"; // 斤量差が効くのはこの2区分だけ
+  /* 輸送疲労はレース前に乗る／海外は遠征費を徴収し帰国週を立てる（v0.51） */
+  const tfMap = new Map();
+  for(const h of entries){
+    ensureStable(h);
+    if(race.sector==="overseas"){ S.funds -= EXPEDITION_FEE; h.expedReturnAbs = absWeek()+1; }
+    const tf = transportFatigue(h, race);
+    if(tf>0) h.fatigue = clamp(h.fatigue + tf, 0, 100);
+    tfMap.set(h, tf);
+  }
   const runners = [];
   for(const h of entries){
     const gut = paramNow(h,"gut");
     const spread = 0.10 * (1 - clamp((gut-40)/60, 0, 1) * 0.5) * (STYLE_VAR[styleOf(h)] || 1) * tempSpreadMul(h);
-    const w = wtActive ? assignedWeight(race, h) : null;
-    runners.push({ horse:h, weight:w, score: raceBase(h,race)*aptitudeFactor(h,race)*styleFactor(h,pace)*(w!=null ? weightFactor(w) : 1)*(1 + rnd(-1,1)*spread), gut });
+    const wall = assignedWeight(race, h);
+    const w = wtActive ? wall : null;
+    runners.push({ horse:h, weight:w, wall, score: raceBase(h,race)*aptitudeFactor(h,race)*styleFactor(h,pace)*(w!=null ? weightFactor(w) : 1)*(1 + rnd(-1,1)*spread), gut });
   }
   const nRivals = fs - entries.length;
   for(let i=0;i<nRivals;i++){
@@ -922,19 +1001,27 @@ function runRace(race, entries){
     const rec = { when: S.year+"年"+S.month+"月第"+S.week+"週", race: race.name, grade: race.grade||"", course: race.racecourse||"",
       surface: race.surface||"", dist: race.distance_m||null, finish, field: fs, pace, style: styleOf(h),
       pass: passPositions(styleOf(h), finish, fs, h.quirk), comment: raceComment(styleOf(h), pace, finish, h.quirk),
-      weight: (r.weight!=null ? r.weight : null),
+      weight: r.wall, transport: tfMap.get(h) || 0,
       time: race.distance_m ? (baseTime + idx*0.35 + rnd(0,0.5)).toFixed(1) : "", agari: (rnd(33.2,36.8)).toFixed(1), prize };
     h.results.push(rec); h.earnings += prize; S.funds += prize;
     if(finish===1){ h.wins++; if(["GI","GII","GIII","JpnI","JpnII","JpnIII","L"].includes(race.grade)) h.gradedWin = true; }
-    h.fatigue = clamp(h.fatigue + irnd(34,52), 0, 100);
+    h.fatigue = clamp(h.fatigue + irnd(34,52) + weightBurden(r.wall), 0, 100);
     h.condition = clamp(h.condition - irnd(6,16), 5, 100);
+    /* 滞在の更新（v0.51）：遠方の競馬場で走ったら約2か月は現地滞在。ホーム側に戻れば滞在は解消 */
+    if(race.sector!=="overseas"){
+      const region = courseRegion(race.racecourse);
+      if(region){
+        if(isFarCourse(h, race) || h.stayRegion===region){ h.stayRegion = region; h.stayUntilAbs = absWeek()+8; }
+        else if(region===stableHomeRegion(h)){ h.stayRegion = null; h.stayUntilAbs = null; }
+      }
+    }
     h.lastRaceAbs = absWeek(); h.enteredStyle = null;
     resultsOut.push({h, finish, prize});
     /* 年表には通常のレース結果を書かない（v0.33）。ビッグイベントだけ raceMilestones が記録する */
     if(finish===1) topic("🏆 "+h.name+" が "+race.name+" を勝ちました");
     raceMilestones(h, race, finish, prize);
     /* 故障（v0.40）：疲労と状態が両方悪いまま走らせると故障することがある（管理の帰結） */
-    if(!h.retired && preFat>=70 && preCon<=40 && Math.random()<0.35){
+    if(!h.retired && preFat>=70 && preCon<=40 && Math.random()<injuryChance(r.wall)){
       const heavy = Math.random()<0.4;
       const weeks = heavy ? irnd(12,24) : irnd(4,8);
       h.injuredUntil = absWeek() + weeks;
@@ -960,9 +1047,12 @@ function advanceWeek(){
   // 2) 状態の週次変化（v0.29で回復カーブを見直し、v0.33でシンプルに弱体化：回復量を全体に下げて状態管理の緊張感を戻す。調教中は状態が下がらない点は維持）
   for(const h of S.horses){
     if(h.retired) continue;
+    if(h.expedReturnAbs != null && absWeek() > h.expedReturnAbs) h.expedReturnAbs = null;
     if(h.status==="racehorse"){
       const rf = recoveryFactor(h); /* v0.50：ピーク後は疲労回復が衰える（-20%/-40%）。状態回復は不変 */
-      if(isInjured(h)){ h.fatigue = clamp(h.fatigue-Math.round(40*rf),0,100); h.condition = clamp(h.condition+10,5,100); }
+      if(isTravelWeek(h, absWeek())){ h.fatigue = clamp(h.fatigue+10,0,100); } /* v0.51：出発・検疫週（レース・調教不可） */
+      else if(isReturnWeek(h, absWeek())){ h.fatigue = clamp(h.fatigue-40,0,100); h.condition = clamp(h.condition+10,5,100); } /* v0.51：帰国・検疫週（休養同率） */
+      else if(isInjured(h)){ h.fatigue = clamp(h.fatigue-Math.round(40*rf),0,100); h.condition = clamp(h.condition+10,5,100); }
       else if(h.policy==="pasture"){ h.fatigue = clamp(h.fatigue-Math.round(30*rf),0,100); h.condition = clamp(h.condition+12,5,100); }
       else if(h.policy==="rest"){ h.fatigue = clamp(h.fatigue-Math.round(40*rf),0,100); h.condition = clamp(h.condition+10,5,100); }
       else { h.fatigue = clamp(h.fatigue-Math.round(20*rf),0,100); h.condition = clamp(h.condition+5,5,100); }
@@ -1067,6 +1157,7 @@ function onNewYear(){
     else if(h.status==="yearling" && ageOf(h)>=2){
       if(h.unnamed){ h.name = farmFoalName(); h.unnamed = false; } /* 命名は年表に残さない（v0.46・Terai判断：命名はビッグニュースではない） */
       h.status="racehorse";
+      if(!h.stable) topic("🏠 "+h.name+" が2歳になりました。馬のページで所属（栗東／美浦）を決めてください（未決定のまま出走すると自動で決まります）"); /* v0.51 */
     }
   }
   // 繁殖牝馬の年齢上限（v0.40）：17歳以上は繁殖引退
@@ -1352,7 +1443,7 @@ function viewEntry(){
   let html = "<div class='sub' style='margin-bottom:6px;'>まず馬を選びます：</div><div class='flex' style='flex-wrap:wrap;gap:8px;'>";
   for(const h of racers){
     const sel = h.id===entryHorseId;
-    html += "<button data-entry-horse='"+h.id+"' style='"+(sel?"border-color:var(--acc);background:#22331a;":"")+"text-align:left;'>"+h.name+"<br><span class='sub'>"+ageOf(h)+"歳"+h.sex+"・"+horseClass(h)+"・"+h.wins+"勝／状態"+Math.round(h.condition)+" 疲労"+Math.round(h.fatigue)+(entryListText(h) ? "／登録済（"+entryListText(h)+"）" : "")+"</span></button>";
+    html += "<button data-entry-horse='"+h.id+"' style='"+(sel?"border-color:var(--acc);background:#22331a;":"")+"text-align:left;'>"+h.name+"<br><span class='sub'>"+ageOf(h)+"歳"+h.sex+"・"+horseClass(h)+"・"+h.wins+"勝／状態"+Math.round(h.condition)+" 疲労"+Math.round(h.fatigue)+"／"+(h.stable ? h.stable+"所属" : "所属未定")+(entryListText(h) ? "／登録済（"+entryListText(h)+"）" : "")+"</span></button>";
   }
   html += "</div>";
   const h = racers.find(x=>x.id===entryHorseId);
@@ -1427,8 +1518,12 @@ function drawEntryList(){
     const chips = (r.labels||[]).map(l=>"<span class='chip'>"+l+"</span>").join("");
     const wt = weightTypeOf(r);
     const wnote = (wt==="ハンデ" || wt==="別定") ? "<br><span class='sub'>"+wt+"戦：この馬の斤量 "+assignedWeight(r,h).toFixed(1)+"kg（登録前に確認できます。重ければ見送る判断も）</span>" : "";
+    /* 輸送・遠征の見込み（v0.51） */
+    const tf = r.sector==="overseas" ? 0 : transportFatigue(h, r);
+    const wnote2 = r.sector==="overseas" ? "<br><span class='sub'>✈️ 海外遠征：前週が出発・検疫週（疲労+10）、翌週が帰国・検疫週。遠征費 "+man(EXPEDITION_FEE)+"／1レース</span>"
+      : tf>0 ? "<br><span class='sub'>🚚 輸送疲れ見込み +"+tf+"（"+(h.stable ? h.stable+"所属" : "所属未定")+(h.stayRegion && courseRegion(r.racecourse)===h.stayRegion ? "・滞在中" : "")+(ageOf(h)===2 ? "・2歳は重め" : "")+"）</span>" : "";
     const trialsBtn = (r.grade==="GI" || r.grade==="JpnI") ? " <button data-trials='"+r.name+"' class='ghost'>トライアル一覧</button>" : "";
-    return "<tr"+(reason?" style='opacity:.45'":"")+"><td>"+mark+"</td><td>"+raceLabel(r)+(chips?"<br>"+chips:"")+wnote+trialsBtn+"</td><td>"+(r.sector==="overseas"?"海外・WHC":r.sector==="regional"?"地方・TKC":"中央・NKC")+"</td><td>1着賞金 "+man(prizeTable(r)[0])+"</td><td>"+btn+"</td></tr>";
+    return "<tr"+(reason?" style='opacity:.45'":"")+"><td>"+mark+"</td><td>"+raceLabel(r)+(chips?"<br>"+chips:"")+wnote+wnote2+trialsBtn+"</td><td>"+(r.sector==="overseas"?"海外・WHC":r.sector==="regional"?"地方・TKC":"中央・NKC")+"</td><td>1着賞金 "+man(prizeTable(r)[0])+"</td><td>"+btn+"</td></tr>";
   }).join("");
   let trialsHtml = "";
   if(trialsFor){
@@ -1444,7 +1539,9 @@ function drawEntryList(){
     + "<div class='entryscroll'><table><tr><th></th><th>レース</th><th>区分</th><th>賞金</th><th></th></tr>"+rows+"</table></div>";
   document.querySelectorAll("[data-enter]").forEach(btn => btn.onclick = () => {
     if(!h.entries) h.entries = {};
-    h.entries[targetAbs] = { key: btn.getAttribute("data-key"), style: h.stylePref || bestStyle(h) };
+    const key = btn.getAttribute("data-key");
+    const rr = wk.find(x => targetAbs+"@"+x.name+"|"+(x.racecourse||"")+"|"+(x.grade||"") === key);
+    h.entries[targetAbs] = { key, style: h.stylePref || bestStyle(h), sector: rr ? rr.sector : null, course: rr ? (rr.racecourse||"") : "", dist: rr ? (rr.distance_m||null) : null, name: rr ? rr.name : "" }; /* sector等は遠征週・相性判定用（v0.51/52） */
     topic("📝 "+h.name+" を "+tm+"月第"+tw+"週 のレースに登録しました（その週に自動で実施されます）");
     save(); render();
   });
@@ -1777,7 +1874,7 @@ function produceSection(h){
 function openHorse(id){
   const h = S.horses.find(x=>x.id===id); if(!h) return;
   const gw = gradedWinList(h);
-  const res = h.results.length ? [...h.results].reverse().map(r=>"<tr><td>"+r.when+"</td><td>"+r.race+"（"+r.grade+"）"+(r.pass?"<br><span class='sub'>通過 "+r.pass+"｜"+(r.comment||"")+"</span>":"")+"</td><td>"+r.course+" "+r.surface+(r.dist||"")+"</td><td>"+r.finish+"着/"+r.field+"頭"+(r.weight!=null ? "<br><span class='sub'>斤量"+Number(r.weight).toFixed(1)+"kg</span>" : "")+"</td><td>"+(r.time||"")+"</td><td>上り"+r.agari+"</td><td>"+(r.prize?man(r.prize):"")+"</td></tr>").join("") : "<tr><td>まだ出走がありません</td></tr>";
+  const res = h.results.length ? [...h.results].reverse().map(r=>"<tr><td>"+r.when+"</td><td>"+r.race+"（"+r.grade+"）"+(r.pass?"<br><span class='sub'>通過 "+r.pass+"｜"+(r.comment||"")+"</span>":"")+"</td><td>"+r.course+" "+r.surface+(r.dist||"")+"</td><td>"+r.finish+"着/"+r.field+"頭"+(r.weight!=null ? "<br><span class='sub'>斤量"+Number(r.weight).toFixed(1)+"kg</span>" : "")+(r.transport ? "<br><span class='sub'>輸送疲労+"+r.transport+"</span>" : "")+"</td><td>"+(r.time||"")+"</td><td>上り"+r.agari+"</td><td>"+(r.prize?man(r.prize):"")+"</td></tr>").join("") : "<tr><td>まだ出走がありません</td></tr>";
   let actions = "";
   let retireSalePrice = null;
   if(h.status==="racehorse"){
@@ -1832,6 +1929,7 @@ function openHorse(id){
     + "<dt>血統</dt><dd>父 "+h.sire+" ／ 母 "+h.dam+" ／ 母父 "+h.bms+"</dd>"
     + (h.coat ? "<dt>毛色</dt><dd>"+h.coat+"</dd>" : "")
     + "<dt>適性</dt><dd>"+h.surface+" "+h.distMin+"-"+h.distMax+"m・"+h.growth+"</dd>"
+    + ((h.status==="yearling" || h.status==="racehorse") ? "<dt>所属</dt><dd>"+(h.stable ? h.stable+"トレーニングセンター（変更できません）"+(h.stayRegion ? "／現在は遠征先に滞在中" : "") : "未定です <button id='stableMihoBtn'>美浦にする</button> <button id='stableRittoBtn'>栗東にする</button> <span class='sub'>一度決めると現役の間は変更できません</span>")+"</dd>" : "")
     + (h.spd != null ? "<dt>パラメータ</dt><dd>スピード <b>"+effRank(h,"spd")+"</b>"+trendMark(h,"spd")+" ／ スタミナ <b>"+effRank(h,"sta")+"</b>"+trendMark(h,"sta")+" ／ 根性 <b>"+effRank(h,"gut")+"</b>"+trendMark(h,"gut")+"（総合 <b>"+rankOf(Math.round(effAvg(h)))+"</b>）<br><span class='sub'>素質（上限）：スピード "+rankOf(h.spd)+" ／ スタミナ "+rankOf(h.sta)+" ／ 根性 "+rankOf(h.gut)+"（総合 "+rankOf(Math.round((h.spd+h.sta+h.gut)/3))+"）</span></dd>" : "")
     + (h.status==="stallion" ? "<dt>持続</dt><dd>"+(h.jizoku ? "🌱 持続の特性あり（衰えにくい）" : "なし")+"</dd>" : h.jizokuRevealed ? "<dt>持続</dt><dd>🌱 持続の特性あり（衰えにくい）</dd>" : h.status==="broodmare" ? "<dt>持続</dt><dd>不明</dd>" : "")
     + (h.temp != null ? "<dt>気性</dt><dd>"+tempBand(h.temp)+(h.quirk ? "<span class='sub'> ― スタッフ談："+QUIRK_HINT[h.quirk]+"</span>" : "")+"</dd>" : "")
@@ -1848,6 +1946,8 @@ function openHorse(id){
   $("#horseModal").style.display = "block";
   bindHorses();
   const ps = $("#policySel"); if(ps) ps.onchange = () => { h.policy = ps.value; save(); };
+  const smb = $("#stableMihoBtn"); if(smb) smb.onclick = () => { h.stable = "美浦"; topic("🏠 "+h.name+" の所属は美浦に決まりました"); save(); openHorse(h.id); };
+  const srb = $("#stableRittoBtn"); if(srb) srb.onclick = () => { h.stable = "栗東"; topic("🏠 "+h.name+" の所属は栗東に決まりました"); save(); openHorse(h.id); };
   const nsb = $("#nameSuggestBtn"); if(nsb) nsb.onclick = () => { const ni = $("#nameInput"); if(ni) ni.value = nameSuggest; };
   const nb = $("#nameBtn"); if(nb) nb.onclick = () => {
     const v = ($("#nameInput") ? $("#nameInput").value : "").trim();
@@ -1968,6 +2068,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>競馬シミュレーター（趣味） v0.50</footer>
+<footer>競馬シミュレーター（趣味） v0.51</footer>
 </body>
 </html>
