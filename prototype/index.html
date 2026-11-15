@@ -23,8 +23,9 @@
   table { width:100%; border-collapse:collapse; font-size:13.5px; }
   th, td { border-bottom:1px solid var(--line); padding:5px 6px; text-align:left; vertical-align:top; }
   th { color:var(--sub); font-weight:600; }
-  .entryscroll { max-height:52vh; overflow-y:auto; border:1px solid var(--line); border-radius:8px; margin-top:6px; -webkit-overflow-scrolling:touch; }
+  .entryscroll { max-height:52vh; max-height:52dvh; overflow-y:auto; border:1px solid var(--line); border-radius:8px; margin-top:6px; -webkit-overflow-scrolling:touch; }
   .entryscroll th { position:sticky; top:0; background:var(--panel); z-index:1; }
+  .tscroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
   .ped td { background:var(--panel2); }
   .ped td.sireline { background:#22382a; }
   .ped td.damline { background:#382631; }
@@ -37,7 +38,7 @@
   .flex { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
   .horse-link { color:var(--acc); cursor:pointer; text-decoration:underline; }
   .modal { position:fixed; inset:0; background:rgba(0,0,0,.66); display:none; z-index:20; }
-  .modal .box { background:var(--panel); border:1px solid var(--line); border-radius:12px; max-width:760px; margin:5vh auto; padding:18px; max-height:88vh; overflow:auto; }
+  .modal .box { background:var(--panel); border:1px solid var(--line); border-radius:12px; max-width:760px; margin:5vh auto; margin:5dvh auto; padding:18px; max-height:88vh; max-height:88dvh; overflow:auto; }
   .kv { display:grid; grid-template-columns:110px 1fr; gap:4px 10px; font-size:14px; }
   .kv dt { color:var(--sub); } .kv dd { margin:0; }
   .chip { display:inline-block; border:1px solid var(--acc); color:var(--acc); border-radius:10px; padding:0 7px; margin:1px 2px 1px 0; font-size:11.5px; }
@@ -66,6 +67,28 @@
   .lg1 { font-size:11.5px; color:var(--warn); white-space:nowrap; }
   .ltoggle { padding:0 6px; margin-right:6px; font-size:12px; line-height:1.8; }
   .lmore { margin-left:12px; font-size:12px; color:var(--sub); white-space:nowrap; }
+  /* ===== 小画面対応（v1.02）：スマホ横画面（低丈）／縦画面の狭幅だけ compact 表示にする。
+     表示のみの変更で、通常サイズ（PC）の見た目は変えない ===== */
+  @media (max-width:640px), (max-height:500px) {
+    header { padding:6px 10px; gap:6px 10px; }
+    header .date { font-size:16px; }
+    header .sub { font-size:11.5px; line-height:1.5; }
+    main { padding:8px; gap:8px; }
+    .panel { padding:8px 10px; }
+    .panel h2 { font-size:15px; margin:2px 0 6px; }
+    .tabs { flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; padding-bottom:2px; }
+    .tabs button { flex:0 0 auto; }
+    button { min-height:36px; }
+    .ltoggle { min-height:28px; }
+    select, input[type=text] { min-height:36px; }
+    table { font-size:12.5px; }
+    th, td { padding:4px 5px; }
+    .tscroll table:not(.ped) th:first-child, .tscroll table:not(.ped) td:first-child { position:sticky; left:0; background:var(--panel); z-index:1; }
+    .ltree-scroll { max-height:62dvh; overflow-y:auto; }
+    .modal .box { max-width:none; margin:2dvh 8px; padding:12px; max-height:96dvh; }
+    .kv { grid-template-columns:88px 1fr; }
+    footer { margin-top:14px; }
+  }
 </style>
 </head>
 <body>
@@ -1783,6 +1806,21 @@ function viewChoose(){
 /* ================= 描画 ================= */
 let currentTab = "horses";
 function raceLabel(r){ return (r.name||"")+"（"+(r.grade||"")+"・"+(r.racecourse||"")+" "+(r.surface||"")+(r.distance_m?r.distance_m+"m":"")+" "+(r.conditions||"")+"）"; }
+/* 広い表を .tscroll で包み、ページではなく表の中で横スクロールさせる（v1.02・表示のみ）。
+   entryscroll 内の表は既にスクロール枠を持つので対象外。DOM が無い環境
+   （テストのスタブ等）では何もしない */
+function wrapTables(root){
+  if(!root || typeof root.querySelectorAll !== "function") return;
+  root.querySelectorAll("table").forEach(t => {
+    const p = t.parentNode;
+    if(!p || (p.classList && p.classList.contains("tscroll"))) return;
+    if(t.closest && t.closest(".entryscroll")) return;
+    const d = document.createElement("div");
+    d.className = "tscroll";
+    p.insertBefore(d, t);
+    d.appendChild(t);
+  });
+}
 function render(){
   const kn = $("#kanmuriNow"); if(kn) kn.textContent = S.kanmuri ? "「"+S.kanmuri+"」" : "（なし）";
   $("#dateLabel").textContent = S.year+"年 "+S.month+"月 第"+S.week+"週";
@@ -1797,6 +1835,7 @@ function render(){
   if(S.phase==="choose"){
     b.innerHTML = viewChoose();
     document.querySelectorAll("[data-choose]").forEach(btn => btn.onclick = () => chooseMare(btn.getAttribute("data-choose")));
+    wrapTables(b);
     return;
   }
   if(currentTab==="horses") b.innerHTML = viewHorses();
@@ -1812,6 +1851,7 @@ function render(){
     if(acc) acc.onclick = () => acceptGift(document.querySelector("#giftName") ? document.querySelector("#giftName").value : "");
     if(ref) ref.onclick = () => refuseGift();
   }
+  wrapTables(b);
   bindTab();
 }
 function statusJa(h){
@@ -2693,6 +2733,7 @@ function openHorse(id){
     + "<h3>血統表</h3>" + pedigreeTable(h) + produceSection(h)
     + actions
     + "<h3>戦績・履歴</h3><table><tr><th>時期</th><th>レース</th><th>条件</th><th>着順</th><th>タイム</th><th></th><th>賞金</th></tr>"+res+"</table>";
+  wrapTables($("#horseModalBox"));
   $("#horseModal").style.display = "block";
   bindHorses();
   const ps = $("#policySel"); if(ps) ps.onchange = () => { h.policy = ps.value; save(); };
@@ -2821,6 +2862,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>競馬シミュレーター（趣味） v1.01</footer>
+<footer>競馬シミュレーター（趣味） v1.02</footer>
 </body>
 </html>
