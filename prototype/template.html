@@ -106,7 +106,7 @@
     <button class="ghost" data-milestone="breed">次の繁殖シーズン（2月）</button>
     <button class="ghost" data-milestone="yearend">年末（12月第4週）</button>
   </div>
-  <div class="sub">目標なし・週刻み・過程を見つめるゲーム。開始時に繁殖牝馬を1頭選ぶところから始まります。初年度は4月に2歳馬、12月に1歳馬の贈呈があります（辞退も可）。能力は設計用の仮数値、海外レースの1着賞金は2025年の実額（racedb調べ・固定レート換算）です。スキップは「かんたんスキップ」のボタンでも進められます。「🐛 デバッグ馬を作成」ではステータスを指定して馬を作れます（動作確認用）。</div>
+  <div class="sub">目標なし・週刻み・過程を見つめるゲーム。開始時に繁殖牝馬を1頭選ぶところから始まります。初年度は4月に2歳馬が2頭、12月に1歳牝馬の贈呈があります（1頭ずつ辞退も可）。能力は設計用の仮数値、海外レースの1着賞金は2025年の実額（racedb調べ・固定レート換算）です。スキップは「かんたんスキップ」のボタンでも進められます。「🐛 デバッグ馬を作成」ではステータスを指定して馬を作れます（動作確認用）。</div>
 </header>
 <main>
   <section class="panel" id="topicPanel"><h2>今週のトピック</h2><div id="topics"></div></section>
@@ -616,6 +616,16 @@ function evalComment(h){
   return rankOf(comp)+"評価（"+best+"型・"+h.surface+"・"+h.distMin+"〜"+h.distMax+"m・"+h.growth+"）";
 }
 const RANK_PRICE = { S:[4200,5000], A:[2600,4000], B:[1300,2500], C:[600,1200] };
+/* 繁殖牝馬の表示ランク（v1.01・オーナー指摘 2026-11-15）：セールで見えたランクが購入後に
+   見えなくなるのは不自然なので、所有馬リストでも同じランクを出す。購入牝馬はセール生成時に
+   保存された h.rank をそのまま使う（購入前後で同じ文字）。自家製・贈呈の繁殖牝馬には
+   セールランクが無いので、素質（3パラメータ平均＝馬ページの「素質（上限）・総合」と同じ式）の
+   ランクで代用し、全ての繁殖牝馬にランクが付くようにする */
+function mareRankOf(h){
+  if(h.rank) return h.rank;
+  if(h.spd != null) return rankOf(Math.round((h.spd + h.sta + h.gut) / 3));
+  return rankOf(h.ability || 70);
+}
 function marePrice(h){ return clamp(Math.round((h.ability-50)*90 + irnd(0,400)), 600, 5000); }
 /* 若馬（デビュー前）の売却額：見える評価ランクではなく、隠れた上限（3パラメータ＝将来の天井）で決まる。
    評価が低くても素質が高ければ高く売れる＝「手放す判断」に読みの要素を持たせる（v0.29・オーナー発案、式はAI設計） */
@@ -638,6 +648,39 @@ function canEnterStud(h){
 const MARE_CAP = 10;
 function mareCount(){ return S.horses.filter(h=>h.status==="broodmare").length; }
 function mareCapReached(){ return mareCount() >= MARE_CAP; }
+/* ===== 引退馬リストと繁殖引退の枠外し（v1.01・オーナー決定 2026-11-15） =====
+   競走を引退して残した馬と、繁殖を引退した牝馬は所有馬リストから外し、年表タブの
+   「引退馬」リストで管理する。繁殖引退はその時点で繁殖牝馬の頭数枠（mareCount）と
+   繋養費（monthlyCosts の繋養頭数）から外れる。馬自体は S.horses に残るので、
+   牝系図・血統表・産駒一覧・殿堂入り判定は今までどおり効く。
+   売却した馬は S.horses から消える代わりに S.soldHorses へ軽い記録だけ残し、
+   同じ引退馬リストに「売却」として載せる（牝系の頭数・殿堂には戻らない＝記録のみ） */
+/* 引退馬リスト（年表側）に載る馬か：新ステータス retired（繁殖引退した牝馬）か、
+   競走引退フラグが立った馬（種牡馬入りした馬は現役の種牡馬なので除く） */
+function isAlumni(h){ return h.status==="retired" || (!!h.retired && h.status!=="stallion"); }
+/* 繁殖引退の確定処理：ステータスを retired に変え、枠・繋養費から即時に外す */
+function retireFromBreeding(h){
+  if(!h || h.status!=="broodmare") return;
+  h.breedRetired = true;
+  h.status = "retired";
+  h.retired = true;
+}
+/* 手動の繁殖引退ができるか（受胎中は出産まで不可：出産処理が繁殖牝馬ステータス前提のため） */
+function canBreedRetire(h){ return !!h && h.status==="broodmare" && !h.pregnant; }
+/* 売却の記録（引退馬リストの「売却」行になる軽量スナップショット） */
+function recordSale(h, price){
+  if(!S.soldHorses) S.soldHorses = [];
+  S.soldHorses.push({ name:h.name, sex:h.sex, birthYear:h.birthYear, sire:h.sire, dam:h.dam,
+    starts:(h.results?h.results.length:0)+(h.preStarts||0), wins:h.wins||0, earnings:h.earnings||0,
+    year:S.year, price:price, wasBroodmare:h.status==="broodmare", origin:h.origin||null,
+    rank: h.status==="broodmare" ? mareRankOf(h) : null });
+}
+/* 引退馬リストの並び（表示とテストで共有する導出）：牧場に残る引退馬＋売却記録 */
+function retiredListEntries(){
+  const live = S.horses.filter(isAlumni).map(h=>({ horse:h }));
+  const sold = (S.soldHorses||[]).map(r=>({ sold:r }));
+  return live.concat(sold);
+}
 function canSellYoung(h){
   return !h.retired && (h.status==="foal" || h.status==="yearling" || (h.status==="racehorse" && h.results.length===0));
 }
@@ -707,7 +750,7 @@ function refreshSale(){
 function initState(){
   S = { year:2026, month:1, week:1, calVer:2, funds:30000, horses:[], stallions: JSON.parse(JSON.stringify(DATA.stallions)),
         chronicle:[], statsBirths:{}, topics:[], yearEndDone:false, phase:"choose", candidates:[], salePool:[], saleYear:2026, usedTemplates:[], firstMatingDone:false,
-        giftQueue:[], giftAprDone:false, giftDecDone:false, favs:[], mile:null, farmWins:0, farmPrize:0, kanmuri:"" };
+        giftQueue:[], giftAprDone:false, giftDecDone:false, favs:[], mile:null, farmWins:0, farmPrize:0, kanmuri:"", soldHorses:[] };
   const sts = S.stallions;
   // 種牡馬ロスターは固定（約50頭・引退／世代交代なし。WS4b・2026-11-13）。
   // 自家生産の牡馬が引退時に種牡馬入りすることはある（そちらは従来どおり）。
@@ -766,6 +809,19 @@ function migrateV029(){
   for(const h of S.horses){
     if(h.unnamed == null && h.dam && h.name === provisionalName(h.dam, h.birthYear)
       && (h.status==="foal" || h.status==="yearling" || (h.status==="racehorse" && !(h.results||[]).length))) h.unnamed = true;
+  }
+  /* v1.01 移行：売却記録リストの初期化（旧セーブには無いので空から始まる） */
+  if(!S.soldHorses) S.soldHorses = [];
+  /* v1.01 移行：購入牝馬の出自タグを推定して付ける。セール生成の牝馬はランク（h.rank）を
+     持つのが目印で、自家生産馬は母が牧場内にいるので除外できる。開始時の選択馬も候補生成
+     （makeMare）なのでランクを持ち、購入馬として扱う（オーナー決定） */
+  for(const h of S.horses){
+    if(h.origin == null && h.rank && h.sex==="牝" && !S.horses.some(x=>x.name===h.dam)) h.origin = "購入";
+  }
+  /* v1.01 移行：既に繁殖引退していた牝馬は新ステータス（retired）へ移し、頭数枠と
+     繋養費から外す。受胎中の馬は出産処理が繁殖牝馬ステータス前提なので、出産後に回す */
+  for(const h of S.horses){
+    if(h.status==="broodmare" && h.breedRetired && !h.pregnant) retireFromBreeding(h);
   }
 }
 /* ================= マイルストーン（v0.33・オーナー方針） =================
@@ -1419,8 +1475,13 @@ function onNewYear(){
     }
   }
   // 繁殖牝馬の年齢上限（v0.40）：17歳以上は繁殖引退
+  // v1.01：繁殖引退が確定した牝馬はその場でステータスを retired に変え、頭数枠・繋養費から
+  // 外して年表の引退馬リストへ移す（出産リスクで繁殖生活を終えた馬もここで一緒に移る）。
+  // 受胎中の馬は出産が終わるまで繁殖牝馬のまま（上の出産処理がステータス前提のため）
   for(const h of S.horses){
-    if(h.status==="broodmare" && !h.breedRetired && ageOf(h)>=17){ h.breedRetired = true; topic("🌸 "+h.name+" が繁殖を引退しました"); }
+    if(h.status!=="broodmare") continue;
+    if(!h.breedRetired && ageOf(h)>=17){ h.breedRetired = true; topic("🌸 "+h.name+" が繁殖を引退しました"); }
+    if(h.breedRetired && !h.pregnant) retireFromBreeding(h);
   }
   // 自家製種牡馬の供用リミット（v0.40）：供用20年で種牡馬を引退する（実在ロスターは対象外・固定のまま）
   for(const h of S.horses){
@@ -1444,8 +1505,8 @@ function weeklyEvents(){
     if(unn.length) topic("🍼 まだ仮名の1歳馬がいます："+unn.map(h=>h.name).join("、")+"（2歳になる前に名前を付けてください）");
   }
   if(S.month===11 && S.week===1 && S.salePool && S.salePool.length) topic("🐴 繁殖牝馬セールが始まりました（11〜12月、「繁殖」タブ）。最初に選ばなかった候補も出ています");
-  if(S.year===2026 && S.month===4 && S.week===1 && !S.giftAprDone){ S.giftAprDone = true; S.giftQueue.push(makeGift("2yo")); topic("🎁 初年度の支援で2歳馬が贈られます。名前を付けて迎えるか、辞退もできます"); }
-  if(S.year===2026 && S.month===12 && S.week===1 && !S.giftDecDone){ S.giftDecDone = true; S.giftQueue.push(makeGift("1yo")); topic("🎁 初年度の支援で1歳馬が贈られます。名前を付けて迎えるか、辞退もできます"); }
+  if(S.year===2026 && S.month===4 && S.week===1 && !S.giftAprDone){ S.giftAprDone = true; S.giftQueue.push(makeGift("aprColt")); S.giftQueue.push(makeGift("aprFilly")); topic("🎁 初年度の支援で2歳馬が2頭（牡馬・牝馬）贈られます。1頭ずつ、名前を付けて迎えるか、辞退もできます"); }
+  if(S.year===2026 && S.month===12 && S.week===1 && !S.giftDecDone){ S.giftDecDone = true; S.giftQueue.push(makeGift("decFilly")); topic("🎁 初年度の支援で1歳牝馬が贈られます。名前を付けて迎えるか、辞退もできます"); }
   for(const h of S.horses){
     if(h.status==="racehorse" && ageOf(h)>=7 && !h.retireNudged){ h.retireNudged = true; topic("引退を考え始める時期です："+h.name+"（"+ageOf(h)+"歳）。馬のページから引退させられます"); }
     if(h.status==="racehorse" && h.fatigue>=80) topic("⚠️ "+h.name+" の疲労がかなり溜まっています。放牧か休養がおすすめです");
@@ -1496,6 +1557,7 @@ function skipTo(y, m, w){
 /* ================= 開始時の牝馬選択・セール ================= */
 function chooseMare(id){
   const m = S.candidates.find(x=>x.id===id); if(!m) return;
+  m.origin = "購入"; /* v1.01：開始時の選択馬も「購入馬」として扱う（オーナー決定）。引退馬リストで表示する */
   S.horses.push(m);
   S.salePool = S.candidates.filter(x=>x.id!==id);
   S.candidates = [];
@@ -1510,26 +1572,61 @@ function buyMare(id){
   if(S.funds < m.price){ topic("⚠️ 資金が足りません（"+m.name+" は "+man(m.price)+"）"); save(); render(); return; }
   S.funds -= m.price;
   S.salePool.splice(idx,1);
+  m.origin = "購入"; /* v1.01：購入馬タグ（引退馬リストで「購入馬」と出す） */
   S.horses.push(m);
   topic("🐴 " + m.name + " が牧場に加わりました");
   save(); render();
 }
-/* ---- 初年度限定ギフト（4月に2歳馬、12月に1歳馬／命名して迎えるか、辞退も可） ---- */
+/* ---- 初年度限定ギフト（v1.01・オーナー 決定 2026-11-15）：ランダム生成を廃し、固定のモデル馬に差し替え。
+   4月＝2歳2頭（牡：エフフォーリア型／牝：ソウルスターリング型）をまとめてキューに入れ、パネルで1頭ずつ迎える／辞退する。
+   12月＝1歳牝馬1頭（父キタサンブラック／母父キングカメハメハ／母母父エンドスウィープの血統固定）。
+   能力は3頭とも B ランク相当で統一。名前は従来どおり farmFoalName の候補をプレイヤーが編集して迎える（辞退可） ---- */
+/* B ランク相当のパラメータ生成（v1.01）：中心 74〜76 にバランス寄せ（off）と小ブレ ±2 を加え、
+   3パラ平均（丸め）が B 帯（73〜77）に必ず収まるよう根性で微調整してから 35〜85 にクランプする */
+function giftBParams(off){
+  const c = irnd(74, 76);
+  const p = { spd: c + (off.spd || 0) + irnd(-2, 2), sta: c + (off.sta || 0) + irnd(-2, 2), gut: c + (off.gut || 0) + irnd(-2, 2) };
+  for(let i = 0; i < 12; i++){ const a = Math.round((p.spd + p.sta + p.gut) / 3); if(a >= 73 && a <= 77) break; p.gut += (a > 77 ? -1 : 1); }
+  p.spd = clamp(p.spd, 35, 85); p.sta = clamp(p.sta, 35, 85); p.gut = clamp(p.gut, 35, 85);
+  return p;
+}
+const GIFT_SPECS = {
+  /* エフフォーリア型：父エピファネイア／母ケイティーズハート／母父ハーツクライ／母母ケイティーズファースト／母母父クリス。
+     芝1800-2500・普通早（3歳で皐月賞・ダービー制覇の早めの完成度）。中長距離の芝馬らしくスタミナ寄せ */
+  aprColt: { sex: "牡", age2: true, sire: "エピファネイア", dam: "ケイティーズハート", bms: "ハーツクライ", grandam: "ケイティーズファースト", gbms: "クリス",
+    surface: "芝", distMin: 1800, distMax: 2500, gtype: "普通早", off: { spd: 0, sta: 3, gut: 1 }, coat: "鹿毛" },
+  /* ソウルスターリング型（オーナー が 2026-11-15 にスターズオンアース型から差し替え）：父Frankel は
+     種牡馬ロスター60頭に収録されたノーザンダンサー系（非サンデー系）で、系統はロスターのレコードから解決できる。
+     父Frankel／母スタセリタ／母父モンズーン／母母ソワニエ／母母父ダッシングブレイド。
+     芝1600-2400（阪神JF1600・アイビーS1800・チューリップ賞1600・オークス2400）・早熟
+     （2歳で阪神JF、3歳春にオークスを制し、その後は勝ち星なし＝ピークは2〜3歳）。毛色は実馬どおり青鹿毛。
+     持続の明示指定は外した（spec.jizoku の配管自体は残す） */
+  aprFilly: { sex: "牝", age2: true, sire: "Frankel", dam: "スタセリタ", bms: "モンズーン", grandam: "ソワニエ", gbms: "ダッシングブレイド",
+    surface: "芝", distMin: 1600, distMax: 2400, gtype: "早熟", off: { spd: 2, sta: 1, gut: 0 }, coat: "青鹿毛" },
+  /* 12月の1歳牝馬：父キタサンブラック／母父キングカメハメハ／母母父エンドスウィープ（母・母母は架空名）。
+     芝は父の適性（1800-3000）に合わせ、普通遅。能力も他2頭と揃えて B ランク相当（オーナー 未指定のため AI の仮置き） */
+  decFilly: { sex: "牝", age2: false, sire: "キタサンブラック", dam: null, bms: "キングカメハメハ", grandam: null, gbms: "エンドスウィープ",
+    surface: "芝", distMin: 1800, distMax: 3000, gtype: "普通遅", off: { spd: 1, sta: 2, gut: 0 }, coat: null }
+};
 function makeGift(kind){
-  const sts = S.stallions;
-  const sire = pick(sts);
-  const is2 = kind === "2yo";
-  const base = is2?irnd(58,78):irnd(56,76); // v0.50: 新スケール（平均65前後）に合わせた値
-  /* 贈呈馬の名前は farmFoalName で冠名を効かせる（v0.58・オーナー指摘）。母名は外部の架空名なので foalName のまま冠名を付けない */
-  const h = newHorse({ name:farmFoalName(), sex:Math.random()<0.5?"牡":"牝", birthYear: is2?2024:2025, sire:sire.name, dam:foalName(), bms:pick(sts).name,
-    status: is2?"racehorse":"yearling", surface:sire.surface, distMin:sire.dist[0], distMax:sire.dist[1], growth:sire.growth, gtype:stGtype(sire), ability: base, coat:randomCoat() });
-  setParams(h, base + irnd(-6,6), base + irnd(-6,6), base + irnd(-6,6));
-  h.jizoku = Math.random() < (sire.jizoku ? 0.05 : 0.001); /* 持続：父が持続なら5%、他は突然変異0.1%（v0.50） */
-  h.matureWeight = Math.round((sire.weight != null ? sire.weight : 490) + triSpread(25)); /* 馬体重（v0.53・フレーバーのみ） */
-  h.temp = clamp(Math.round(stallionGen(sire).temp + triSpread(12)), 25, 98);
+  const spec = GIFT_SPECS[kind]; if(!spec) return null;
+  const sireRec = S.stallions.find(s => s.name === spec.sire) || null; /* 現在の3モデルは父が全てロスター内。ロスターにレコードの無い父は null：気性・体重は中庸フォールバックにする */
+  const is2 = spec.age2;
+  /* 贈呈馬の名前は farmFoalName で冠名を効かせる（v0.58・オーナー指摘）。母名は実在モデルの名前／架空名のいずれも冠名を付けない */
+  const h = newHorse({ name:farmFoalName(), sex: spec.sex, birthYear: is2 ? 2024 : 2025, sire: spec.sire, dam: spec.dam || foalName(), bms: spec.bms,
+    status: is2 ? "racehorse" : "yearling", surface: spec.surface, distMin: spec.distMin, distMax: spec.distMax, growth: G_DISP[spec.gtype], gtype: spec.gtype, ability: 75, coat: spec.coat || randomCoat() });
+  h.grandam = spec.grandam || foalName(); h.gbms = spec.gbms; /* 母母・母母父まで持たせて血統表の母方を奥まで埋める（繁殖牝馬と同じ流儀） */
+  /* 架空の母・母母名が本馬や母と同名になると血統表の照合（personRec）が壊れるため、被ったら引き直す */
+  if(!spec.dam){ while(h.dam === h.name) h.dam = foalName(); }
+  if(!spec.grandam){ while(h.grandam === h.name || h.grandam === h.dam) h.grandam = foalName(); }
+  const p = giftBParams(spec.off);
+  setParams(h, p.spd, p.sta, p.gut); /* ability は setParams が3パラ平均で更新する */
+  h.jizoku = spec.jizoku != null ? !!spec.jizoku : Math.random() < (sireRec && sireRec.jizoku ? 0.05 : 0.001); /* 持続：スペックで明示指定があればそのまま付与（現行の3モデルに明示指定は無いが配管は残す）。それ以外は父が持続なら5%、他は突然変異0.1%（v0.50） */
+  h.matureWeight = Math.round((sireRec && sireRec.weight != null ? sireRec.weight : 490) + triSpread(25)); /* 馬体重（v0.53・フレーバーのみ） */
+  h.temp = sireRec ? clamp(Math.round(stallionGen(sireRec).temp + triSpread(12)), 25, 98) : irnd(45, 70); /* ロスター外の父は中庸な気性 */
   h.quirk = rollQuirk(h.temp);
   ensureAffinities(h); /* 相性（v0.59）：生成時に初期化しておく。従来は再読込時の ensureParams で初めて付き、受け取り直後の馬ページで相性欄が出なかった */
-  h.giftKind = kind;
+  h.giftKind = is2 ? "2yo" : "1yo";
   return h;
 }
 /* ---- 初年度ギフト馬 ---- */
@@ -1581,7 +1678,7 @@ function buildDebugHorse(o){
 function debugPanel(){
   const num = (id, v) => "<input id='"+id+"' type='number' value='"+v+"' style='width:64px;'>";
   const sel = (id, opts, cur) => "<select id='"+id+"'>" + opts.map(o=>"<option value='"+o[0]+"'"+(o[0]===cur?" selected":"")+">"+o[1]+"</option>").join("") + "</select>";
-  const stOpts = [["","ランダム"]].concat((typeof S !== "undefined" && S && S.stallions ? S.stallions : []).map(s=>[s.name, s.name])); /* ロスター54頭＋自家製種牡馬（S.stallions に同居） */
+  const stOpts = [["","ランダム"]].concat((typeof S !== "undefined" && S && S.stallions ? S.stallions : []).map(s=>[s.name, s.name])); /* ロスター60頭＋自家製種牡馬（S.stallions に同居） */
   const markOpts = [["","ランダム"],["○","○"],["✕","✕"],["-","−（なし）"]];
   const bulkOpts = [["","ランダム"],["○","すべて○"],["✕","すべて✕"],["-","すべて−（なし）"]];
   return "<div class='topic' style='border-color:#c9a227;'><b>🐛 デバッグ馬の作成</b>（数値はそのまま反映されます）<br>"
@@ -1722,15 +1819,21 @@ function statusJa(h){
   return {foal:"当歳", yearling:"1歳", racehorse:"現役", broodmare: h.pregnant? "繁殖（受胎中）":"繁殖", stallion:"種牡馬"}[h.status] || h.status;
 }
 let horseFilter = "active";
-let horseSort = "default"; // WS4c: 既定は現役＋若馬のみ。繁殖牝馬・種牡馬・引退馬は絞込みで表示する
-function viewHorses(){
-  const match = hh => horseFilter==="all" ? true
+let horseSort = "default"; // WS4c: 既定は現役＋若馬のみ。繁殖牝馬・種牡馬は絞込みで表示する
+/* 所有馬リストの絞込み導出（表示とテストで共有）。
+   v1.01（オーナー決定 2026-11-15）：引退馬（競走を引退して残した馬・繁殖を引退した牝馬）は
+   どの絞込みでも所有馬リストに出さない。年表タブの「引退馬」リストへ移したため */
+function mainListMatch(hh){
+  if(isAlumni(hh)) return false;
+  return horseFilter==="all" ? true
     : horseFilter==="active" ? ((hh.status==="racehorse" && !hh.retired) || hh.status==="foal" || hh.status==="yearling")
     : horseFilter==="racehorse" ? (hh.status==="racehorse" && !hh.retired)
     : horseFilter==="young" ? (hh.status==="foal" || hh.status==="yearling")
     : horseFilter==="breeding" ? (hh.status==="broodmare" || hh.status==="stallion")
-    : hh.retired;
-  const list = S.horses.filter(match);
+    : true;
+}
+function viewHorses(){
+  const list = S.horses.filter(mainListMatch);
   const sorted = [...list];
   if(horseSort==="young") sorted.sort((a,b)=>(b.birthYear-a.birthYear) || (a.id-b.id));
   else if(horseSort==="old") sorted.sort((a,b)=>(a.birthYear-b.birthYear) || (a.id-b.id));
@@ -1739,13 +1842,13 @@ function viewHorses(){
   else if(horseSort==="ability") sorted.sort((a,b)=>effAvg(b)-effAvg(a)); /* v0.50：評価順は素質（上限）でなく現在の実効で並べる */
   else if(horseSort==="name") sorted.sort((a,b)=>a.name.localeCompare(b.name, "ja"));
   const rows = sorted.map(h =>
-    "<tr><td><span class='horse-link' data-horse='"+h.id+"'>"+h.name+"</span>"+(h.unnamed ? " <span class='sub'>（仮名）</span>" : "")+"</td><td>"+h.sex+"</td><td>"+ageOf(h)+"歳</td><td>"+statusJa(h)+"</td><td>"+growthStage(h)+"</td><td>"+(h.status==="racehorse" && !h.retired ? horseClass(h) : "―")+"</td><td>"+h.wins+"勝 / "+man(h.earnings)+"</td><td>"+evalComment(h)+"</td><td>状態"+Math.round(h.condition)+" 疲労"+Math.round(h.fatigue)+"</td></tr>").join("");
-  const opts = [["active","現役＋若馬（既定）"],["racehorse","現役のみ"],["young","若馬のみ"],["breeding","繁殖・種牡馬"],["retired","引退馬"],["all","すべて"]]
+    "<tr><td><span class='horse-link' data-horse='"+h.id+"'>"+h.name+"</span>"+(h.unnamed ? " <span class='sub'>（仮名）</span>" : "")+(h.status==="broodmare" ? " <span class='sub'>ランク"+mareRankOf(h)+"</span>" : "")+"</td><td>"+h.sex+"</td><td>"+ageOf(h)+"歳</td><td>"+statusJa(h)+"</td><td>"+growthStage(h)+"</td><td>"+(h.status==="racehorse" && !h.retired ? horseClass(h) : "―")+"</td><td>"+h.wins+"勝 / "+man(h.earnings)+"</td><td>"+evalComment(h)+"</td><td>状態"+Math.round(h.condition)+" 疲労"+Math.round(h.fatigue)+"</td></tr>").join("");
+  const opts = [["active","現役＋若馬（既定）"],["racehorse","現役のみ"],["young","若馬のみ"],["breeding","繁殖・種牡馬"],["all","すべて"]]
     .map(o=>"<option value='"+o[0]+"'"+(horseFilter===o[0]?" selected":"")+">"+o[1]+"</option>").join("");
   setTimeout(()=>{ const el = $("#horseFilterSel"); if(el) el.onchange = () => { horseFilter = el.value; render(); }; const so = $("#horseSortSel"); if(so) so.onchange = () => { horseSort = so.value; render(); }; }, 0);
   const sortOpts = [["default","既定の順"],["young","若い順"],["old","高齢順"],["earnings","獲得賞金順"],["wins","勝ち数順"],["ability","評価順"],["name","名前順"]]
     .map(o=>"<option value='"+o[0]+"'"+(horseSort===o[0]?" selected":"")+">"+o[1]+"</option>").join("");
-  return "<div class='flex' style='margin-bottom:8px;'><label>表示：</label><select id='horseFilterSel'>"+opts+"</select><label>並び替え：</label><select id='horseSortSel'>"+sortOpts+"</select><span class='sub'>"+list.length+"頭（全 "+S.horses.length+" 頭）。繁殖牝馬・種牡馬は「繁殖」「種牡馬」タブでも見られます</span></div>"
+  return "<div class='flex' style='margin-bottom:8px;'><label>表示：</label><select id='horseFilterSel'>"+opts+"</select><label>並び替え：</label><select id='horseSortSel'>"+sortOpts+"</select><span class='sub'>"+list.length+"頭（全 "+S.horses.length+" 頭）。繁殖牝馬・種牡馬は「繁殖」「種牡馬」タブでも見られます。引退馬は「牧場年表」タブの引退馬リストにいます</span></div>"
     + "<table><tr><th>馬名</th><th>性</th><th>年齢</th><th>状態</th><th>成長</th><th>クラス</th><th>成績</th><th>スタッフ評価</th><th>コンディション</th></tr>"+rows+"</table><div class='sub'>馬名を押すと履歴ページが開きます。</div>";
 }
 let entryHorseId = null, entrySort = "recommend", entryOnlyOk = false, entryWeekAhead = 0;
@@ -2053,7 +2156,7 @@ function viewStallions(){
   const list = sortedStallions();
   const rows = list.map(st=>"<tr><td><button data-fav='"+st.name+"' class='ghost' title='お気に入り'>"+((S.favs||[]).includes(st.name)?"★":"☆")+"</button> "+st.name+(isHomebredStallion(st)?" <span class='ok'>自家製</span>":"")+(()=>{ const hh = S.horses.find(x=>x.name===st.name); return (hh && hh.studYear!=null) ? " <span class='sub'>供用"+(S.year-hh.studYear+1)+"年目（20年まで）</span>" : ""; })()+(st.fresh?" <span class='ok'>NEW</span>":"")+(st.mutation?" <span class='ok'>🧬変異因子</span>":"")+(st.jizoku?" <span class='ok'>🌱持続</span>":"")+(st.sire?" <span class='sub'>父 "+st.sire+"</span>":"")+"</td><td>"+(st.region==="overseas"?"海外":"国内")+"</td><td>"+st.surface+"</td><td>"+st.dist[0]+"-"+st.dist[1]+"m</td><td>"+st.growth+"</td><td>"+st.fee_tier+"</td><td>"+stallionTendency(st)+"</td><td>"+(()=>{ const ln = stallionMajorLine(st); return ln ? ln+"<br><span class='sub'>"+LINE_TRAITS[ln].phrase+"</span>" : "―"; })()+"</td><td>"+(stallionFee(st)===0 ? "無料" : fee(st.fee_tier))+"</td><td>"+(st.weight != null ? st.weight+"kg" : "―")+"</td></tr>").join("");
   const fsel = (id, cur, pairs) => "<select id='"+id+"'>" + pairs.map(p=>"<option value='"+p[0]+"'"+(cur===p[0]?" selected":"")+">"+p[1]+"</option>").join("") + "</select>";
-  return "<div class='sub'>プールは固定の54頭です（引退・世代交代はありません。自家生産の牡馬が重賞勝ちで引退すると種牡馬入りします）。現在"+S.stallions.length+"頭。種付け料はティア別の設計値です。</div>"
+  return "<div class='sub'>プールは固定の60頭です（引退・世代交代はありません。自家生産の牡馬が重賞勝ちで引退すると種牡馬入りします）。現在"+S.stallions.length+"頭。種付け料はティア別の設計値です。</div>"
     + "<div class='flex' style='margin:6px 0;'><span>並び替え：</span><select id='sortSel'>"+opts+"</select><span>絞込み：</span>"
     + fsel("sfRegion", stallionFilter.region, [["all","地域すべて"],["domestic","国内"],["overseas","海外"]])
     + fsel("sfSurface", stallionFilter.surface, [["all","芝・ダート"],["芝","芝"],["ダート","ダート"]])
@@ -2100,6 +2203,32 @@ function viewCalendar(){
   }
   return html;
 }
+/* 引退馬リスト（v1.01・オーナー決定 2026-11-15）：年表タブに置く。競走を引退して残した馬と
+   繁殖を引退した牝馬は所有馬リストから外れ、ここに載る。牧場に残る馬は馬ページへの
+   リンク付き（プロフィールは今までどおり開ける）。売却した馬は S.soldHorses の記録のみで
+   リンクなし。購入した繁殖牝馬には「購入馬」、繁殖引退した牝馬にはランクも出す */
+function retiredListHtml(){
+  const entries = retiredListEntries();
+  let html = "<h3 style='margin-top:16px;'>🐴 引退馬</h3>";
+  if(!entries.length) return html + "<div class='sub'>まだ引退馬はいません。引退して残した馬、繁殖を引退した牝馬、売却した馬がここに残ります。</div>";
+  const career = (starts, wins, earnings) => starts ? starts+"戦"+wins+"勝／"+man(earnings) : "出走なし";
+  const live = entries.filter(e=>e.horse).map(e=>e.horse).sort((a,b)=>(a.birthYear-b.birthYear) || (a.id<b.id?-1:1));
+  const sold = entries.filter(e=>e.sold).map(e=>e.sold).sort((a,b)=>(a.year-b.year) || (a.birthYear-b.birthYear));
+  const rows = [];
+  for(const h of live){
+    const notes = [];
+    if(h.status==="retired"){ notes.push("繁殖引退"); if(h.origin==="購入") notes.push("購入馬"); notes.push("ランク"+mareRankOf(h)); }
+    else notes.push("引退");
+    rows.push("<tr><td><span class='horse-link' data-horse='"+h.id+"'>"+h.name+"</span></td><td>"+h.sex+"</td><td>"+h.birthYear+"年生</td><td>"+career((h.results?h.results.length:0)+(h.preStarts||0), h.wins||0, h.earnings||0)+"</td><td>"+notes.join("・")+"</td></tr>");
+  }
+  for(const r of sold){
+    const notes = ["売却（"+r.year+"年・"+man(r.price)+"）"];
+    if(r.wasBroodmare && r.origin==="購入") notes.push("購入馬");
+    if(r.wasBroodmare && r.rank) notes.push("ランク"+r.rank);
+    rows.push("<tr><td>"+r.name+"</td><td>"+r.sex+"</td><td>"+r.birthYear+"年生</td><td>"+career(r.starts||0, r.wins||0, r.earnings||0)+"</td><td>"+notes.join("・")+"</td></tr>");
+  }
+  return html + "<table><tr><th>馬名</th><th>性</th><th>世代</th><th>成績</th><th>備考</th></tr>"+rows.join("")+"</table>";
+}
 function viewChron(){
   let html = "";
   /* ===== 殿堂（WS4a・2026-11-13で基準を厳格化）：現役を終えた馬のうち、
@@ -2123,6 +2252,7 @@ function viewChron(){
   } else {
     html += "<div class='sub'>まだ殿堂入りした馬はいません。GI・JpnI・海外G1を勝つか、生涯5億円以上を稼いだ馬が現役を終えると、ここに残ります。</div>";
   }
+  html += retiredListHtml();
   /* ===== 年ごとのまとめ ===== */
   const byYear = {};
   for(const h of S.horses) for(const r of h.results){
@@ -2163,6 +2293,15 @@ const PEDIGREE_LINES = {};
 for(const st of DATA.stallions){ const chain = [st.name, st.sire].concat(st.line||[]); for(let i=0;i<chain.length-1;i++) if(chain[i] && chain[i+1] && !PEDIGREE_LINES[chain[i]]) PEDIGREE_LINES[chain[i]] = chain[i+1]; }
 for(const st of DATA.stallions){ const c = st.bmsLine||[]; for(let i=0;i<c.length-1;i++) if(c[i] && c[i+1] && !PEDIGREE_LINES[c[i]]) PEDIGREE_LINES[c[i]] = c[i+1]; }
 for(const t of (DATA.mareTemplates||[])){ for(const c of [t.sireLine||[], t.bmsLine||[], t.gbmsLine||[]]) for(let i=0;i<c.length-1;i++) if(c[i] && c[i+1] && !PEDIGREE_LINES[c[i]]) PEDIGREE_LINES[c[i]] = c[i+1]; }
+/* 系統チェーン補完（v1.01）：固定贈呈馬の祖先のうち、エンドスウィープ（12月牝馬の母母父）と
+   モンズーン（4月牝馬の母父。先代モデルの母父スマートストライクも同様）は、種牡馬データ・テンプレ牝馬の
+   どこにも系統チェーンが無く、このままでは血統表が辿れない。テンプレの gbmsLine／bmsLine が果たす
+   役割として、実父への1段だけをガード付きで補う
+   （エンドスウィープ → フォーティナイナー → ミスタープロスペクター系／スマートストライク → ミスタープロスペクター系／
+    モンズーン → ケーニヒスシュトゥール：ブランドフォード系の傍流で8大系のマーカーには届かないため、大系は null のまま＝他の傍流と同じ扱い） */
+if(!PEDIGREE_LINES["エンドスウィープ"]) PEDIGREE_LINES["エンドスウィープ"] = "フォーティナイナー";
+if(!PEDIGREE_LINES["スマートストライク"]) PEDIGREE_LINES["スマートストライク"] = "ミスタープロスペクター";
+if(!PEDIGREE_LINES["モンズーン"]) PEDIGREE_LINES["モンズーン"] = "ケーニヒスシュトゥール";
 /* 種牡馬の母系（v0.43）：母→{父=母父, 母=母母}、母母→{父=母母父} を引けるようにする */
 const PEDIGREE_DAMS = {};
 for(const st of DATA.stallions){ if(st.dam){ if(!PEDIGREE_DAMS[st.dam]) PEDIGREE_DAMS[st.dam] = { sire: st.bms||null, dam: st.grandam||null }; if(st.grandam && !PEDIGREE_DAMS[st.grandam]) PEDIGREE_DAMS[st.grandam] = { sire: st.gbms||null, dam: null }; } }
@@ -2470,6 +2609,7 @@ function doRetireColt(h, toStud){
    殿堂マイルストーンの確認は牝馬側に合わせて行わない（売却した馬はそのまま牧場を離れる） */
 function doRetireSellColt(h, price){
   S.funds += price;
+  recordSale(h, price); /* v1.01：売却記録を引退馬リスト用に残す */
   S.horses = S.horses.filter(x=>x.id!==h.id);
   topic("💴 "+h.name+" を引退・売却しました（"+man(price)+"）");
   $("#horseModal").style.display = "none"; save(); render();
@@ -2509,6 +2649,15 @@ function openHorse(id){
     actions = "<details class='sellmenu'><summary>💴 この繁殖牝馬を売却する</summary><div class='sellmenu-body'>"
       + "<div class='sub'>売却額は <b>"+man(mp)+"</b> です（能力で決まります）"+(h.pregnant ? "。<span class='bad'>受胎中です。お腹の仔も一緒に手放します</span>" : "")+"</div>"
       + "<button id='sellMareBtn'>この金額で売却する</button></div></details>";
+    /* 繁殖引退（v1.01・オーナー決定）：引退した時点で繁殖牝馬の頭数枠と繋養費から外れ、
+       年表の引退馬リストへ移る。売却と同じプルダウン2手順・確認ダイアログなし。
+       受胎中は出産処理の都合で引退できない（説明だけ出す） */
+    actions += "<details class='sellmenu'><summary>🌸 繁殖を引退する</summary><div class='sellmenu-body'>"
+      + (canBreedRetire(h)
+        ? "<div class='sub'>引退すると繁殖牝馬の頭数枠（現在"+mareCount()+"頭／上限"+MARE_CAP+"頭）と繋養費から外れ、年表の「引退馬」リストに移ります。牧場には残り、牝系図・血統・産駒の記録はそのまま残ります</div>"
+          + "<button id='breedRetireBtn'>繁殖を引退する</button>"
+        : "<div class='sub'>受胎中は繁殖引退できません。出産が終わってから引退できます</div>")
+      + "</div></details>";
   }
   if(canSellYoung(h)){
     actions += "<details class='sellmenu'><summary>💴 この若馬を売却する</summary><div class='sellmenu-body'>"
@@ -2572,13 +2721,21 @@ function openHorse(id){
   const rsb = $("#retireSellBtn"); if(rsb) rsb.onclick = () => {
     const price = retireSalePrice != null ? retireSalePrice : marePrice(h);
     S.funds += price;
+    recordSale(h, price); /* v1.01：売却記録 */
     S.horses = S.horses.filter(x=>x.id!==h.id);
     topic("💴 "+h.name+" を引退・売却しました（"+man(price)+"）");
+    $("#horseModal").style.display = "none"; save(); render();
+  };
+  const brb = $("#breedRetireBtn"); if(brb) brb.onclick = () => {
+    if(!canBreedRetire(h)){ alert("受胎中は繁殖引退できません。出産が終わってから引退させてください"); return; }
+    retireFromBreeding(h);
+    topic("🌸 "+h.name+" が繁殖を引退しました");
     $("#horseModal").style.display = "none"; save(); render();
   };
   const sb = $("#sellMareBtn"); if(sb) sb.onclick = () => {
     const price = marePriceShown != null ? marePriceShown : marePrice(h);
     S.funds += price;
+    recordSale(h, price); /* v1.01：売却記録 */
     S.horses = S.horses.filter(x=>x.id!==h.id);
     topic("💴 "+h.name+" を "+man(price)+" で売却しました");
     $("#horseModal").style.display = "none"; save(); render();
@@ -2586,6 +2743,7 @@ function openHorse(id){
   const sy = $("#sellYoungBtn"); if(sy) sy.onclick = () => {
     const price = youngPrice(h);
     S.funds += price;
+    recordSale(h, price); /* v1.01：売却記録 */
     S.horses = S.horses.filter(x=>x.id!==h.id);
     topic("💴 "+h.name+" を "+man(price)+" で売却しました");
     $("#horseModal").style.display = "none"; save(); render();
@@ -2663,6 +2821,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>競馬シミュレーター（趣味） v1.00</footer>
+<footer>競馬シミュレーター（趣味） v1.01</footer>
 </body>
 </html>
