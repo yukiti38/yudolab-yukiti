@@ -35,7 +35,12 @@
   .chron .when { color:var(--sub); margin-right:8px; }
   .ok { color:var(--acc); } .warn { color:var(--warn); } .bad { color:var(--bad); }
   select, input[type=text] { background:var(--panel2); color:var(--txt); border:1px solid var(--line); border-radius:8px; padding:6px 8px; font-size:14px; }
+  select { height:32px; padding:0 8px; } /* v1.04：select の高さを固定し全プルダウンを均一に（従来は高さ未指定でブラウザの自動計算任せ＝内容で差が出た） */
   .flex { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  /* v1.04：指定週スキップの並び。PCでは従来どおり1行、.skipwk（第～週まで）は絶対に割らない */
+  .skipctl { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .skiprow { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .skipwk { display:inline-flex; gap:6px; align-items:center; white-space:nowrap; }
   .horse-link { color:var(--acc); cursor:pointer; text-decoration:underline; }
   .modal { position:fixed; inset:0; background:rgba(0,0,0,.66); display:none; z-index:20; }
   .modal .box { background:var(--panel); border:1px solid var(--line); border-radius:12px; max-width:760px; margin:5vh auto; margin:5dvh auto; padding:18px; max-height:88vh; max-height:88dvh; overflow:auto; }
@@ -67,10 +72,12 @@
   .lg1 { font-size:11.5px; color:var(--warn); white-space:nowrap; }
   .ltoggle { padding:0 6px; margin-right:6px; font-size:12px; line-height:1.8; }
   .lmore { margin-left:12px; font-size:12px; color:var(--sub); white-space:nowrap; }
-  /* ===== 小画面対応（v1.02／v1.03）：スマホ横画面（低丈）／縦画面の狭幅だけ compact 表示にする。
+  /* ===== 小画面対応（v1.02／v1.03／v1.04）：スマホ横画面（低丈）／縦画面の狭幅だけ compact 表示にする。
      表示のみの変更で、通常サイズ（PC）の見た目は変えない。
      v1.03：compact の文字と余白をもう一段締めた（基準フォント 13.5px）。
-     ただし入力欄の文字だけは 16px を維持する（下記コメント参照） ===== */
+     ただし入力欄の文字だけは 16px を維持する（下記コメント参照）
+     v1.04：プルダウンの高さを 36px に固定して均一化、所有馬リストの絞込み/並び替えを
+     列揃えの2行フォームに、指定週スキップはボタンをコントロール行の下に置く ===== */
   @media (max-width:640px), (max-height:500px) {
     body { font-size:13.5px; line-height:1.5; }
     header { padding:6px 10px; gap:6px 10px; }
@@ -89,6 +96,7 @@
     .sellmenu summary { font-size:13px; }
     .ltoggle { min-height:28px; }
     select, input[type=text] { min-height:36px; }
+    select { height:36px; padding:0 8px; } /* v1.04：min-height の床だけでは内容で高さが変わるため、ボタンと同じ 36px に固定 */
     /* 入力欄の文字は 16px 未満だと iOS Safari がフォーカス時に自動ズームしてしまうため、あえて 16px を保つ */
     select, input[type=text], textarea { font-size:16px; }
     table { font-size:12.5px; }
@@ -99,6 +107,16 @@
     .modal .box { max-width:none; margin:2dvh 8px; padding:10px; max-height:96dvh; }
     .kv { grid-template-columns:74px 1fr; gap:3px 8px; font-size:13px; }
     footer { margin-top:14px; }
+    /* v1.04：所有馬リストの絞込み/並び替えは、ラベル列とプルダウン列を揃えた2行フォームにする（オーナー：どっちも同じ列がいい） */
+    .listtools { display:grid; grid-template-columns:auto minmax(0,1fr); gap:6px 8px; align-items:center; }
+    .listtools select { width:100%; min-width:0; }
+    .listtools .sub { grid-column:1 / -1; }
+    /* v1.04：指定週スキップはコントロール行の下にスキップボタンを置く。第～週まで（.skipwk）は行の途中では割らない */
+    .skipctl { flex-direction:column; align-items:flex-start; gap:6px; }
+    .skiprow { gap:5px 6px; }
+    .skiprow select, .skiprow input[type=text] { min-width:0; }
+    .skiprow input[type=text] { width:4.5em; }
+    .skipwk { gap:4px; }
   }
 </style>
 </head>
@@ -115,16 +133,17 @@
     <button class="ghost" id="importBtn">📥 読み込み</button>
     <input type="file" id="importFile" accept="application/json,.json" style="display:none;">
   </div>
-  <div class="flex">
-    <span class="sub">指定週まで：</span>
-    <button class="ghost" id="skipYearMinus">−1年</button>
-    <input type="text" id="skipYear" size="5" value="2027">
-    <button class="ghost" id="skipYearPlus">+1年</button>
-    <span class="sub">年</span>
-    <select id="skipMonth"></select>
-    <span class="sub">月 第</span>
-    <select id="skipWeek"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select>
-    <span class="sub">週まで</span>
+  <div class="skipctl">
+    <div class="skiprow">
+      <span class="sub">指定週まで：</span>
+      <button class="ghost" id="skipYearMinus">−1年</button>
+      <input type="text" id="skipYear" size="5" value="2027">
+      <button class="ghost" id="skipYearPlus">+1年</button>
+      <span class="sub">年</span>
+      <select id="skipMonth"></select>
+      <span class="sub">月</span>
+      <span class="skipwk"><span class="sub">第</span><select id="skipWeek"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select><span class="sub">週まで</span></span>
+    </div>
     <button id="skipBtn">スキップ ⏭</button>
   </div>
   <div class="flex">
@@ -1899,7 +1918,7 @@ function viewHorses(){
   setTimeout(()=>{ const el = $("#horseFilterSel"); if(el) el.onchange = () => { horseFilter = el.value; render(); }; const so = $("#horseSortSel"); if(so) so.onchange = () => { horseSort = so.value; render(); }; }, 0);
   const sortOpts = [["default","既定の順"],["young","若い順"],["old","高齢順"],["earnings","獲得賞金順"],["wins","勝ち数順"],["ability","評価順"],["name","名前順"]]
     .map(o=>"<option value='"+o[0]+"'"+(horseSort===o[0]?" selected":"")+">"+o[1]+"</option>").join("");
-  return "<div class='flex' style='margin-bottom:8px;'><label>表示：</label><select id='horseFilterSel'>"+opts+"</select><label>並び替え：</label><select id='horseSortSel'>"+sortOpts+"</select><span class='sub'>"+list.length+"頭（全 "+S.horses.length+" 頭）。繁殖牝馬・種牡馬は「繁殖」「種牡馬」タブでも見られます。引退馬は「牧場年表」タブの引退馬リストにいます</span></div>"
+  return "<div class='flex listtools' style='margin-bottom:8px;'><label>表示：</label><select id='horseFilterSel'>"+opts+"</select><label>並び替え：</label><select id='horseSortSel'>"+sortOpts+"</select><span class='sub'>"+list.length+"頭（全 "+S.horses.length+" 頭）。繁殖牝馬・種牡馬は「繁殖」「種牡馬」タブでも見られます。引退馬は「牧場年表」タブの引退馬リストにいます</span></div>"
     + "<table><tr><th>馬名</th><th>性</th><th>年齢</th><th>状態</th><th>成長</th><th>クラス</th><th>成績</th><th>スタッフ評価</th><th>コンディション</th></tr>"+rows+"</table><div class='sub'>馬名を押すと履歴ページが開きます。</div>";
 }
 let entryHorseId = null, entrySort = "recommend", entryOnlyOk = false, entryWeekAhead = 0;
@@ -2873,6 +2892,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>競馬シミュレーター（趣味） v1.03</footer>
+<footer>競馬シミュレーター（趣味） v1.04</footer>
 </body>
 </html>
