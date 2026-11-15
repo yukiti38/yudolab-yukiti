@@ -932,7 +932,7 @@ function buildFamily(P, dauCount, grandPer){
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
   T('v57 filly retirement flow untouched in build', src.includes("id='retireSellBtn'") && src.includes("id='retireBroodBtn'") && src.includes('繁殖入りしない場合は、そのまま'));
   T('v57 old colt label removed', !src.includes('種牡馬にせず引退する'));
-  T('v57 footer bumped', src.includes('競馬シミュレーター（趣味） v1.04')); /* フッターは現行版に追随（v1.01） */
+  T('v57 footer bumped', src.includes('競馬シミュレーター（趣味） v1.05')); /* フッターは現行版に追随（v1.01） */
 }
 
 // ---- v0.58: kanmuri applies to gift / debug auto-names (regression: suite had NO kanmuri coverage) ----
@@ -999,7 +999,7 @@ function buildFamily(P, dauCount, grandPer){
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
   T('v58 build: makeGift uses farmFoalName', src.includes('name:farmFoalName()'));
   T('v58 build: debug fallback uses farmFoalName', src.includes(': farmFoalName()')); /* v0.59 で buildDebugHorse に分離されても自動名は farmFoalName のまま */
-  T('v58 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.04')); /* フッターは現行版に追随（v1.01） */
+  T('v58 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.05')); /* フッターは現行版に追随（v1.01） */
 }
 
 // ---- v0.59: debug creator brought up to current spec + gift affinities initialised at creation ----
@@ -1090,7 +1090,7 @@ function buildFamily(P, dauCount, grandPer){
   T('v59 build: debug pedigree selects + dam input present', src.includes('"dbgSire"') && src.includes("id='dbgDam'") && src.includes('"dbgBms"'));
   T('v59 build: affinity controls present', src.includes('"dbgRootDist"') && src.includes('"dbgYuso"') && src.includes('"dbgCourseBulk"'));
   T('v59 build: param range note present', src.includes('パラメータ通常 35〜85'));
-  T('v59 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.04'));
+  T('v59 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.05'));
 }
 
 
@@ -1175,7 +1175,7 @@ function buildFamily(P, dauCount, grandPer){
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
   T('v100 build: SAVE_KEY bumped to v8', src.includes('nkc_whc_keiba_proto_v8'));
   T('v100 build: import refuses pre-rework saves', src.includes('data.calVer !== 2') && src.includes('カレンダー再編（v1.00）より前の形式のため読み込めません'));
-  T('v100 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.04'));
+  T('v100 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.05'));
   T('v100 build: skip week 5 option exists', src.includes('<option>5</option>'));
 }
 
@@ -1258,7 +1258,7 @@ function buildFamily(P, dauCount, grandPer){
 {
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
   T('v101 build: fixed gift models present', src.includes('ケイティーズハート') && src.includes('スタセリタ') && src.includes('エンドスウィープ'));
-  T('v101 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.04'));
+  T('v101 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.05'));
 }
 
 // ---- v1.01: roster expansion 54 -> 60 (オーナー, 2026-11-15) ----
@@ -1448,7 +1448,7 @@ function buildFamily(P, dauCount, grandPer){
 // ---- v1.02: スマホ横画面・小画面対応（表示のみ。構造の確認） ----
 {
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
-  T('v102 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.04'));
+  T('v102 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.05'));
   T('v102 build: compact media queries present', src.includes('@media (max-width:640px), (max-height:500px)'));
   T('v102 build: tscroll wrapper css', src.includes('.tscroll { overflow-x:auto'));
   T('v102 build: wrapTables defined', src.includes('function wrapTables(root)'));
@@ -1468,7 +1468,7 @@ function buildFamily(P, dauCount, grandPer){
 // ---- v1.03: compact 表示をもう一段締める（表示のみ。構造の確認） ----
 {
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
-  T('v103 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.04'));
+  T('v103 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.05'));
   T('v103 build: compact base font 13.5px', src.includes('body { font-size:13.5px; line-height:1.5; }'));
   T('v103 build: modal h2 17px', src.includes('.modal h2 { font-size:17px; }'));
   T('v103 build: h3 14.5px', src.includes('h3 { font-size:14.5px; margin:12px 0 6px; }'));
@@ -1492,7 +1492,7 @@ function buildFamily(P, dauCount, grandPer){
 // ---- v1.04: プルダウン均一化／ツールバーの列揃え／スキップ並び（表示のみ。構造の確認） ----
 {
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
-  T('v104 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.04'));
+  T('v104 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.05'));
   T('v104 build: select height pinned base 32px', src.includes('select { height:32px; padding:0 8px; }'));
   T('v104 build: select height pinned compact 36px', src.includes('select { height:36px; padding:0 8px; }'));
   T('v104 build: horse toolbar uses listtools', src.includes("class='flex listtools'"));
@@ -1511,6 +1511,26 @@ function buildFamily(P, dauCount, grandPer){
   let bal = 0, okB = style.length > 0;
   for (const ch of style) { if (ch === '{') bal++; else if (ch === '}') { bal--; if (bal < 0) { okB = false; break; } } }
   T('v104 build: style braces balanced', okB && bal === 0);
+}
+
+// ---- v1.05: コントロール群の文字サイズ統一（表示のみ。構造の確認） ----
+{
+  const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
+  T('v105 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.05'));
+  T('v105 build: skip group font unified 13.5px', src.includes('.skipctl .sub, .skipctl button, .skipctl select, .skipctl input[type=text] { font-size:13.5px; }'));
+  T('v105 build: toolbar select font matches label base 13.5px', src.includes('.listtools select { font-size:13.5px; }') && src.includes('body { font-size:13.5px; line-height:1.5; }'));
+  T('v105 build: typing-input 16px guard kept', src.includes('select, input[type=text], textarea { font-size:16px; }'));
+  // 新ルールが compact メディアクエリの外に漏れていないこと（PC表示を変えない）
+  const style = (src.match(/<style>([\s\S]*?)<\/style>/) || [])[1] || '';
+  const mi = style.indexOf('@media (max-width:640px), (max-height:500px)');
+  let depth = 0, mk = style.indexOf('{', mi);
+  while (mk < style.length) { if (style[mk] === '{') depth++; else if (style[mk] === '}') { depth--; if (depth === 0) break; } mk++; }
+  const block = style.slice(mi, mk + 1), outside = style.slice(0, mi) + style.slice(mk + 1);
+  const newRules = ['.skipctl .sub, .skipctl button, .skipctl select, .skipctl input[type=text] { font-size:13.5px; }', '.listtools select { font-size:13.5px; }'];
+  T('v105 build: new rules stay inside compact media query', mi >= 0 && newRules.every(r => block.includes(r) && !outside.includes(r)));
+  let bal = 0, okB = style.length > 0;
+  for (const ch of style) { if (ch === '{') bal++; else if (ch === '}') { bal--; if (bal < 0) { okB = false; break; } } }
+  T('v105 build: style braces balanced', okB && bal === 0);
 }
 
 console.log('\nRESULT: ' + pass + ' passed, ' + fail + ' failed');
