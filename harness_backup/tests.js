@@ -390,21 +390,22 @@ T('injury chance weight add-on', Math.abs(injuryChance(57) - 0.35) < 1e-9 && Mat
 }
 
 
-// ---- v0.52 stage3: affinities ----
-T('snapBand nearest', snapBand(2050) === 2000 && snapBand(2150) === 2200 && snapBand(900) === 1000);
+// ---- v0.52 stage3: affinities （根幹は v1.1 でカテゴリ適性に変更） ----
 {
-  let viol = 0, rootO = 0, distHold = 0, courseHold = 0, yusoN = 0;
+  let viol = 0, rootO = 0, rootX = 0, distHold = 0, courseHold = 0, yusoN = 0;
   const N = 600;
   for (let i = 0; i < N; i++) {
-    const h = mk({}); const a = genAffinities(h, 2000);
+    const h = mk({}); const a = genAffinities(h);
     if ((a.rootAff === '○' && a.nonRoot === '○') || (a.rootAff === '✕' && a.nonRoot === '✕')) viol++;
     if (a.rootAff === '○') rootO++;
+    if (a.rootAff === '✕') rootX++;
     if (Object.keys(a.distAff).length) distHold++;
     if (Object.keys(a.courseAff).length) courseHold++;
     if (a.yuso) yusoN++;
   }
   T('root/nonRoot same-direction never generated', viol === 0);
-  T('root O rate ~35%', rootO / N > 0.27 && rootO / N < 0.43);
+  T('v11 root O rate ~20% (same as nonRoot)', rootO / N > 0.13 && rootO / N < 0.27);
+  T('v11 root X rate ~12% (same as nonRoot)', rootX / N > 0.06 && rootX / N < 0.18);
   T('distance affinity hold rate ~45%', distHold / N > 0.36 && distHold / N < 0.54);
   T('course affinity hold rate ~50%', courseHold / N > 0.41 && courseHold / N < 0.59);
   T('yuso rate ~20%', yusoN / N > 0.13 && yusoN / N < 0.27);
@@ -932,7 +933,7 @@ function buildFamily(P, dauCount, grandPer){
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
   T('v57 filly retirement flow untouched in build', src.includes("id='retireSellBtn'") && src.includes("id='retireBroodBtn'") && src.includes('繁殖入りしない場合は、そのまま'));
   T('v57 old colt label removed', !src.includes('種牡馬にせず引退する'));
-  T('v57 footer bumped', src.includes('競馬シミュレーター（趣味） v1.05')); /* フッターは現行版に追随（v1.01） */
+  T('v57 footer bumped', src.includes('競馬シミュレーター（趣味） v1.1')); /* フッターは現行版に追随（v1.01） */
 }
 
 // ---- v0.58: kanmuri applies to gift / debug auto-names (regression: suite had NO kanmuri coverage) ----
@@ -999,7 +1000,7 @@ function buildFamily(P, dauCount, grandPer){
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
   T('v58 build: makeGift uses farmFoalName', src.includes('name:farmFoalName()'));
   T('v58 build: debug fallback uses farmFoalName', src.includes(': farmFoalName()')); /* v0.59 で buildDebugHorse に分離されても自動名は farmFoalName のまま */
-  T('v58 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.05')); /* フッターは現行版に追随（v1.01） */
+  T('v58 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.1')); /* フッターは現行版に追随（v1.01） */
 }
 
 // ---- v0.59: debug creator brought up to current spec + gift affinities initialised at creation ----
@@ -1044,22 +1045,22 @@ function buildFamily(P, dauCount, grandPer){
 }
 {
   freshS({ year: 2026 });
-  const h = buildDebugHorse({ age: 3, distMin: 1600, distMax: 2400, rootDist: 2400, rootAff: '○', nonRoot: '○', yuso: true, distBulk: '○', courseBulk: '✕' });
-  T('v59 debug aff root explicit', h.aff.rootDist === 2400 && h.aff.rootAff === '○');
+  const h = buildDebugHorse({ age: 3, distMin: 1600, distMax: 2400, rootAff: '○', nonRoot: '○', yuso: true, distBulk: '○', courseBulk: '✕' });
+  T('v59 debug aff root explicit', h.aff.rootAff === '○' && !('rootDist' in h.aff));
   T('v59 debug aff explicit beats root/nonRoot exclusion', h.aff.nonRoot === '○');
   T('v59 debug aff yuso explicit', h.aff.yuso === true);
   T('v59 debug aff dist bulk applies in range only', [1600, 1800, 2000, 2200, 2400].every(b => h.aff.distAff[b] === '○') && h.aff.distAff[1000] === undefined);
   T('v59 debug aff course bulk applies to all 10', COURSES10.every(c => h.aff.courseAff[c] === '✕'));
   T('v59 debug aff predictions ready at age>=2', !!h.aff.pred);
   const sec = affinitySection(h);
-  T('v59 debug horse page shows affinity section immediately', sec.includes('相性') && sec.includes('根幹距離 2400m'));
+  T('v59 debug horse page shows affinity section immediately', sec.includes('相性') && sec.includes('根幹距離：') && !/根幹距離 \d/.test(sec));
 }
 {
   freshS({ year: 2026 });
   const h = buildDebugHorse({ age: 4, distBulk: '-', courseBulk: '-' });
   T('v59 debug aff bulk minus clears marks', Object.keys(h.aff.distAff).length === 0 && Object.keys(h.aff.courseAff).length === 0);
   const r = buildDebugHorse({ age: 4 });
-  T('v59 debug aff random base generated', !!r.aff && AFF_BANDS.includes(r.aff.rootDist) && typeof r.aff.yuso === 'boolean');
+  T('v59 debug aff random base generated', !!r.aff && !('rootDist' in r.aff) && ['○', '✕', '-'].includes(r.aff.rootAff) && typeof r.aff.yuso === 'boolean');
 }
 {
   // dam name typed to match an existing mare attaches the debug horse to her female line (name matching only, no special code)
@@ -1076,21 +1077,22 @@ function buildFamily(P, dauCount, grandPer){
 {
   freshS({ year: 2026, month: 4, week: 1 });
   const g = makeGift('aprColt');
-  T('v59 gift aff initialised at creation', !!g.aff && AFF_BANDS.includes(g.aff.rootDist) && !!g.aff.pred);
+  T('v59 gift aff initialised at creation', !!g.aff && !('rootDist' in g.aff) && !!g.aff.pred);
   S.giftQueue = [g];
   acceptGift('');
   const acc = S.horses[S.horses.length - 1];
   T('v59 accepted gift keeps aff', !!acc.aff);
   T('v59 accepted gift page shows affinity section', affinitySection(acc).includes('相性'));
   const g1 = makeGift('decFilly');
-  T('v59 gift 1yo aff initialised (pred comes at 2)', !!g1.aff && AFF_BANDS.includes(g1.aff.rootDist));
+  T('v59 gift 1yo aff initialised (pred comes at 2)', !!g1.aff && !('rootDist' in g1.aff));
 }
 {
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
   T('v59 build: debug pedigree selects + dam input present', src.includes('"dbgSire"') && src.includes("id='dbgDam'") && src.includes('"dbgBms"'));
-  T('v59 build: affinity controls present', src.includes('"dbgRootDist"') && src.includes('"dbgYuso"') && src.includes('"dbgCourseBulk"'));
+  T('v59 build: affinity controls present', src.includes('"dbgRootAff"') && src.includes('"dbgYuso"') && src.includes('"dbgCourseBulk"'));
+  T('v11 build: rootDist debug control removed', !src.includes('dbgRootDist'));
   T('v59 build: param range note present', src.includes('パラメータ通常 35〜85'));
-  T('v59 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.05'));
+  T('v59 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.1'));
 }
 
 
@@ -1175,7 +1177,7 @@ function buildFamily(P, dauCount, grandPer){
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
   T('v100 build: SAVE_KEY bumped to v8', src.includes('nkc_whc_keiba_proto_v8'));
   T('v100 build: import refuses pre-rework saves', src.includes('data.calVer !== 2') && src.includes('カレンダー再編（v1.00）より前の形式のため読み込めません'));
-  T('v100 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.05'));
+  T('v100 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.1'));
   T('v100 build: skip week 5 option exists', src.includes('<option>5</option>'));
 }
 
@@ -1258,7 +1260,7 @@ function buildFamily(P, dauCount, grandPer){
 {
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
   T('v101 build: fixed gift models present', src.includes('ケイティーズハート') && src.includes('スタセリタ') && src.includes('エンドスウィープ'));
-  T('v101 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.05'));
+  T('v101 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.1'));
 }
 
 // ---- v1.01: roster expansion 54 -> 60 (オーナー, 2026-11-15) ----
@@ -1448,7 +1450,7 @@ function buildFamily(P, dauCount, grandPer){
 // ---- v1.02: スマホ横画面・小画面対応（表示のみ。構造の確認） ----
 {
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
-  T('v102 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.05'));
+  T('v102 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.1'));
   T('v102 build: compact media queries present', src.includes('@media (max-width:640px), (max-height:500px)'));
   T('v102 build: tscroll wrapper css', src.includes('.tscroll { overflow-x:auto'));
   T('v102 build: wrapTables defined', src.includes('function wrapTables(root)'));
@@ -1468,7 +1470,7 @@ function buildFamily(P, dauCount, grandPer){
 // ---- v1.03: compact 表示をもう一段締める（表示のみ。構造の確認） ----
 {
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
-  T('v103 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.05'));
+  T('v103 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.1'));
   T('v103 build: compact base font 13.5px', src.includes('body { font-size:13.5px; line-height:1.5; }'));
   T('v103 build: modal h2 17px', src.includes('.modal h2 { font-size:17px; }'));
   T('v103 build: h3 14.5px', src.includes('h3 { font-size:14.5px; margin:12px 0 6px; }'));
@@ -1492,7 +1494,7 @@ function buildFamily(P, dauCount, grandPer){
 // ---- v1.04: プルダウン均一化／ツールバーの列揃え／スキップ並び（表示のみ。構造の確認） ----
 {
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
-  T('v104 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.05'));
+  T('v104 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.1'));
   T('v104 build: select height pinned base 32px', src.includes('select { height:32px; padding:0 8px; }'));
   T('v104 build: select height pinned compact 36px', src.includes('select { height:36px; padding:0 8px; }'));
   T('v104 build: horse toolbar uses listtools', src.includes("class='flex listtools'"));
@@ -1516,7 +1518,7 @@ function buildFamily(P, dauCount, grandPer){
 // ---- v1.05: コントロール群の文字サイズ統一（表示のみ。構造の確認） ----
 {
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
-  T('v105 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.05'));
+  T('v105 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.1'));
   T('v105 build: skip group font unified 13.5px', src.includes('.skipctl .sub, .skipctl button, .skipctl select, .skipctl input[type=text] { font-size:13.5px; }'));
   T('v105 build: toolbar select font matches label base 13.5px', src.includes('.listtools select { font-size:13.5px; }') && src.includes('body { font-size:13.5px; line-height:1.5; }'));
   T('v105 build: typing-input 16px guard kept', src.includes('select, input[type=text], textarea { font-size:16px; }'));
@@ -1531,6 +1533,46 @@ function buildFamily(P, dauCount, grandPer){
   let bal = 0, okB = style.length > 0;
   for (const ch of style) { if (ch === '{') bal++; else if (ch === '}') { bal--; if (bal < 0) { okB = false; break; } } }
   T('v105 build: style braces balanced', okB && bal === 0);
+}
+
+// ---- v1.1: 根幹距離をカテゴリ適性化（400で割り切れる距離すべて。非根幹と対） ----
+{
+  const h = mk({});
+  const base = { rootAff: '○', nonRoot: '-', distAff: {}, distKnown: {}, courseAff: {}, courseKnown: {}, known: { root: false, nonRoot: false, yuso: false }, yuso: false };
+  h.aff = Object.assign({}, base);
+  T('v11 root O applies at 1600/2000/2400', [1600, 2000, 2400].every(d => Math.abs(affinityFactor(h, { racecourse: '東京', distance_m: d }) - 1.05) < 1e-9));
+  T('v11 root O does NOT apply at 1800/2200', [1800, 2200].every(d => affinityFactor(h, { racecourse: '東京', distance_m: d }) === 1));
+  h.aff = Object.assign({}, base, { rootAff: '✕' });
+  T('v11 root X applies at 2000', Math.abs(affinityFactor(h, { racecourse: '東京', distance_m: 2000 }) - 0.95) < 1e-9);
+  T('v11 root X does NOT apply at 1800', affinityFactor(h, { racecourse: '東京', distance_m: 1800 }) === 1);
+  // 旧セーブ形式（rootDist を持つ aff）でも rootDist は無視され、カテゴリとして効く
+  h.aff = Object.assign({}, base, { rootDist: 1800 });
+  T('v11 legacy rootDist field ignored', affinityFactor(h, { racecourse: '東京', distance_m: 1800 }) === 1 && Math.abs(affinityFactor(h, { racecourse: '東京', distance_m: 2000 }) - 1.05) < 1e-9);
+}
+{
+  const h = mk({});
+  h.aff = { rootAff: '○', nonRoot: '○', distAff: {}, distKnown: {}, courseAff: {}, courseKnown: {}, known: { root: false, nonRoot: false, yuso: false }, yuso: false, pred: { root: '○', nonRoot: '○', yuso: '-', dist: {}, course: {} } };
+  revealAffinities(h, { distance_m: 1800, racecourse: '東京', sector: 'central' }, 0);
+  T('v11 racing 1800 reveals nonRoot only', h.aff.known.nonRoot === true && h.aff.known.root === false);
+  revealAffinities(h, { distance_m: 2400, racecourse: '東京', sector: 'central' }, 0);
+  T('v11 racing 2400 reveals root', h.aff.known.root === true);
+}
+{
+  freshS({ year: 2032, month: 4, week: 1 });
+  const h = mk({ name: 'カテゴリ表示', birthYear: 2028 });
+  h.aff = { rootAff: '○', nonRoot: '-', distAff: {}, distKnown: {}, courseAff: {}, courseKnown: {}, known: { root: false, nonRoot: false, yuso: false }, yuso: false, pred: { root: '○', nonRoot: '-', yuso: '-', dist: {}, course: {} } };
+  const sec = affinitySection(h);
+  T('v11 section shows root without a distance', sec.includes('根幹距離：') && !/根幹距離 \d/.test(sec));
+  T('v11 hint shows root at 2000', affinityPredHint(h, { distance_m: 2000, racecourse: '東京' }).includes('根幹距離○'));
+  T('v11 hint hides root at 1800', !affinityPredHint(h, { distance_m: 1800, racecourse: '東京' }).includes('根幹距離'));
+}
+{
+  freshS({ year: 2026 });
+  const h = buildDebugHorse({ age: 3, rootAff: '✕' });
+  T('v11 debug builds with rootAff only (no rootDist needed)', h.aff.rootAff === '✕' && !('rootDist' in h.aff));
+  const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
+  T('v11 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.1'));
+  T('v11 build: no rootDist anywhere in build', !src.includes('rootDist') && !src.includes('snapBand'));
 }
 
 console.log('\nRESULT: ' + pass + ' passed, ' + fail + ' failed');
