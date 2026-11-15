@@ -9,7 +9,7 @@ render = function(){};
 // ---- data integrity ----
 T('domestic races 965', DATA.domestic.length === 965);
 T('overseas races 585', DATA.overseas.length === 585);
-T('stallions 54', DATA.stallions.length === 54);
+T('stallions 60', DATA.stallions.length === 60);
 T('templates 41 (incl. Big Okojo)', DATA.mareTemplates.length === 41);
 
 // ---- class system ----
@@ -48,7 +48,7 @@ T('stud needs graded win or 100M', canEnterStud(mk({ sex: '牡', gradedWin: true
   const names = DATA.stallions.map(s => s.name);
   T('favourites added', ['カルストンライトオ', 'デュランダル', 'ディープボンド'].every(n => names.includes(n)));
   T('favourites are C tier', DATA.stallions.filter(s => ['カルストンライトオ', 'デュランダル', 'ディープボンド'].includes(s.name)).every(s => s.fee_tier === 'C'));
-  T('all stallions have line data', DATA.stallions.every(s => Array.isArray(s.line) && s.line.length === 3));
+  T('all stallions have line data', DATA.stallions.every(s => Array.isArray(s.line) && s.line.length >= 3)); /* v1.01: サンダースノー/タワーオブロンドンは大系マーカーまで4段のチェーンを持つ */
   T('personRec resolves Deep Impact line', personRec('ディープインパクト').sire === 'サンデーサイレンス');
   T('personRec resolves Tesco line', personRec('テスコボーイ').sire === 'プリンスリーギフト');
   T('personRec resolves Bago line', personRec('バゴ').sire === 'ナシュワン');
@@ -149,7 +149,7 @@ T('stud needs graded win or 100M', canEnterStud(mk({ sex: '牡', gradedWin: true
   old[0].genSpd = 77;
   S.stallions = old;
   migrateV029();
-  T('roster sync restores 54', S.stallions.length === 54);
+  T('roster sync restores 60', S.stallions.length === 60);
   T('roster sync adds Melt with mutation', (() => { const m = S.stallions.find(s => s.name === 'メルトスイート'); return !!m && m.mutation === true; })());
   T('roster sync backfills dam data', S.stallions.find(s => s.name === 'キタサンブラック').dam === 'シュガーハート');
   T('roster sync preserves genetic cache', S.stallions.find(s => s.name === old[0].name).genSpd === 77);
@@ -511,17 +511,17 @@ T('all templates have weights', DATA.mareTemplates.every(t => t.weight >= 400 &&
 {
   const EXPECT = {
     'キタサンブラック':'サンデーサイレンス系','コントレイル':'サンデーサイレンス系','オルフェーヴル':'サンデーサイレンス系','ゴールドシップ':'サンデーサイレンス系','スワーヴリチャード':'サンデーサイレンス系','フィエールマン':'サンデーサイレンス系','ワールドプレミア':'サンデーサイレンス系','シュヴァルグラン':'サンデーサイレンス系','イスラボニータ':'サンデーサイレンス系','アドマイヤマーズ':'サンデーサイレンス系','サリオス':'サンデーサイレンス系','ミッキーアイル':'サンデーサイレンス系','コパノリッキー':'サンデーサイレンス系','エスポワールシチー':'サンデーサイレンス系','ドウデュース':'サンデーサイレンス系','シャフリヤール':'サンデーサイレンス系','イクイノックス':'サンデーサイレンス系','ソールオリエンス':'サンデーサイレンス系','ディープボンド':'サンデーサイレンス系','ダイワメジャー':'サンデーサイレンス系','デュランダル':'サンデーサイレンス系',
-    'Sea The Stars':'ノーザンダンサー系','Kingman':'ノーザンダンサー系','Frankel':'ノーザンダンサー系','グレナディアガーズ':'ノーザンダンサー系','ヘニーヒューズ':'ノーザンダンサー系','ドレフォン':'ノーザンダンサー系','Justify':'ノーザンダンサー系','Lope de Vega':'ノーザンダンサー系','Into Mischief':'ノーザンダンサー系','Siyouni':'ノーザンダンサー系','サトノクラウン':'ノーザンダンサー系','タスティエーラ':'ノーザンダンサー系','マインドユアビスケッツ':'ノーザンダンサー系',
-    'サートゥルナーリア':'キングマンボ系','タイトルホルダー':'キングマンボ系','ロードカナロア':'キングマンボ系','リオンディーズ':'キングマンボ系','ホッコータルマエ':'キングマンボ系','ルーラーシップ':'キングマンボ系','レイデオロ':'キングマンボ系',
-    'Dubawi':'ミスタープロスペクター系','Wootton Bassett':'ミスタープロスペクター系','ニューイヤーズデイ':'ミスタープロスペクター系','Gun Runner':'ミスタープロスペクター系','フォーウィールドライブ':'ミスタープロスペクター系',
-    'エピファネイア':'ロベルト系','エフフォーリア':'ロベルト系','モーリス':'ロベルト系',
+    'Sea The Stars':'ノーザンダンサー系','Kingman':'ノーザンダンサー系','Frankel':'ノーザンダンサー系','グレナディアガーズ':'ノーザンダンサー系','ヘニーヒューズ':'ノーザンダンサー系','ドレフォン':'ノーザンダンサー系','Justify':'ノーザンダンサー系','Lope de Vega':'ノーザンダンサー系','Into Mischief':'ノーザンダンサー系','Siyouni':'ノーザンダンサー系','サトノクラウン':'ノーザンダンサー系','タスティエーラ':'ノーザンダンサー系','マインドユアビスケッツ':'ノーザンダンサー系','ジオグリフ':'ノーザンダンサー系','アダイヤー':'ノーザンダンサー系','サンダースノー':'ノーザンダンサー系',
+    'サートゥルナーリア':'キングマンボ系','タイトルホルダー':'キングマンボ系','ロードカナロア':'キングマンボ系','リオンディーズ':'キングマンボ系','ホッコータルマエ':'キングマンボ系','ルーラーシップ':'キングマンボ系','レイデオロ':'キングマンボ系','チュウワウィザード':'キングマンボ系',
+    'Dubawi':'ミスタープロスペクター系','Wootton Bassett':'ミスタープロスペクター系','ニューイヤーズデイ':'ミスタープロスペクター系','Gun Runner':'ミスタープロスペクター系','フォーウィールドライブ':'ミスタープロスペクター系','タワーオブロンドン':'ミスタープロスペクター系',
+    'エピファネイア':'ロベルト系','エフフォーリア':'ロベルト系','モーリス':'ロベルト系','ピクシーナイト':'ロベルト系',
     'シニスターミニスター':'シアトルスルー系','マジェスティックウォリアー':'シアトルスルー系',
     'ビッグアーサー':'ナスルーラ系','メルトスイート':'ナスルーラ系',
     'カルストンライトオ':'マンノウォー系'
   };
-  let allOk = Object.keys(EXPECT).length === 54;
+  let allOk = Object.keys(EXPECT).length === 60;
   for(const st of DATA.stallions){ const got = stallionMajorLine(st); if(got !== EXPECT[st.name]){ allOk = false; console.log('line mismatch:', st.name, 'got', got, 'want', EXPECT[st.name]); } }
-  T('all 54 stallions map to the confirmed major lines', allOk);
+  T('all 60 stallions map to the confirmed major lines', allOk);
   T('every line trait is balanced (one +1.5 / one -1.5, sum zero)', Object.keys(LINE_TRAITS).every(ln => { const b = lineBlend(ln, null); const vs = [b.spd, b.sta, b.gut]; return Math.max(...vs) === 1.5 && Math.min(...vs) === -1.5 && vs.reduce((a, v) => a + v, 0) === 0; }));
   T('all 41 template sires resolve to a major line', DATA.mareTemplates.every(t => !!majorLineOfChain([t.sire].concat(t.sireLine || []))));
   const bmsNulls = DATA.mareTemplates.filter(t => !majorLineOfChain([t.bms].concat(t.bmsLine || []))).map(t => t.bms);
@@ -932,7 +932,7 @@ function buildFamily(P, dauCount, grandPer){
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
   T('v57 filly retirement flow untouched in build', src.includes("id='retireSellBtn'") && src.includes("id='retireBroodBtn'") && src.includes('繁殖入りしない場合は、そのまま'));
   T('v57 old colt label removed', !src.includes('種牡馬にせず引退する'));
-  T('v57 footer bumped', src.includes('競馬シミュレーター（趣味） v1.00')); /* フッターは現行版に追随（v1.00） */
+  T('v57 footer bumped', src.includes('競馬シミュレーター（趣味） v1.01')); /* フッターは現行版に追随（v1.01） */
 }
 
 // ---- v0.58: kanmuri applies to gift / debug auto-names (regression: suite had NO kanmuri coverage) ----
@@ -957,13 +957,13 @@ function buildFamily(P, dauCount, grandPer){
 {
   freshS({ year: 2026, month: 4, week: 1 });
   S.kanmuri = 'テストカンムリ';
-  const g2 = makeGift('2yo');
+  const g2 = makeGift('aprColt');
   T('v58 gift 2yo name carries kanmuri', g2.name.startsWith('テストカンムリ'));
   T('v58 gift 2yo dam name has NO kanmuri', !g2.dam.startsWith('テストカンムリ'));
-  const g1 = makeGift('1yo');
+  const g1 = makeGift('decFilly');
   T('v58 gift 1yo name carries kanmuri, dam does not', g1.name.startsWith('テストカンムリ') && !g1.dam.startsWith('テストカンムリ'));
   S.kanmuri = '';
-  const g0 = makeGift('2yo');
+  const g0 = makeGift('aprColt');
   T('v58 gift name is plain when kanmuri unset', !g0.name.startsWith('テストカンムリ'));
 }
 {
@@ -999,7 +999,7 @@ function buildFamily(P, dauCount, grandPer){
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
   T('v58 build: makeGift uses farmFoalName', src.includes('name:farmFoalName()'));
   T('v58 build: debug fallback uses farmFoalName', src.includes(': farmFoalName()')); /* v0.59 で buildDebugHorse に分離されても自動名は farmFoalName のまま */
-  T('v58 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.00')); /* フッターは現行版に追随（v1.00） */
+  T('v58 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.01')); /* フッターは現行版に追随（v1.01） */
 }
 
 // ---- v0.59: debug creator brought up to current spec + gift affinities initialised at creation ----
@@ -1075,14 +1075,14 @@ function buildFamily(P, dauCount, grandPer){
 }
 {
   freshS({ year: 2026, month: 4, week: 1 });
-  const g = makeGift('2yo');
+  const g = makeGift('aprColt');
   T('v59 gift aff initialised at creation', !!g.aff && AFF_BANDS.includes(g.aff.rootDist) && !!g.aff.pred);
   S.giftQueue = [g];
   acceptGift('');
   const acc = S.horses[S.horses.length - 1];
   T('v59 accepted gift keeps aff', !!acc.aff);
   T('v59 accepted gift page shows affinity section', affinitySection(acc).includes('相性'));
-  const g1 = makeGift('1yo');
+  const g1 = makeGift('decFilly');
   T('v59 gift 1yo aff initialised (pred comes at 2)', !!g1.aff && AFF_BANDS.includes(g1.aff.rootDist));
 }
 {
@@ -1090,7 +1090,7 @@ function buildFamily(P, dauCount, grandPer){
   T('v59 build: debug pedigree selects + dam input present', src.includes('"dbgSire"') && src.includes("id='dbgDam'") && src.includes('"dbgBms"'));
   T('v59 build: affinity controls present', src.includes('"dbgRootDist"') && src.includes('"dbgYuso"') && src.includes('"dbgCourseBulk"'));
   T('v59 build: param range note present', src.includes('パラメータ通常 35〜85'));
-  T('v59 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.00'));
+  T('v59 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.01'));
 }
 
 
@@ -1175,8 +1175,274 @@ function buildFamily(P, dauCount, grandPer){
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
   T('v100 build: SAVE_KEY bumped to v8', src.includes('nkc_whc_keiba_proto_v8'));
   T('v100 build: import refuses pre-rework saves', src.includes('data.calVer !== 2') && src.includes('カレンダー再編（v1.00）より前の形式のため読み込めません'));
-  T('v100 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.00'));
+  T('v100 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.01'));
   T('v100 build: skip week 5 option exists', src.includes('<option>5</option>'));
+}
+
+// ---- v1.01: first-year gifts replaced with fixed model horses ----
+{
+  // April 2026 trigger: exactly two 2yo gifts queued together (colt first, then filly)
+  freshS({ year: 2026, month: 4, week: 1 });
+  S.giftQueue = [];
+  weeklyEvents();
+  T('v101 April queues exactly 2 gifts', S.giftQueue.length === 2 && S.giftAprDone === true);
+  const c = S.giftQueue[0], f = S.giftQueue[1];
+  T('v101 April colt is the Efforia model', c.sex === '牡' && c.sire === 'エピファネイア' && c.dam === 'ケイティーズハート' && c.bms === 'ハーツクライ' && c.grandam === 'ケイティーズファースト' && c.gbms === 'クリス');
+  T('v101 April colt aptitude + growth subtype', c.surface === '芝' && c.distMin === 1800 && c.distMax === 2500 && c.gtype === '普通早' && c.growth === '普通' && c.status === 'racehorse');
+  T('v101 April filly is the Soul Stirring model', f.sex === '牝' && f.sire === 'Frankel' && f.dam === 'スタセリタ' && f.bms === 'モンズーン' && f.grandam === 'ソワニエ' && f.gbms === 'ダッシングブレイド');
+  T('v101 April filly aptitude + growth subtype', f.surface === '芝' && f.distMin === 1600 && f.distMax === 2400 && f.gtype === '早熟' && f.growth === '早熟' && f.status === 'racehorse');
+  T('v101 April filly has no explicit jizoku spec (trait is not forced)', GIFT_SPECS.aprFilly.jizoku == null);
+  T('v101 April filly sire line resolves to Northern Dancer via the roster (Frankel)', majorLineOfName(f.sire) === 'ノーザンダンサー系');
+  T('v101 Monsun chain supplemented like a template bmsLine (real sire Koenigsstuhl)', sireChainOf('モンズーン').includes('ケーニヒスシュトゥール'));
+  T('v101 Monsun stays a side line (Blandford branch reaches no major-line marker)', majorLineOfName('モンズーン') === null);
+  T('v101 April gifts are B-rank overall', rankOf(Math.round((c.spd + c.sta + c.gut) / 3)) === 'B' && rankOf(Math.round((f.spd + f.sta + f.gut) / 3)) === 'B');
+  // each April horse is independently acceptable / refusable through the existing panel flow
+  acceptGift('');
+  T('v101 April colt accepted, filly still queued', S.horses.some(h => h.sire === 'エピファネイア') && S.giftQueue.length === 1 && S.giftQueue[0].sire === 'Frankel');
+  refuseGift();
+  T('v101 April filly refused independently', S.giftQueue.length === 0 && !S.horses.some(h => h.sire === 'Frankel'));
+}
+{
+  // December 2026 trigger: exactly one 1yo filly with the fixed pedigree
+  freshS({ year: 2026, month: 12, week: 1 });
+  S.giftQueue = [];
+  weeklyEvents();
+  T('v101 December queues exactly 1 gift', S.giftQueue.length === 1 && S.giftDecDone === true);
+  const d = S.giftQueue[0];
+  T('v101 December filly fixed pedigree', d.sex === '牝' && d.sire === 'キタサンブラック' && d.bms === 'キングカメハメハ' && d.gbms === 'エンドスウィープ' && d.status === 'yearling');
+  T('v101 December filly growth subtype + B rank', d.gtype === '普通遅' && rankOf(Math.round((d.spd + d.sta + d.gut) / 3)) === 'B');
+  // her dam resolves through the pedigree holder lookup, like a mare template's would
+  S.horses.push(d);
+  const damRec = personRec(d.dam), gdamRec = personRec(d.grandam);
+  T('v101 December pedigree plumbing (dam -> King Kamehameha, grandam -> End Sweep)', !!damRec && damRec.sire === 'キングカメハメハ' && !!gdamRec && gdamRec.sire === 'エンドスウィープ');
+  T('v101 December BMS line resolves to Kingmambo', majorLineOfName(d.bms) === 'キングマンボ系');
+  T('v101 End Sweep chain supplemented like a template gbmsLine', sireChainOf('エンドスウィープ').includes('フォーティナイナー'));
+}
+{
+  // April filly pedigree plumbing: her dam/grandam resolve through the pedigree holder lookup
+  freshS({ year: 2026 });
+  const f2 = makeGift('aprFilly');
+  S.horses.push(f2);
+  const damRec2 = personRec(f2.dam), gdamRec2 = personRec(f2.grandam);
+  T('v101 April filly pedigree plumbing (dam -> Monsun, grandam -> Dashing Blade)', !!damRec2 && damRec2.sire === 'モンズーン' && !!gdamRec2 && gdamRec2.sire === 'ダッシングブレイド');
+  T('v101 April filly coat is dark bay like the real Soul Stirring', f2.coat === '青鹿毛');
+}
+{
+  // gifts fire in the first year (2026) only
+  freshS({ year: 2027, month: 4, week: 1 });
+  S.giftQueue = [];
+  weeklyEvents();
+  T('v101 no April gifts in 2027', S.giftQueue.length === 0 && !S.giftAprDone);
+  freshS({ year: 2027, month: 12, week: 1 });
+  S.giftQueue = [];
+  weeklyEvents();
+  T('v101 no December gifts in 2027', S.giftQueue.length === 0 && !S.giftDecDone);
+}
+{
+  // B-rank guarantee across repeated generations of all three gifts
+  freshS({ year: 2026 });
+  let allB = true, allInBand = true;
+  for(let i = 0; i < 60; i++){
+    for(const k of ['aprColt', 'aprFilly', 'decFilly']){
+      const g = makeGift(k);
+      if(rankOf(Math.round((g.spd + g.sta + g.gut) / 3)) !== 'B') allB = false;
+      if([g.spd, g.sta, g.gut].some(v => v < 35 || v > 85)) allInBand = false;
+    }
+  }
+  T('v101 all three gifts always land on B overall (180 generations)', allB);
+  T('v101 gift params stay inside the 35-85 scale', allInBand);
+  let fillyJizokuCount = 0;
+  for(let i = 0; i < 60; i++){ if(makeGift('aprFilly').jizoku === true) fillyJizokuCount++; }
+  T('v101 Soul Stirring filly jizoku is not forced (60 generations, not all true)', fillyJizokuCount < 60);
+}
+{
+  const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
+  T('v101 build: fixed gift models present', src.includes('ケイティーズハート') && src.includes('スタセリタ') && src.includes('エンドスウィープ'));
+  T('v101 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.01'));
+}
+
+// ---- v1.01: roster expansion 54 -> 60 (Terai, 2026-11-15) ----
+{
+  const NEW6 = {
+    'チュウワウィザード': { tier: 'C', surface: 'ダート', dist: [1800, 2100], sire: 'キングカメハメハ', dam: 'チュウワブロッサム', bms: 'デュランダル' },
+    'ジオグリフ': { tier: 'B', surface: '芝', dist: [1600, 2000], sire: 'ドレフォン', dam: 'アロマティコ', bms: 'キングカメハメハ' },
+    'ピクシーナイト': { tier: 'C', surface: '芝', dist: [1200, 1400], sire: 'モーリス', dam: 'ピクシーホロウ', bms: 'キングヘイロー' },
+    'アダイヤー': { tier: 'B', surface: '芝', dist: [2000, 2400], sire: 'Frankel', dam: 'アンナサライ', bms: 'Dubawi' },
+    'サンダースノー': { tier: 'C', surface: 'ダート', dist: [1600, 2000], sire: 'ヘルメット', dam: 'イースタンジョイ', bms: 'ドバイデスティネーション' },
+    'タワーオブロンドン': { tier: 'C', surface: '芝', dist: [1200, 1600], sire: 'レイヴンズパス', dam: 'スノーパイン', bms: 'ダラカニ' }
+  };
+  for(const nm of Object.keys(NEW6)){
+    const st = DATA.stallions.find(s => s.name === nm), e = NEW6[nm];
+    T('v101 roster: ' + nm + ' record shape', !!st && st.fee_tier === e.tier && st.surface === e.surface && st.dist[0] === e.dist[0] && st.dist[1] === e.dist[1] && st.sire === e.sire && st.dam === e.dam && st.bms === e.bms && !!st.grandam && !!st.gbms && Array.isArray(st.bmsLine) && st.weight >= 400 && st.weight <= 600);
+  }
+  T('v101 roster: census is SS21/ND16/KM8/MrP6/Roberto4/Seattle2/Nasrullah2/MoW1', (() => {
+    const c = {};
+    for(const st of DATA.stallions){ const ln = stallionMajorLine(st); c[ln] = (c[ln] || 0) + 1; }
+    return c['サンデーサイレンス系'] === 21 && c['ノーザンダンサー系'] === 16 && c['キングマンボ系'] === 8 && c['ミスタープロスペクター系'] === 6 && c['ロベルト系'] === 4 && c['シアトルスルー系'] === 2 && c['ナスルーラ系'] === 2 && c['マンノウォー系'] === 1 && Object.keys(c).length === 8;
+  })());
+  T('v101 roster: pinned growth subtypes for Geoglyph / Tower of London', stGtype(DATA.stallions.find(s => s.name === 'ジオグリフ')) === '普通早' && stGtype(DATA.stallions.find(s => s.name === 'タワーオブロンドン')) === '普通早');
+  T('v101 roster: personRec resolves new dam sides', personRec('チュウワウィザード').dam === 'チュウワブロッサム' && personRec('オータムブリーズ').sire === 'ティンバーカントリー' && personRec('アロマティコ').dam === 'ナスカ' && personRec('スノーパイン').dam === 'シンコウエルメス' && personRec('シンコウエルメス').sire === "Sadler's Wells");
+  freshS({});
+  T('v101 roster: new sire names resolve to their major lines', majorLineOfName('チュウワウィザード') === 'キングマンボ系' && majorLineOfName('ジオグリフ') === 'ノーザンダンサー系' && majorLineOfName('ピクシーナイト') === 'ロベルト系' && majorLineOfName('アダイヤー') === 'ノーザンダンサー系' && majorLineOfName('サンダースノー') === 'ノーザンダンサー系' && majorLineOfName('タワーオブロンドン') === 'ミスタープロスペクター系');
+}
+{
+  // mating with each new stallion produces a valid foal
+  for(const nm of ['チュウワウィザード', 'ジオグリフ', 'ピクシーナイト', 'アダイヤー', 'サンダースノー', 'タワーオブロンドン']){
+    freshS({ year: 2032, month: 1, week: 1 });
+    const mare = mk({ name: '配合母' + nm, sex: '牝', status: 'broodmare', birthYear: 2024, surface: '芝', distMin: 1600, distMax: 2400 });
+    setParams(mare, 70, 70, 70); mare.temp = 55; mare.matureWeight = 480; mare.coat = '鹿毛';
+    mare.pregnant = { sire: nm, dueYear: 2032 };
+    S.horses = [mare];
+    onNewYear();
+    const foal = S.horses.find(h => h.status === 'foal' && h.sire === nm);
+    T('v101 roster: mating with ' + nm + ' produces a valid foal', !!foal && [foal.spd, foal.sta, foal.gut].every(v => typeof v === 'number' && v >= 35 && v <= 85) && foal.distMin < foal.distMax && ['芝', 'ダート', '両刀'].includes(foal.surface));
+  }
+}
+{
+  // a 54-stallion save gains the six through roster sync; homebred stallion untouched
+  freshS({});
+  const NEWNAMES = ['チュウワウィザード', 'ジオグリフ', 'ピクシーナイト', 'アダイヤー', 'サンダースノー', 'タワーオブロンドン'];
+  const old = JSON.parse(JSON.stringify(DATA.stallions.filter(s => !NEWNAMES.includes(s.name))));
+  old[0].genSpd = 71;
+  const homebred = { name: '自家テスト種牡馬', sire: 'コントレイル', region: 'domestic', surface: '芝', dist: [1600, 2400], growth: '普通', fee_tier: 'B', fresh: true };
+  S.stallions = old.concat([JSON.parse(JSON.stringify(homebred))]);
+  T('v101 roster sync: fixture is 54 + homebred', S.stallions.length === 55);
+  migrateV029();
+  T('v101 roster sync: 54-stallion save gains all six (60 + homebred)', S.stallions.length === 61 && NEWNAMES.every(n => { const r = S.stallions.find(s => s.name === n); return !!r && !!r.dam && !!r.bms && !!r.grandam; }));
+  T('v101 roster sync: homebred stallion untouched', (() => { const hb = S.stallions.find(s => s.name === '自家テスト種牡馬'); return !!hb && hb.sire === 'コントレイル' && hb.fee_tier === 'B' && hb.dam === undefined; })());
+  T('v101 roster sync: genetic cache preserved', S.stallions.find(s => s.name === old[0].name).genSpd === 71);
+}
+
+// ---- v1.01: 引退馬リスト／繁殖引退の枠外し／繁殖牝馬ランク表示（Terai決定 2026-11-15） ----
+{
+  // 17歳の自動繁殖引退でステータスが retired になり、頭数枠から外れる
+  freshS({ year: 2043, month: 1, week: 1 });
+  const old = mk({ name: '高齢繁殖牝', sex: '牝', status: 'broodmare', birthYear: 2026 });
+  S.horses = [old];
+  T('v101 breed-retire: mare counts toward cap before 17', mareCount() === 1);
+  onNewYear();
+  T('v101 breed-retire: 17yo mare auto-retires from breeding', old.breedRetired === true && old.status === 'retired' && old.retired === true);
+  T('v101 breed-retire: cap freed at 17', mareCount() === 0);
+  T('v101 breed-retire: no longer breedable', mareBreedable(old) === false);
+}
+{
+  // 繋養費：繁殖牝馬は対象、繁殖引退後は対象外（経営費のみ）
+  freshS({ year: 2032, month: 3, week: 1, funds: 10000 });
+  const mare = mk({ name: '繋養テスト牝', sex: '牝', status: 'broodmare', birthYear: 2026 });
+  S.horses = [mare];
+  T('v101 costs: active broodmare pays 繋養費 (20+経営100=120)', monthlyCosts(3) === 120);
+  retireFromBreeding(mare);
+  T('v101 costs: breeding-retired mare pays no 繋養費 (経営費のみ)', monthlyCosts(3) === 100 && S.funds === 10000 - 220);
+}
+{
+  // 手動の繁殖引退：可能判定と受胎中ブロック
+  freshS({ year: 2032 });
+  const m1 = mk({ name: '手動引退牝', sex: '牝', status: 'broodmare', birthYear: 2026 });
+  const m2 = mk({ name: '受胎中牝', sex: '牝', status: 'broodmare', birthYear: 2026 });
+  m2.pregnant = { sire: 'コントレイル', dueYear: 2033 };
+  S.horses = [m1, m2];
+  T('v101 manual breed-retire: allowed when not pregnant', canBreedRetire(m1) === true);
+  T('v101 manual breed-retire: blocked while pregnant', canBreedRetire(m2) === false);
+  retireFromBreeding(m1);
+  T('v101 manual breed-retire: status flips and cap frees', m1.status === 'retired' && mareCount() === 1);
+  T('v101 manual breed-retire: retireFromBreeding is a no-op for non-broodmares', (() => { const r = mk({ status: 'racehorse' }); retireFromBreeding(r); return r.status === 'racehorse' && !r.breedRetired; })());
+}
+{
+  // 繁殖引退した牝馬は繁殖タブの一覧から消え、牝系図と産駒一覧には残る
+  freshS({ year: 2032, month: 9, week: 1 });
+  const founder = mk({ name: 'ライン根元牝', sex: '牝', status: 'broodmare', birthYear: 2020, dam: '外の母' });
+  const daughter = mk({ name: 'ライン娘', sex: '牝', status: 'racehorse', birthYear: 2028, dam: 'ライン根元牝' });
+  const active = mk({ name: '現役繁殖牝', sex: '牝', status: 'broodmare', birthYear: 2026 });
+  S.horses = [founder, daughter, active];
+  retireFromBreeding(founder);
+  const breedHtml = broodmareTable();
+  T('v101 retired mare: gone from broodmare table', !breedHtml.includes('ライン根元牝') && breedHtml.includes('現役繁殖牝'));
+  const line = femaleLines().find(L => L.founder.name === 'ライン根元牝');
+  T('v101 retired mare: still founder of her female line', !!line && line.members.some(m => m.id === founder.id) && line.members.some(m => m.id === daughter.id));
+  T('v101 retired mare: produce list still works on her profile', produceSection(founder).includes('ライン娘'));
+  T('v101 retired mare: still on the farm (profile data intact)', S.horses.some(x => x.id === founder.id));
+}
+{
+  // 競走引退馬は所有馬リストの全絞込みから外れ、引退馬リスト側に載る
+  freshS({ year: 2032 });
+  const colt = mk({ name: '引退牡テスト', sex: '牡', status: 'racehorse', birthYear: 2027 }); colt.retired = true;
+  const active = mk({ name: '現役牡テスト', sex: '牡', status: 'racehorse', birthYear: 2027 });
+  const stud = mk({ name: '種牡馬テスト', sex: '牡', status: 'stallion', birthYear: 2020 }); stud.retired = true; // 引退して種牡馬入りした馬は現役種牡馬なので引退馬リストには載せない
+  S.horses = [colt, active, stud];
+  const filters = ['all', 'active', 'racehorse', 'young', 'breeding'];
+  T('v101 main list: racing-retired excluded from every filter', filters.every(f => { horseFilter = f; return !mainListMatch(colt); }));
+  horseFilter = 'all';
+  T('v101 main list: active racehorse still listed', mainListMatch(active) === true);
+  T('v101 alumni: stud stallion is not alumni', isAlumni(stud) === false && isAlumni(colt) === true);
+  const entries = retiredListEntries();
+  T('v101 retired list: racing-retired appears, stallion does not', entries.some(e => e.horse && e.horse.id === colt.id) && !entries.some(e => e.horse && e.horse.id === stud.id));
+  horseFilter = 'active';
+}
+{
+  // 購入馬タグ：開始時の選択・セール購入のどちらでも origin が付き、引退馬リストで「購入馬」と出る
+  freshS({ funds: 10000, phase: 'play' });
+  const cand = S.candidates[0];
+  chooseMare(cand.id);
+  T('v101 origin: starting mare tagged 購入', cand.origin === '購入' && S.horses.some(x => x.id === cand.id));
+  freshS({ funds: 10000, phase: 'play' });
+  const saleMare = makeMare(S.stallions, 'A'); saleMare.price = 1000;
+  S.salePool = [saleMare];
+  buyMare(saleMare.id);
+  T('v101 origin: bought mare tagged 購入 and keeps her sale rank', saleMare.origin === '購入' && S.horses.some(x => x.id === saleMare.id) && saleMare.rank === 'A');
+  retireFromBreeding(saleMare);
+  const html = retiredListHtml();
+  T('v101 retired list: purchased ex-broodmare shows 購入馬 and her rank', html.includes(saleMare.name) && html.includes('購入馬') && html.includes('繁殖引退') && html.includes('ランクA'));
+  // 移行：旧セーブの購入牝馬（rank あり・母が牧場外）は origin を推定して付ける。自家生産（母が牧場内）は付けない
+  freshS({});
+  const damInFarm = mk({ name: '牧場の母', sex: '牝', status: 'broodmare', birthYear: 2020 });
+  const oldBought = mk({ name: '旧購入牝', sex: '牝', status: 'broodmare', birthYear: 2024, dam: '外の母', rank: 'B' });
+  const homebred = mk({ name: '自家製牝', sex: '牝', status: 'broodmare', birthYear: 2028, dam: '牧場の母', rank: 'B' });
+  S.horses = [damInFarm, oldBought, homebred];
+  migrateV029();
+  T('v101 origin migration: purchased mare inferred, homebred not tagged', oldBought.origin === '購入' && homebred.origin == null);
+  // 移行：繁殖引退済みの牝馬は新ステータスへ。受胎中は出産まで据え置き
+  const doneMare = mk({ name: '移行繁殖引退牝', sex: '牝', status: 'broodmare', birthYear: 2020 }); doneMare.breedRetired = true;
+  const pregMare = mk({ name: '移行受胎牝', sex: '牝', status: 'broodmare', birthYear: 2020 }); pregMare.breedRetired = true; pregMare.pregnant = { sire: 'コントレイル', dueYear: 2027 };
+  S.horses = [doneMare, pregMare];
+  migrateV029();
+  T('v101 migration: breedRetired mare converts to retired status', doneMare.status === 'retired' && mareCount() === 1);
+  T('v101 migration: pregnant breedRetired mare stays broodmare until foaling', pregMare.status === 'broodmare');
+}
+{
+  // 売却：記録が残り、馬は S.horses から消える。売却した牝馬は牝系に戻らない
+  freshS({ year: 2033, funds: 1000 });
+  const colt = mk({ name: '売却牡テスト', sex: '牡', status: 'racehorse', birthYear: 2029, wins: 3, earnings: 5000 });
+  S.horses = [colt];
+  doRetireSellColt(colt, 800);
+  T('v101 sale: colt leaves the farm and funds increase', !S.horses.some(x => x.id === colt.id) && S.funds === 1800);
+  T('v101 sale: sold record appended with career snapshot', S.soldHorses.length === 1 && S.soldHorses[0].name === '売却牡テスト' && S.soldHorses[0].year === 2033 && S.soldHorses[0].price === 800 && S.soldHorses[0].wins === 3 && S.soldHorses[0].earnings === 5000 && S.soldHorses[0].wasBroodmare === false);
+  T('v101 sale: sold record shows in retired list as 売却', retiredListHtml().includes('売却牡テスト') && retiredListHtml().includes('売却'));
+  const mare = mk({ name: '売却牝テスト', sex: '牝', status: 'broodmare', birthYear: 2025, dam: '外の母', rank: 'B', origin: '購入' });
+  const herDaughter = mk({ name: '売却牝の娘', sex: '牝', status: 'racehorse', birthYear: 2030, dam: '売却牝テスト' });
+  S.horses = [mare, herDaughter];
+  recordSale(mare, 1500); S.horses = S.horses.filter(x => x.id !== mare.id);
+  T('v101 sale: sold broodmare record keeps 購入馬 origin and rank', S.soldHorses.length === 2 && S.soldHorses[1].wasBroodmare === true && S.soldHorses[1].origin === '購入' && S.soldHorses[1].rank === 'B');
+  T('v101 sale: sold broodmare does not re-enter female lines', !femaleLines().some(L => L.members.some(m => m.name === '売却牝テスト')));
+  T('v101 sale: sold broodmare shows 購入馬 in retired list', retiredListHtml().includes('売却牝テスト') && retiredListHtml().includes('購入馬'));
+}
+{
+  // ランク表示：購入牝馬はセール時の保存ランクがそのまま出る（パラメータ平均のランクと食い違っても保存ランク優先）
+  freshS({ funds: 10000, phase: 'play' });
+  const m = makeMare(S.stallions, 'S');
+  setParams(m, 68, 68, 68); // 素質平均は C 帯まで下げる
+  m.price = 1000; S.salePool = [m];
+  buyMare(m.id);
+  T('v101 rank: stored sale rank wins over param average', mareRankOf(m) === 'S' && rankOf(Math.round((m.spd + m.sta + m.gut) / 3)) === 'C');
+  horseFilter = 'breeding';
+  const html = viewHorses();
+  T('v101 rank: horse list shows the sale rank by her name', html.includes(m.name) && html.includes('ランクS'));
+  // 自家製の繁殖牝馬は素質総合のランクで表示される
+  const home = mk({ name: '自家製繁殖牝', sex: '牝', status: 'broodmare', birthYear: 2028, dam: '牧場の母' });
+  setParams(home, 80, 80, 80);
+  S.horses.push(home);
+  T('v101 rank: homebred mare falls back to 素質 overall rank', home.rank == null && mareRankOf(home) === 'A');
+  T('v101 rank: homebred mare rank shows in the list', viewHorses().includes('自家製繁殖牝') && viewHorses().includes('ランクA'));
+  horseFilter = 'active';
 }
 
 console.log('\nRESULT: ' + pass + ' passed, ' + fail + ' failed');

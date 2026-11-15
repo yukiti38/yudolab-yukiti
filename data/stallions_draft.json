@@ -17,7 +17,7 @@
   "note": "血統表と母父プール専用（種付け不可）。目標30〜40頭。下記は例示で、次工程で確定する。"
  },
  "note": "設計ドラフト v0.1（2026-11-11）。頭数とカテゴリ配分の叩き台。fee_tier・適性・成長型はゲーム設計値であり実績データではない。各種牡馬の現役可否・所属・実際の種付け料は、次工程で公式情報（JBIS等）を確認して差し替えること。",
- "pool_size_target": 50,
+ "pool_size_target": 60,
  "stallions": [
   {
    "dist": [
@@ -1442,6 +1442,172 @@
     "デピュティミニスター"
    ],
    "weight": 486
+  },
+  {
+   "name": "チュウワウィザード",
+   "sire": "キングカメハメハ",
+   "region": "domestic",
+   "surface": "ダート",
+   "dist": [
+    1800,
+    2100
+   ],
+   "growth": "普通",
+   "fee_tier": "C",
+   "line": [
+    "キングカメハメハ",
+    "キングマンボ",
+    "ミスタープロスペクター"
+   ],
+   "dam": "チュウワブロッサム",
+   "bms": "デュランダル",
+   "grandam": "オータムブリーズ",
+   "gbms": "ティンバーカントリー",
+   "bmsLine": [
+    "デュランダル",
+    "サンデーサイレンス",
+    "ヘイロー"
+   ],
+   "weight": 496
+  },
+  {
+   "name": "ジオグリフ",
+   "sire": "ドレフォン",
+   "region": "domestic",
+   "surface": "芝",
+   "dist": [
+    1600,
+    2000
+   ],
+   "growth": "普通",
+   "gtype": "普通早",
+   "fee_tier": "B",
+   "line": [
+    "Gio Ponti",
+    "Tale of the Cat",
+    "Storm Cat"
+   ],
+   "dam": "アロマティコ",
+   "bms": "キングカメハメハ",
+   "grandam": "ナスカ",
+   "gbms": "サンデーサイレンス",
+   "bmsLine": [
+    "キングカメハメハ",
+    "キングマンボ",
+    "ミスタープロスペクター"
+   ],
+   "weight": 486
+  },
+  {
+   "name": "ピクシーナイト",
+   "sire": "モーリス",
+   "region": "domestic",
+   "surface": "芝",
+   "dist": [
+    1200,
+    1400
+   ],
+   "growth": "早熟",
+   "fee_tier": "C",
+   "line": [
+    "スクリーンヒーロー",
+    "グラスワンダー",
+    "シルヴァーホーク"
+   ],
+   "dam": "ピクシーホロウ",
+   "bms": "キングヘイロー",
+   "grandam": "ラインレジーナ",
+   "gbms": "サクラバクシンオー",
+   "bmsLine": [
+    "キングヘイロー",
+    "ダンシングブレーヴ",
+    "リファール"
+   ],
+   "weight": 492
+  },
+  {
+   "name": "アダイヤー",
+   "sire": "Frankel",
+   "region": "domestic",
+   "surface": "芝",
+   "dist": [
+    2000,
+    2400
+   ],
+   "growth": "普通",
+   "fee_tier": "B",
+   "line": [
+    "Galileo",
+    "Sadler's Wells",
+    "Northern Dancer"
+   ],
+   "dam": "アンナサライ",
+   "bms": "Dubawi",
+   "grandam": "Anna Palariva",
+   "gbms": "Caerleon",
+   "bmsLine": [
+    "Dubawi",
+    "Dubai Millennium",
+    "Seeking the Gold"
+   ],
+   "weight": 510
+  },
+  {
+   "name": "サンダースノー",
+   "sire": "ヘルメット",
+   "region": "domestic",
+   "surface": "ダート",
+   "dist": [
+    1600,
+    2000
+   ],
+   "growth": "普通",
+   "fee_tier": "C",
+   "line": [
+    "ヘルメット",
+    "エクシードアンドエクセル",
+    "デインヒル",
+    "ノーザンダンサー"
+   ],
+   "dam": "イースタンジョイ",
+   "bms": "ドバイデスティネーション",
+   "grandam": "Red Slippers",
+   "gbms": "Nureyev",
+   "bmsLine": [
+    "ドバイデスティネーション",
+    "キングマンボ",
+    "ミスタープロスペクター"
+   ],
+   "weight": 502
+  },
+  {
+   "name": "タワーオブロンドン",
+   "sire": "レイヴンズパス",
+   "region": "domestic",
+   "surface": "芝",
+   "dist": [
+    1200,
+    1600
+   ],
+   "growth": "普通",
+   "gtype": "普通早",
+   "fee_tier": "C",
+   "line": [
+    "レイヴンズパス",
+    "イルーシヴクオリティ",
+    "ゴーンウェスト",
+    "ミスタープロスペクター"
+   ],
+   "dam": "スノーパイン",
+   "bms": "ダラカニ",
+   "grandam": "シンコウエルメス",
+   "gbms": "Sadler's Wells",
+   "bmsLine": [
+    "ダラカニ",
+    "Darshaan",
+    "Shirley Heights"
+   ],
+   "weight": 490
   }
  ]
 }
