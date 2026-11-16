@@ -679,7 +679,7 @@ function monthlyTraining(){
      手動設定していない馬に、3パラメータのうち最も弱いものを上げる方針を自動で付ける。
      月次で追随するので弱点が変われば方針も切り替わる。自動で付けた方針には h.trainAuto を立て、
      プレイヤーが手動で変更した馬（h.trainManual）は以後自動で付け直さない */
-  if(mattariOn() && S.mattari.auto.train){
+  if(autoActive() && S.mattari.auto.train){
     for(const h of S.horses){
       if(h.status!=="racehorse" || h.retired || h.spd == null || h.trainManual) continue;
       const age = ageOf(h); if(age<2 || age>4) continue;
@@ -1139,6 +1139,11 @@ function mattariDefault(){
   return { on:false, speed:4, paused:false, auto:{ entry:true, retire:true, mate:true, cull:true, train:true, rotation:true, gift:true, sell:true } };
 }
 function mattariOn(){ return !!(typeof S!=="undefined" && S && S.mattari && S.mattari.on); }
+/* スキップ中の自動処理（v3.2・オーナー委任で AI 決定）：かんたんスキップ／指定スキップで
+   時間を飛ばす間は、まったりタイマーの ON/OFF に関係なく、まったり設定の自動トグルが働く。
+   不在中に種付けも引退も止まって牧場が空になるのを防ぐため。週送りや「次のイベント」などの
+   手動進行では従来どおり、タイマーON のときだけ自動処理する */
+function autoActive(){ return mattariOn() || !!(typeof S!=="undefined" && S && S._skipAuto); }
 /* まったり設定モーダル：すべてのオート操作を個別に ON/OFF できる（オーナー指定）。
    ON にする際と、ヘッダーの「まったり設定」からいつでも開ける。変更は即 S.mattari.auto へ保存 */
 const MATTARI_AUTO_LABELS = [["entry","自動出走"],["retire","自動引退"],["mate","自動種付け"],["cull","自動淘汰（繁殖牝馬）"],["train","自動調教"],["rotation","自動ローテーション"],["gift","贈呈馬の自動受け入れ"],["sell","自動売却（頭数上限の超過分）"]];
@@ -1148,7 +1153,7 @@ function openMattariSettings(){
   if(!S.mattari) S.mattari = mattariDefault();
   const a = S.mattari.auto;
   box.innerHTML = "<h2 style='margin-top:0;'>🌙 まったりモード設定</h2>"
-    + "<div class='sub'>時間は自動で流れます（ページを閉じると止まります）。自動で行う操作は個別にON/OFFできます。</div>"
+    + "<div class='sub'>時間は自動で流れます（ページを閉じると止まります）。自動で行う操作は個別にON/OFFできます。スキップ（かんたんスキップ・指定スキップ）で時間を飛ばす間も、タイマーのON/OFFに関係なく、この設定で自動処理します。</div>"
     + MATTARI_AUTO_LABELS.map(([k, label]) => "<div class='flex' style='margin:8px 0;'><label><input type='checkbox' data-mattari-auto='" + k + "'" + (a[k] ? " checked" : "") + "> " + label + "</label></div>").join("")
     + "<div class='flex' style='margin:10px 0;'><label>自動引退の方針（牧場既定）：</label><select id='mattariRetirePol'>"
     + "<option value='logic'" + (S.retirePolicyDefault !== "comment" ? " selected" : "") + ">そのまま引退（ゾーン入りで引退）</option>"
@@ -1203,6 +1208,7 @@ function load(){ try{ const t = localStorage.getItem(SAVE_KEY); if(t){ S = JSON.
 /* v0.29 移行：単一スロット登録（enteredRaceKey）→週別登録（entries）、成長型の内部細分化（gtype）付与、若馬売却の個体ノイズ付与 */
 function migrateV029(){
   if(!S) return;
+  S._skipAuto = false; /* v3.2：スキップ中フラグは読み込み時に必ず落とす（途中保存されても引き継がない） */
   if(S.horses) for(const h of S.horses){
     if(!h.entries) h.entries = {};
     if(h.enteredRaceKey){
@@ -1849,7 +1855,7 @@ function advanceWeek(){
   // 4) 新しい週のイベント
   weeklyEvents();
   /* 贈呈馬の自動受け入れ（v3.1・まったりモード）：届いた贈呈馬は辞退せず全て迎える */
-  if(mattariOn() && S.mattari.auto.gift){ while(S.giftQueue && S.giftQueue.length) acceptGift(S.giftQueue[0].name); }
+  if(autoActive() && S.mattari.auto.gift){ while(S.giftQueue && S.giftQueue.length) acceptGift(S.giftQueue[0].name); }
   rotationPass(); /* v2.2：ローテーション（出走指定）。自動出走より先に処理し、指定馬は自動出走側で対象外にする */
   autoEntryPass(); /* v2.0：自動出走。skipTo／nextEvent も advanceWeek を経由するので、ここに置けばスキップ中も毎週必ず走る */
   if(!S.silent){ save(); render(); }
@@ -2256,7 +2262,7 @@ function autoEntryPass(){
   const windowEnd = absWeek() + 3;
   /* まったりモード（v3.1）：ON＋自動出走トグルONのときは全現役馬が自動出走の対象
      （馬ごとの autoEntry が OFF でも対象。出走間隔・方針・適性±200は馬ごとの設定を尊重する） */
-  const forceAll = mattariOn() && S.mattari.auto.entry;
+  const forceAll = autoActive() && S.mattari.auto.entry;
   for(const h of S.horses){
     if(h.status!=="racehorse" || h.retired || (!h.autoEntry && !forceAll)) continue;
     if(h.rotation && h.rotation.some(k=>rotationRaceOf(k))) continue; /* ローテーション指定がある馬は指定レースだけ走る（v2.2） */
@@ -2332,7 +2338,7 @@ function rotationKeyOf(race){ return [race.sector, race.name, race.racecourse ||
    複合キーで、rotationPass の年次繰り返し（過去スロットは翌年へ読み替え）にそのまま乗る。
    実績で稼ぐ指定であり、事前予測はしない */
 function maybeAutoRotation(h, race){
-  if(!mattariOn() || !S.mattari.auto.rotation) return;
+  if(!autoActive() || !S.mattari.auto.rotation) return;
   if(!Array.isArray(h.rotation)) h.rotation = [];
   const added = [];
   const k1 = rotationKeyOf(race);
@@ -2432,7 +2438,9 @@ function skipTo(y, m, w){
   const target = absOf(y, m, w);
   let guard = 0;
   S.silent = true;
+  S._skipAuto = true; /* v3.2：スキップ中は自動トグルを有効化する（autoActive 参照） */
   while(absWeek() < target && guard++ < 2700) advanceWeek();
+  S._skipAuto = false;
   S.silent = false;
   /* スキップ自体は年表に残さない（v0.33）。途中のビッグイベントは通常どおり記録される */
   save(); render();
@@ -3067,7 +3075,7 @@ function mateWith(m, st){
   if(st.retired){ topic("⚠️ "+st.name+" は種牡馬を引退しています"); save(); render(); return; }
   if(m.breedRetired || ageOf(m)<4 || ageOf(m)>16){ topic("⚠️ "+m.name+" は繁殖の対象年齢（4〜16歳）ではありません"); save(); render(); return; }
   const f = stallionFee(st);
-  if(S.funds < f){ topic("⚠️ 資金が足りません"); save(); render(); return; }
+  if(f > 0 && S.funds < f){ topic("⚠️ 資金が足りません"); save(); render(); return; } /* v3.2：種付料0（自家製種牡馬）は資金がマイナスでも種付けできる */
   S.funds -= f;
   m.lastSire = st.name;
   m.matedYear = S.year; /* v3.1：空胎カウンタ（barrenStreak）の判定用に、種付けした年を記録する */
@@ -3089,7 +3097,7 @@ function autoMateBudgetCap(){
   return f < 3000 ? 400 : f < 10000 ? 800 : f < 30000 ? 1500 : 3000;
 }
 function autoMatePass(retry){
-  if(!mattariOn() || !S.mattari.auto.mate) return;
+  if(!autoActive() || !S.mattari.auto.mate) return;
   if(_autoMateYear !== S.year){ _autoMateYear = S.year; _autoMateCount = {}; }
   const mares = S.horses.filter(m => m.status === "broodmare" && mareBreedable(m));
   const targets = retry ? mares.filter(m => m.autoMateFeb === S.year) : mares;
@@ -3107,7 +3115,7 @@ function autoMatePass(retry){
     if(m.pregnant || !mareBreedable(m)) continue;
     if(!retry) m.autoMateFeb = S.year; /* 2月に一巡した印（4月の再挑戦の対象判定に使う） */
     const cap = autoMateBudgetCap();
-    const cands = S.stallions.filter(st => !st.retired && stallionFee(st) <= cap && stallionFee(st) <= S.funds);
+    const cands = S.stallions.filter(st => !st.retired && stallionFee(st) <= cap && (stallionFee(st) <= S.funds || stallionFee(st) === 0)); /* v3.2：無料の自家製は資金マイナスでも候補に残す */
     if(!cands.length) continue; /* 資金が最低料金にも届かず無料候補もいない場合は今シーズン見送り */
     const uncapped = cands.filter(st => (_autoMateCount[st.name] || 0) < capN);
     let chosen = null;
@@ -3905,7 +3913,7 @@ function processYearEndRetirements(){
   }
   const zone = S.horses.filter(inRetireZone);
   if(!zone.length) return;
-  if(mattariOn() && S.mattari.auto.retire){
+  if(autoActive() && S.mattari.auto.retire){
     for(const h of [...zone]) if(autoRetireDue(h)) autoRetireHorse(h);
   } else {
     if(!Array.isArray(S.retireQueue)) S.retireQueue = [];
@@ -3914,8 +3922,8 @@ function processYearEndRetirements(){
 }
 /* ================= 頭数上限と自動売却（v3.1追加・オーナー決定） =================
    上限そのもの（購入・繁殖入りのブロック）は常時効くが、超過分の処分は
-   「まったりモードON かつ 自動売却トグルON」のときだけ行う（他の自動判断と同じゲーティング） */
-function autoSellOn(){ return mattariOn() && !!(S.mattari && S.mattari.auto && S.mattari.auto.sell); }
+   「自動処理が有効（まったりON または スキップ中）かつ 自動売却トグルON」のときだけ行う */
+function autoSellOn(){ return autoActive() && !!(S.mattari && S.mattari.auto && S.mattari.auto.sell); }
 /* 世代のデビュー上限（K-3）：2歳に上がった世代（出生年コホート）を一度だけ判定する。
    onNewYear の成長段階の更新（2歳編入・自動命名）の直後に呼ばれる。判定済みの世代は
    各馬の debutJudged フラグで二重処理を防ぐ（ゲートOFFの年に2歳になった世代は、
@@ -4268,6 +4276,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>競馬シミュレーター（趣味） v3.1.4</footer>
+<footer>競馬シミュレーター（趣味） v3.2</footer>
 </body>
 </html>
