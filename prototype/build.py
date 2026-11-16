@@ -22,7 +22,7 @@ DATA = os.path.join(BASE, "..", "data")
 tpl = open(os.path.join(BASE, "template.html")).read()
 dom = json.load(open(os.path.join(DATA, "domestic_races.json")))
 ov = json.load(open(os.path.join(DATA, "overseas_races_2025.json")))
-st = json.load(open(os.path.join(DATA, "stallions_draft.json")))
+st = json.load(open(os.path.join(DATA, "stallions_full.json"))) # v3.0：統合ロスター137頭（年齢・体重込み）
 
 # ===== 週の割り当て（v1.00・オーナー決定「1/1が日曜スタート」） =====
 # 週は日曜始まり。レースは「その週の日曜」の週に置く：

@@ -1,0 +1,3444 @@
+{
+ "ancestor_frame_examples": {
+  "names": [
+   "ディープインパクト",
+   "キングカメハメハ",
+   "ステイゴールド",
+   "ハーツクライ",
+   "ドゥラメンテ",
+   "クロフネ",
+   "サンデーサイレンス",
+   "Galileo",
+   "Montjeu",
+   "A.P. Indy",
+   "Street Cry",
+   "Pivotal"
+  ],
+  "note": "血統表と母父プール専用（種付け不可）。目標30〜40頭。下記は例示で、次工程で確定する。"
+ },
+ "note": "設計ドラフト v0.1（2026-11-11）。頭数とカテゴリ配分の叩き台。fee_tier・適性・成長型はゲーム設計値であり実績データではない。各種牡馬の現役可否・所属・実際の種付け料は、次工程で公式情報（JBIS等）を確認して差し替えること。",
+ "pool_size_target": 60,
+ "stallions": [
+  {
+   "dist": [
+    1800,
+    3000
+   ],
+   "fee_tier": "S",
+   "growth": "普通",
+   "name": "キタサンブラック",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "ブラックタイド",
+   "line": [
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dam": "シュガーハート",
+   "bms": "サクラバクシンオー",
+   "grandam": "オトメゴコロ",
+   "gbms": "ジャッジアンジェルーチ",
+   "weight": 540,
+   "age2026": 14
+  },
+  {
+   "dist": [
+    1600,
+    2600
+   ],
+   "fee_tier": "S",
+   "growth": "普通",
+   "name": "エピファネイア",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "シンボリクリスエス",
+   "line": [
+    "クリスエス",
+    "ロベルト",
+    "ヘイルトゥリーズン"
+   ],
+   "dam": "シーザリオ",
+   "bms": "スペシャルウィーク",
+   "grandam": "キロフプリミエール",
+   "gbms": "Sadler's Wells",
+   "bmsLine": [
+    "スペシャルウィーク",
+    "サンデーサイレンス",
+    "ヘイロー"
+   ],
+   "weight": 510,
+   "age2026": 16
+  },
+  {
+   "dist": [
+    1600,
+    2400
+   ],
+   "fee_tier": "S",
+   "growth": "早熟",
+   "name": "コントレイル",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "ディープインパクト",
+   "line": [
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dam": "ロードクロサイト",
+   "bms": "Unbridled's Song",
+   "grandam": "Folklore",
+   "gbms": "Tiznow",
+   "bmsLine": [
+    "Unbridled's Song",
+    "Unbridled",
+    "Fappiano"
+   ],
+   "weight": 462,
+   "age2026": 9
+  },
+  {
+   "dist": [
+    1600,
+    2400
+   ],
+   "fee_tier": "A",
+   "growth": "早熟",
+   "name": "サートゥルナーリア",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "ロードカナロア",
+   "line": [
+    "キングカメハメハ",
+    "キングマンボ",
+    "ミスタープロスペクター"
+   ],
+   "dam": "シーザリオ",
+   "bms": "スペシャルウィーク",
+   "grandam": "キロフプリミエール",
+   "gbms": "Sadler's Wells",
+   "bmsLine": [
+    "スペシャルウィーク",
+    "サンデーサイレンス",
+    "ヘイロー"
+   ],
+   "weight": 482,
+   "age2026": 10
+  },
+  {
+   "dist": [
+    2000,
+    3000
+   ],
+   "fee_tier": "B",
+   "growth": "晩成",
+   "name": "オルフェーヴル",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "ステイゴールド",
+   "line": [
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dam": "オリエンタルアート",
+   "bms": "メジロマックイーン",
+   "grandam": "エレクトロアート",
+   "gbms": "ノーザンテースト",
+   "bmsLine": [
+    "メジロマックイーン",
+    "メジロティターン",
+    "メジロアサマ"
+   ],
+   "weight": 452,
+   "age2026": 18
+  },
+  {
+   "dist": [
+    2000,
+    3200
+   ],
+   "fee_tier": "B",
+   "growth": "晩成",
+   "name": "ゴールドシップ",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "ステイゴールド",
+   "line": [
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dam": "ポイントフラッグ",
+   "bms": "メジロマックイーン",
+   "grandam": "パストラリズム",
+   "gbms": "プルラリズム",
+   "bmsLine": [
+    "メジロマックイーン",
+    "メジロティターン",
+    "メジロアサマ"
+   ],
+   "jizoku": true,
+   "weight": 522,
+   "age2026": 17
+  },
+  {
+   "dist": [
+    1800,
+    2800
+   ],
+   "fee_tier": "B",
+   "growth": "普通",
+   "name": "ルーラーシップ",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "キングカメハメハ",
+   "line": [
+    "キングマンボ",
+    "ミスタープロスペクター",
+    "レイズアネイティヴ"
+   ],
+   "dam": "エアグルーヴ",
+   "bms": "トニービン",
+   "grandam": "ダイナカール",
+   "gbms": "ノーザンテースト",
+   "bmsLine": [
+    "トニービン",
+    "カンパラ",
+    "カラムーン"
+   ],
+   "weight": 512,
+   "age2026": 19
+  },
+  {
+   "dist": [
+    1800,
+    2600
+   ],
+   "fee_tier": "A",
+   "growth": "普通",
+   "name": "レイデオロ",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "キングカメハメハ",
+   "line": [
+    "キングマンボ",
+    "ミスタープロスペクター",
+    "レイズアネイティヴ"
+   ],
+   "dam": "ラドラーダ",
+   "bms": "シンボリクリスエス",
+   "grandam": "レディブロンド",
+   "gbms": "Seeking the Gold",
+   "weight": 488,
+   "age2026": 12
+  },
+  {
+   "dist": [
+    1800,
+    2600
+   ],
+   "fee_tier": "B",
+   "growth": "普通",
+   "name": "スワーヴリチャード",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "ハーツクライ",
+   "line": [
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dam": "ピラミマ",
+   "bms": "Unbridled's Song",
+   "grandam": "キャリアコレクション",
+   "gbms": "General Meeting",
+   "bmsLine": [
+    "Unbridled's Song",
+    "Unbridled",
+    "Fappiano"
+   ],
+   "weight": 514,
+   "age2026": 12
+  },
+  {
+   "dist": [
+    1800,
+    2400
+   ],
+   "fee_tier": "C",
+   "growth": "普通",
+   "name": "サトノクラウン",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "Marju",
+   "line": [
+    "Last Tycoon",
+    "Try My Best",
+    "Northern Dancer"
+   ],
+   "dam": "ジョコンダ",
+   "bms": "Rossini",
+   "grandam": "La Joconde",
+   "gbms": "Vettori",
+   "bmsLine": [
+    "Rossini",
+    "Miswaki",
+    "Mr. Prospector"
+   ],
+   "weight": 492,
+   "age2026": 14
+  },
+  {
+   "dist": [
+    2400,
+    3600
+   ],
+   "fee_tier": "B",
+   "growth": "晩成",
+   "name": "フィエールマン",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "ディープインパクト",
+   "line": [
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dam": "リュヌドール",
+   "bms": "Green Tune",
+   "grandam": "Luth d'Or",
+   "gbms": "Noir et Or",
+   "bmsLine": [
+    "Green Tune",
+    "Green Dancer",
+    "Nijinsky"
+   ],
+   "weight": 452,
+   "age2026": 11
+  },
+  {
+   "dist": [
+    2200,
+    3600
+   ],
+   "fee_tier": "C",
+   "growth": "晩成",
+   "name": "タイトルホルダー",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "ドゥラメンテ",
+   "line": [
+    "キングカメハメハ",
+    "キングマンボ",
+    "ミスタープロスペクター"
+   ],
+   "dam": "メーヴェ",
+   "bms": "Motivator",
+   "grandam": "Top Table",
+   "gbms": "Shirley Heights",
+   "bmsLine": [
+    "Motivator",
+    "Montjeu",
+    "Sadler's Wells"
+   ],
+   "weight": 464,
+   "age2026": 8
+  },
+  {
+   "dist": [
+    2000,
+    3000
+   ],
+   "fee_tier": "C",
+   "growth": "晩成",
+   "name": "ワールドプレミア",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "ディープインパクト",
+   "line": [
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dam": "マンデラ",
+   "bms": "Acatenango",
+   "grandam": "Mandellicht",
+   "gbms": "Be My Guest",
+   "bmsLine": [
+    "Acatenango",
+    "Surumu",
+    "Literat"
+   ],
+   "weight": 474,
+   "age2026": 10
+  },
+  {
+   "dist": [
+    2000,
+    3000
+   ],
+   "fee_tier": "C",
+   "growth": "晩成",
+   "name": "シュヴァルグラン",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "ハーツクライ",
+   "line": [
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dam": "ハルーワスウィート",
+   "bms": "Machiavellian",
+   "grandam": "ハルーワソング",
+   "gbms": "Nureyev",
+   "jizoku": true,
+   "weight": 476,
+   "age2026": 14
+  },
+  {
+   "dist": [
+    1800,
+    2500
+   ],
+   "fee_tier": "S",
+   "growth": "普通",
+   "name": "イクイノックス",
+   "note": "新種牡馬枠（初年度産駒デビュー前）",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "キタサンブラック",
+   "line": [
+    "ブラックタイド",
+    "サンデーサイレンス",
+    "ヘイロー"
+   ],
+   "dam": "シャトーブランシュ",
+   "bms": "キングヘイロー",
+   "grandam": "ブランシェリー",
+   "gbms": "プラティニ",
+   "bmsLine": [
+    "キングヘイロー",
+    "ダンシングブレーヴ",
+    "リファール"
+   ],
+   "weight": 472,
+   "age2026": 7
+  },
+  {
+   "dist": [
+    1000,
+    1600
+   ],
+   "fee_tier": "A",
+   "growth": "早熟",
+   "name": "ロードカナロア",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "キングカメハメハ",
+   "line": [
+    "キングカメハメハ",
+    "キングマンボ",
+    "ミスタープロスペクター"
+   ],
+   "dam": "レディブロッサム",
+   "bms": "Storm Cat",
+   "grandam": "サラトガデュー",
+   "gbms": "Cormorant",
+   "weight": 504,
+   "age2026": 18
+  },
+  {
+   "dist": [
+    1400,
+    2000
+   ],
+   "fee_tier": "A",
+   "growth": "普通",
+   "name": "モーリス",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "スクリーンヒーロー",
+   "line": [
+    "グラスワンダー",
+    "シルヴァーホーク",
+    "ロベルト"
+   ],
+   "dam": "メジロフランシス",
+   "bms": "カーネギー",
+   "grandam": "メジロモントレー",
+   "gbms": "モガミ",
+   "bmsLine": [
+    "カーネギー",
+    "Sadler's Wells",
+    "Northern Dancer"
+   ],
+   "weight": 508,
+   "age2026": 15
+  },
+  {
+   "dist": [
+    1400,
+    1800
+   ],
+   "fee_tier": "B",
+   "growth": "早熟",
+   "name": "イスラボニータ",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "フジキセキ",
+   "line": [
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dam": "イスラコジーン",
+   "bms": "Cozzene",
+   "grandam": "Isla Mujeres",
+   "gbms": "Crafty Prospector",
+   "bmsLine": [
+    "Cozzene",
+    "Caro",
+    "Fortino"
+   ],
+   "weight": 470,
+   "age2026": 15
+  },
+  {
+   "dist": [
+    1200,
+    1600
+   ],
+   "fee_tier": "B",
+   "growth": "早熟",
+   "name": "アドマイヤマーズ",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "ダイワメジャー",
+   "line": [
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dam": "ヴィアメディチ",
+   "bms": "Medicean",
+   "grandam": "Via Milano",
+   "gbms": "Singspiel",
+   "bmsLine": [
+    "Medicean",
+    "Machiavellian",
+    "Mr. Prospector"
+   ],
+   "weight": 482,
+   "age2026": 10
+  },
+  {
+   "dist": [
+    1400,
+    2000
+   ],
+   "fee_tier": "C",
+   "growth": "普通",
+   "name": "サリオス",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "ハーツクライ",
+   "line": [
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dam": "サロミナ",
+   "bms": "Lomitas",
+   "grandam": "Saldentigerin",
+   "gbms": "Tiger Hill",
+   "bmsLine": [
+    "Lomitas",
+    "Niniski",
+    "Nijinsky"
+   ],
+   "weight": 512,
+   "age2026": 9
+  },
+  {
+   "dist": [
+    1200,
+    1600
+   ],
+   "fee_tier": "C",
+   "growth": "早熟",
+   "name": "グレナディアガーズ",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "Frankel",
+   "line": [
+    "Galileo",
+    "Sadler's Wells",
+    "Northern Dancer"
+   ],
+   "dam": "ウェイヴェルアベニュー",
+   "bms": "Harlington",
+   "grandam": "Lucas Street",
+   "gbms": "Silver Deputy",
+   "bmsLine": [
+    "Harlington",
+    "Unbridled",
+    "Fappiano"
+   ],
+   "weight": 484,
+   "age2026": 8
+  },
+  {
+   "dist": [
+    1000,
+    1400
+   ],
+   "fee_tier": "B",
+   "growth": "早熟",
+   "name": "ビッグアーサー",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "サクラバクシンオー",
+   "line": [
+    "サクラユタカオー",
+    "テスコボーイ",
+    "プリンスリーギフト"
+   ],
+   "dam": "シヤボナ",
+   "bms": "キングマンボ",
+   "grandam": "Relish",
+   "gbms": "Sadler's Wells",
+   "weight": 522,
+   "age2026": 15
+  },
+  {
+   "dist": [
+    1200,
+    1600
+   ],
+   "fee_tier": "C",
+   "growth": "早熟",
+   "name": "ミッキーアイル",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "ディープインパクト",
+   "line": [
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dam": "スターアイル",
+   "bms": "ロックオブジブラルタル",
+   "grandam": "アイルドフランス",
+   "gbms": "Nureyev",
+   "bmsLine": [
+    "ロックオブジブラルタル",
+    "デインヒル",
+    "ダンジグ"
+   ],
+   "weight": 482,
+   "age2026": 15
+  },
+  {
+   "dist": [
+    1600,
+    2000
+   ],
+   "fee_tier": "B",
+   "growth": "早熟",
+   "name": "リオンディーズ",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "キングカメハメハ",
+   "line": [
+    "キングカメハメハ",
+    "キングマンボ",
+    "ミスタープロスペクター"
+   ],
+   "dam": "シーザリオ",
+   "bms": "スペシャルウィーク",
+   "grandam": "キロフプリミエール",
+   "gbms": "Sadler's Wells",
+   "bmsLine": [
+    "スペシャルウィーク",
+    "サンデーサイレンス",
+    "ヘイロー"
+   ],
+   "weight": 492,
+   "age2026": 13
+  },
+  {
+   "dist": [
+    1200,
+    1800
+   ],
+   "fee_tier": "B",
+   "growth": "早熟",
+   "name": "ダイワメジャー",
+   "note": "高齢ベテラン枠（引退が近い）",
+   "region": "domestic",
+   "surface": "芝",
+   "sire": "サンデーサイレンス",
+   "line": [
+    "ヘイロー",
+    "ヘイルトゥリーズン",
+    "ターントゥ"
+   ],
+   "dam": "スカーレットブーケ",
+   "bms": "ノーザンテースト",
+   "grandam": "スカーレットインク",
+   "gbms": "Crimson Satan",
+   "bmsLine": [
+    "ノーザンテースト",
+    "ノーザンダンサー",
+    "ニアークティック"
+   ],
+   "weight": 522,
+   "age2026": 25
+  },
+  {
+   "dist": [
+    1200,
+    1800
+   ],
+   "fee_tier": "A",
+   "growth": "早熟",
+   "name": "ヘニーヒューズ",
+   "region": "domestic",
+   "surface": "ダート",
+   "sire": "Hennessy",
+   "line": [
+    "Storm Cat",
+    "Northern Dancer",
+    "Nearctic"
+   ],
+   "dam": "メドーフライヤー",
+   "bms": "Meadowlake",
+   "grandam": "Shortley",
+   "gbms": "Hagley",
+   "bmsLine": [
+    "Meadowlake",
+    "Hold Your Peace",
+    "Speak John"
+   ],
+   "weight": 502,
+   "age2026": 18
+  },
+  {
+   "dist": [
+    1200,
+    1800
+   ],
+   "fee_tier": "A",
+   "growth": "早熟",
+   "name": "ドレフォン",
+   "region": "domestic",
+   "surface": "ダート",
+   "sire": "Gio Ponti",
+   "line": [
+    "Tale of the Cat",
+    "Storm Cat",
+    "Northern Dancer"
+   ],
+   "dam": "エルティマース",
+   "bms": "Ghostzapper",
+   "grandam": "Najecam",
+   "gbms": "Trempolino",
+   "bmsLine": [
+    "Ghostzapper",
+    "Awesome Again",
+    "Deputy Minister"
+   ],
+   "weight": 512,
+   "age2026": 13
+  },
+  {
+   "dist": [
+    1400,
+    2000
+   ],
+   "fee_tier": "B",
+   "growth": "普通",
+   "name": "マジェスティックウォリアー",
+   "region": "domestic",
+   "surface": "ダート",
+   "sire": "A.P. Indy",
+   "line": [
+    "Seattle Slew",
+    "Bold Reasoning",
+    "Boldnesian"
+   ],
+   "dam": "ドリームスプリーム",
+   "bms": "Seeking the Gold",
+   "grandam": "Spinning Round",
+   "gbms": "Dixieland Band",
+   "weight": 505,
+   "age2026": 21
+  },
+  {
+   "dist": [
+    1400,
+    2100
+   ],
+   "fee_tier": "B",
+   "growth": "普通",
+   "name": "シニスターミニスター",
+   "region": "domestic",
+   "surface": "ダート",
+   "sire": "Old Trieste",
+   "line": [
+    "A.P. Indy",
+    "Seattle Slew",
+    "Bold Reasoning"
+   ],
+   "dam": "スウィートミニスター",
+   "bms": "The Prime Minister",
+   "grandam": "Sweet Blue",
+   "bmsLine": [
+    "The Prime Minister",
+    "Deputy Minister",
+    "Vice Regent"
+   ],
+   "weight": 520,
+   "age2026": 23
+  },
+  {
+   "dist": [
+    1600,
+    2100
+   ],
+   "fee_tier": "B",
+   "growth": "晩成",
+   "name": "ホッコータルマエ",
+   "region": "domestic",
+   "surface": "ダート",
+   "sire": "キングカメハメハ",
+   "line": [
+    "キングカメハメハ",
+    "キングマンボ",
+    "ミスタープロスペクター"
+   ],
+   "dam": "マダムチェロキー",
+   "bms": "Cherokee Run",
+   "grandam": "Unfoiled",
+   "gbms": "Unbridled",
+   "bmsLine": [
+    "Cherokee Run",
+    "Runaway Groom",
+    "Blushing Groom"
+   ],
+   "weight": 532,
+   "age2026": 17
+  },
+  {
+   "dist": [
+    1600,
+    2100
+   ],
+   "fee_tier": "C",
+   "growth": "普通",
+   "name": "コパノリッキー",
+   "region": "domestic",
+   "surface": "ダート",
+   "sire": "ゴールドアリュール",
+   "line": [
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dam": "コパノニキータ",
+   "bms": "ティンバーカントリー",
+   "grandam": "ニホンピロローズ",
+   "gbms": "トニービン",
+   "bmsLine": [
+    "ティンバーカントリー",
+    "Woodman",
+    "Mr. Prospector"
+   ],
+   "weight": 512,
+   "age2026": 16
+  },
+  {
+   "dist": [
+    1400,
+    2000
+   ],
+   "fee_tier": "C",
+   "growth": "普通",
+   "name": "エスポワールシチー",
+   "region": "domestic",
+   "surface": "ダート",
+   "sire": "ゴールドアリュール",
+   "line": [
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dam": "エミネントシチー",
+   "bms": "ブライアンズタイム",
+   "grandam": "ヘップバーンシチー",
+   "gbms": "バンブーアトラス",
+   "bmsLine": [
+    "ブライアンズタイム",
+    "ロベルト",
+    "ヘイルトゥリーズン"
+   ],
+   "weight": 532,
+   "age2026": 21
+  },
+  {
+   "dist": [
+    1600,
+    2400
+   ],
+   "fee_tier": "B",
+   "growth": "普通",
+   "name": "ニューイヤーズデイ",
+   "region": "domestic",
+   "surface": "ダート",
+   "sire": "Street Cry",
+   "line": [
+    "Machiavellian",
+    "Mr. Prospector",
+    "Raise a Native"
+   ],
+   "dam": "ジャストホイッスルディクシー",
+   "bms": "Dixie Union",
+   "grandam": "General Jeanne",
+   "gbms": "Honour and Glory",
+   "bmsLine": [
+    "Dixie Union",
+    "Dixieland Band",
+    "Northern Dancer"
+   ],
+   "weight": 492,
+   "age2026": 15
+  },
+  {
+   "dist": [
+    1200,
+    1700
+   ],
+   "fee_tier": "B",
+   "growth": "早熟",
+   "name": "マインドユアビスケッツ",
+   "region": "domestic",
+   "surface": "ダート",
+   "sire": "Posse",
+   "line": [
+    "Silver Deputy",
+    "Deputy Minister",
+    "Vice Regent"
+   ],
+   "dam": "ジャズミーン",
+   "bms": "Toccet",
+   "grandam": "Alljazz",
+   "gbms": "Stop the Music",
+   "bmsLine": [
+    "Toccet",
+    "Awesome Again",
+    "Deputy Minister"
+   ],
+   "weight": 482,
+   "age2026": 13
+  },
+  {
+   "dist": [
+    1200,
+    1600
+   ],
+   "fee_tier": "C",
+   "growth": "早熟",
+   "name": "フォーウィールドライブ",
+   "region": "domestic",
+   "surface": "ダート",
+   "sire": "American Pharoah",
+   "line": [
+    "Pioneerof the Nile",
+    "Empire Maker",
+    "Unbridled"
+   ],
+   "dam": "ファンフェア",
+   "bms": "More Than Ready",
+   "grandam": "Fleuron",
+   "gbms": "Broad Brush",
+   "bmsLine": [
+    "More Than Ready",
+    "Southern Halo",
+    "Halo"
+   ],
+   "weight": 492,
+   "age2026": 9
+  },
+  {
+   "dist": [
+    1400,
+    2400
+   ],
+   "fee_tier": "S",
+   "growth": "普通",
+   "name": "Frankel",
+   "region": "overseas",
+   "surface": "芝",
+   "sire": "Galileo",
+   "line": [
+    "Sadler's Wells",
+    "Northern Dancer",
+    "Nearctic"
+   ],
+   "dam": "Kind",
+   "bms": "Danehill",
+   "grandam": "Rainbow Lake",
+   "gbms": "Rainbow Quest",
+   "bmsLine": [
+    "Danehill",
+    "Danzig",
+    "Northern Dancer"
+   ],
+   "weight": 512,
+   "age2026": 18
+  },
+  {
+   "dist": [
+    1200,
+    2000
+   ],
+   "fee_tier": "S",
+   "growth": "早熟",
+   "name": "Dubawi",
+   "region": "overseas",
+   "surface": "芝",
+   "sire": "Dubai Millennium",
+   "line": [
+    "Seeking the Gold",
+    "Mr. Prospector",
+    "Raise a Native"
+   ],
+   "dam": "Zomaradah",
+   "bms": "Deploy",
+   "grandam": "Jawaher",
+   "gbms": "Dancing Brave",
+   "bmsLine": [
+    "Deploy",
+    "Shirley Heights",
+    "Mill Reef"
+   ],
+   "weight": 482,
+   "age2026": 24
+  },
+  {
+   "dist": [
+    1600,
+    2800
+   ],
+   "fee_tier": "S",
+   "growth": "晩成",
+   "name": "Sea The Stars",
+   "region": "overseas",
+   "surface": "芝",
+   "sire": "Cape Cross",
+   "line": [
+    "Green Desert",
+    "Danzig",
+    "Northern Dancer"
+   ],
+   "dam": "Urban Sea",
+   "bms": "Miswaki",
+   "grandam": "Allegretta",
+   "gbms": "Lombard",
+   "bmsLine": [
+    "Miswaki",
+    "Mr. Prospector",
+    "Raise a Native"
+   ],
+   "weight": 502,
+   "age2026": 20
+  },
+  {
+   "dist": [
+    1200,
+    1800
+   ],
+   "fee_tier": "A",
+   "growth": "早熟",
+   "name": "Kingman",
+   "region": "overseas",
+   "surface": "芝",
+   "sire": "Invincible Spirit",
+   "line": [
+    "Green Desert",
+    "Danzig",
+    "Northern Dancer"
+   ],
+   "dam": "Zenda",
+   "bms": "Zamindar",
+   "grandam": "Hope",
+   "gbms": "Dancing Brave",
+   "bmsLine": [
+    "Zamindar",
+    "Gone West",
+    "Mr. Prospector"
+   ],
+   "weight": 502,
+   "age2026": 15
+  },
+  {
+   "dist": [
+    1200,
+    2000
+   ],
+   "fee_tier": "A",
+   "growth": "普通",
+   "name": "Wootton Bassett",
+   "region": "overseas",
+   "surface": "芝",
+   "sire": "Iffraaj",
+   "line": [
+    "Zafonic",
+    "Gone West",
+    "Mr. Prospector"
+   ],
+   "dam": "Balladonia",
+   "bms": "Primo Dominie",
+   "grandam": "Susquehanna Days",
+   "gbms": "Chief's Crown",
+   "bmsLine": [
+    "Primo Dominie",
+    "Dominion",
+    "Derring-Do"
+   ],
+   "weight": 494,
+   "age2026": 18
+  },
+  {
+   "dist": [
+    1200,
+    1800
+   ],
+   "fee_tier": "A",
+   "growth": "早熟",
+   "name": "Siyouni",
+   "region": "overseas",
+   "surface": "芝",
+   "sire": "Pivotal",
+   "line": [
+    "Polar Falcon",
+    "Nureyev",
+    "Northern Dancer"
+   ],
+   "dam": "Sichilla",
+   "bms": "Danehill",
+   "grandam": "Slipstream Queen",
+   "gbms": "Conquistador Cielo",
+   "bmsLine": [
+    "Danehill",
+    "Danzig",
+    "Northern Dancer"
+   ],
+   "weight": 484,
+   "age2026": 19
+  },
+  {
+   "dist": [
+    1400,
+    2200
+   ],
+   "fee_tier": "A",
+   "growth": "普通",
+   "name": "Lope de Vega",
+   "region": "overseas",
+   "surface": "芝",
+   "sire": "Shamardal",
+   "line": [
+    "Giant's Causeway",
+    "Storm Cat",
+    "Northern Dancer"
+   ],
+   "dam": "Lady Vettori",
+   "bms": "Vettori",
+   "grandam": "Lady Golconda",
+   "gbms": "Kendor",
+   "bmsLine": [
+    "Vettori",
+    "Machiavellian",
+    "Mr. Prospector"
+   ],
+   "weight": 502,
+   "age2026": 19
+  },
+  {
+   "dist": [
+    1200,
+    2000
+   ],
+   "fee_tier": "S",
+   "growth": "早熟",
+   "name": "Into Mischief",
+   "region": "overseas",
+   "surface": "ダート",
+   "sire": "Harlan's Holiday",
+   "line": [
+    "Harlan",
+    "Storm Cat",
+    "Northern Dancer"
+   ],
+   "dam": "Leslie's Lady",
+   "bms": "Tricky Creek",
+   "grandam": "Crystal Lady",
+   "gbms": "Stop the Music",
+   "bmsLine": [
+    "Tricky Creek",
+    "Clever Trick",
+    "Icecapade"
+   ],
+   "weight": 502,
+   "age2026": 21
+  },
+  {
+   "dist": [
+    1600,
+    2400
+   ],
+   "fee_tier": "A",
+   "growth": "普通",
+   "name": "Justify",
+   "region": "overseas",
+   "surface": "ダート",
+   "sire": "Scat Daddy",
+   "line": [
+    "Johannesburg",
+    "Hennessy",
+    "Storm Cat"
+   ],
+   "dam": "Stage Magic",
+   "bms": "Ghostzapper",
+   "grandam": "Magical Illusion",
+   "gbms": "Pulpit",
+   "bmsLine": [
+    "Ghostzapper",
+    "Awesome Again",
+    "Deputy Minister"
+   ],
+   "weight": 562,
+   "age2026": 11
+  },
+  {
+   "dist": [
+    1600,
+    2200
+   ],
+   "fee_tier": "A",
+   "growth": "普通",
+   "name": "Gun Runner",
+   "region": "overseas",
+   "surface": "ダート",
+   "sire": "Candy Ride",
+   "line": [
+    "Ride the Rails",
+    "Cryptoclearance",
+    "Fappiano"
+   ],
+   "dam": "Quiet Giant",
+   "bms": "Giant's Causeway",
+   "grandam": "Quiet Dance",
+   "gbms": "Quiet American",
+   "weight": 512,
+   "age2026": 13
+  },
+  {
+   "name": "ドウデュース",
+   "region": "domestic",
+   "surface": "芝",
+   "dist": [
+    1800,
+    2500
+   ],
+   "growth": "普通",
+   "fee_tier": "A",
+   "note": "新種牡馬枠",
+   "sire": "ハーツクライ",
+   "line": [
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dam": "ダストアンドダイヤモンズ",
+   "bms": "Vindication",
+   "grandam": "Majestically",
+   "gbms": "Gone West",
+   "bmsLine": [
+    "Vindication",
+    "Seattle Slew",
+    "Bold Reasoning"
+   ],
+   "weight": 472,
+   "age2026": 7
+  },
+  {
+   "name": "エフフォーリア",
+   "region": "domestic",
+   "surface": "芝",
+   "dist": [
+    1800,
+    2500
+   ],
+   "growth": "普通",
+   "fee_tier": "B",
+   "note": "新種牡馬枠",
+   "sire": "エピファネイア",
+   "line": [
+    "シンボリクリスエス",
+    "クリスエス",
+    "ロベルト"
+   ],
+   "dam": "ケイティーズハート",
+   "bms": "ハーツクライ",
+   "grandam": "ケイティーズファースト",
+   "gbms": "Kris",
+   "weight": 506,
+   "age2026": 8
+  },
+  {
+   "name": "シャフリヤール",
+   "region": "domestic",
+   "surface": "芝",
+   "dist": [
+    2000,
+    2600
+   ],
+   "growth": "晩成",
+   "fee_tier": "B",
+   "note": "新種牡馬枠",
+   "sire": "ディープインパクト",
+   "line": [
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dam": "ドバイマジェスティ",
+   "bms": "Essence of Dubai",
+   "grandam": "Great Majesty",
+   "gbms": "Great Above",
+   "bmsLine": [
+    "Essence of Dubai",
+    "Pulpit",
+    "A.P. Indy"
+   ],
+   "weight": 452,
+   "age2026": 8
+  },
+  {
+   "name": "ソールオリエンス",
+   "region": "domestic",
+   "surface": "芝",
+   "dist": [
+    1800,
+    2800
+   ],
+   "growth": "晩成",
+   "fee_tier": "C",
+   "note": "新種牡馬枠",
+   "sire": "キタサンブラック",
+   "line": [
+    "ブラックタイド",
+    "サンデーサイレンス",
+    "ヘイロー"
+   ],
+   "dam": "スキア",
+   "bms": "Motivator",
+   "grandam": "Light Quest",
+   "gbms": "Quest for Fame",
+   "bmsLine": [
+    "Motivator",
+    "Montjeu",
+    "Sadler's Wells"
+   ],
+   "weight": 472,
+   "age2026": 6
+  },
+  {
+   "name": "タスティエーラ",
+   "region": "domestic",
+   "surface": "芝",
+   "dist": [
+    1800,
+    2600
+   ],
+   "growth": "普通",
+   "fee_tier": "C",
+   "note": "新種牡馬枠",
+   "sire": "サトノクラウン",
+   "line": [
+    "Marju",
+    "Last Tycoon",
+    "Try My Best"
+   ],
+   "dam": "パルティトゥーラ",
+   "bms": "マンハッタンカフェ",
+   "grandam": "フォルテピアノ",
+   "gbms": "フレンチデピュティ",
+   "bmsLine": [
+    "マンハッタンカフェ",
+    "サンデーサイレンス",
+    "ヘイロー"
+   ],
+   "weight": 482,
+   "age2026": 6
+  },
+  {
+   "name": "カルストンライトオ",
+   "sire": "ウォーニング",
+   "region": "domestic",
+   "surface": "芝",
+   "dist": [
+    1000,
+    1600
+   ],
+   "growth": "早熟",
+   "fee_tier": "C",
+   "line": [
+    "ノウンファクト",
+    "インリアリティ",
+    "インテンショナリー"
+   ],
+   "dam": "オリーブブランチ",
+   "bms": "リアルシャダイ",
+   "bmsLine": [
+    "リアルシャダイ",
+    "ロベルト",
+    "ヘイルトゥリーズン"
+   ],
+   "weight": 470,
+   "age2026": 28
+  },
+  {
+   "name": "デュランダル",
+   "sire": "サンデーサイレンス",
+   "region": "domestic",
+   "surface": "芝",
+   "dist": [
+    1400,
+    1800
+   ],
+   "growth": "普通",
+   "fee_tier": "C",
+   "line": [
+    "ヘイロー",
+    "ヘイルトゥリーズン",
+    "ターントゥ"
+   ],
+   "dam": "サワヤカプリンセス",
+   "bms": "ノーザンテースト",
+   "bmsLine": [
+    "ノーザンテースト",
+    "ノーザンダンサー",
+    "ニアークティック"
+   ],
+   "weight": 478,
+   "age2026": 27
+  },
+  {
+   "name": "ディープボンド",
+   "sire": "キズナ",
+   "region": "domestic",
+   "surface": "芝",
+   "dist": [
+    2200,
+    3400
+   ],
+   "growth": "晩成",
+   "fee_tier": "C",
+   "line": [
+    "ディープインパクト",
+    "サンデーサイレンス",
+    "ヘイロー"
+   ],
+   "dam": "ゼフィランサス",
+   "bms": "キングヘイロー",
+   "grandam": "モガミヒメ",
+   "gbms": "モガミ",
+   "bmsLine": [
+    "キングヘイロー",
+    "ダンシングブレーヴ",
+    "リファール"
+   ],
+   "jizoku": true,
+   "weight": 484,
+   "age2026": 9
+  },
+  {
+   "name": "メルトスイート",
+   "sire": "バゴ",
+   "region": "domestic",
+   "surface": "ダート",
+   "dist": [
+    1000,
+    1400
+   ],
+   "growth": "早熟",
+   "fee_tier": "C",
+   "line": [
+    "ナシュワン",
+    "ブラッシンググルーム",
+    "レッドゴッド"
+   ],
+   "mutation": true,
+   "dam": "スイートメルト",
+   "bms": "クロフネ",
+   "grandam": "メルトダウン",
+   "gbms": "ゴールドアリュール",
+   "bmsLine": [
+    "クロフネ",
+    "フレンチデピュティ",
+    "デピュティミニスター"
+   ],
+   "weight": 486,
+   "age2026": 6
+  },
+  {
+   "name": "チュウワウィザード",
+   "sire": "キングカメハメハ",
+   "region": "domestic",
+   "surface": "ダート",
+   "dist": [
+    1800,
+    2100
+   ],
+   "growth": "普通",
+   "fee_tier": "C",
+   "line": [
+    "キングカメハメハ",
+    "キングマンボ",
+    "ミスタープロスペクター"
+   ],
+   "dam": "チュウワブロッサム",
+   "bms": "デュランダル",
+   "grandam": "オータムブリーズ",
+   "gbms": "ティンバーカントリー",
+   "bmsLine": [
+    "デュランダル",
+    "サンデーサイレンス",
+    "ヘイロー"
+   ],
+   "weight": 496,
+   "age2026": 11
+  },
+  {
+   "name": "ジオグリフ",
+   "sire": "ドレフォン",
+   "region": "domestic",
+   "surface": "芝",
+   "dist": [
+    1600,
+    2000
+   ],
+   "growth": "普通",
+   "gtype": "普通早",
+   "fee_tier": "B",
+   "line": [
+    "Gio Ponti",
+    "Tale of the Cat",
+    "Storm Cat"
+   ],
+   "dam": "アロマティコ",
+   "bms": "キングカメハメハ",
+   "grandam": "ナスカ",
+   "gbms": "サンデーサイレンス",
+   "bmsLine": [
+    "キングカメハメハ",
+    "キングマンボ",
+    "ミスタープロスペクター"
+   ],
+   "weight": 486,
+   "age2026": 7
+  },
+  {
+   "name": "ピクシーナイト",
+   "sire": "モーリス",
+   "region": "domestic",
+   "surface": "芝",
+   "dist": [
+    1200,
+    1400
+   ],
+   "growth": "早熟",
+   "fee_tier": "C",
+   "line": [
+    "スクリーンヒーロー",
+    "グラスワンダー",
+    "シルヴァーホーク"
+   ],
+   "dam": "ピクシーホロウ",
+   "bms": "キングヘイロー",
+   "grandam": "ラインレジーナ",
+   "gbms": "サクラバクシンオー",
+   "bmsLine": [
+    "キングヘイロー",
+    "ダンシングブレーヴ",
+    "リファール"
+   ],
+   "weight": 492,
+   "age2026": 8
+  },
+  {
+   "name": "アダイヤー",
+   "sire": "Frankel",
+   "region": "domestic",
+   "surface": "芝",
+   "dist": [
+    2000,
+    2400
+   ],
+   "growth": "普通",
+   "fee_tier": "B",
+   "line": [
+    "Galileo",
+    "Sadler's Wells",
+    "Northern Dancer"
+   ],
+   "dam": "アンナサライ",
+   "bms": "Dubawi",
+   "grandam": "Anna Palariva",
+   "gbms": "Caerleon",
+   "bmsLine": [
+    "Dubawi",
+    "Dubai Millennium",
+    "Seeking the Gold"
+   ],
+   "weight": 510,
+   "age2026": 8
+  },
+  {
+   "name": "サンダースノー",
+   "sire": "ヘルメット",
+   "region": "domestic",
+   "surface": "ダート",
+   "dist": [
+    1600,
+    2000
+   ],
+   "growth": "普通",
+   "fee_tier": "C",
+   "line": [
+    "ヘルメット",
+    "エクシードアンドエクセル",
+    "デインヒル",
+    "ノーザンダンサー"
+   ],
+   "dam": "イースタンジョイ",
+   "bms": "ドバイデスティネーション",
+   "grandam": "Red Slippers",
+   "gbms": "Nureyev",
+   "bmsLine": [
+    "ドバイデスティネーション",
+    "キングマンボ",
+    "ミスタープロスペクター"
+   ],
+   "weight": 502,
+   "age2026": 12
+  },
+  {
+   "name": "タワーオブロンドン",
+   "sire": "レイヴンズパス",
+   "region": "domestic",
+   "surface": "芝",
+   "dist": [
+    1200,
+    1600
+   ],
+   "growth": "普通",
+   "gtype": "普通早",
+   "fee_tier": "C",
+   "line": [
+    "レイヴンズパス",
+    "イルーシヴクオリティ",
+    "ゴーンウェスト",
+    "ミスタープロスペクター"
+   ],
+   "dam": "スノーパイン",
+   "bms": "ダラカニ",
+   "grandam": "シンコウエルメス",
+   "gbms": "Sadler's Wells",
+   "bmsLine": [
+    "ダラカニ",
+    "Darshaan",
+    "Shirley Heights"
+   ],
+   "weight": 490,
+   "age2026": 11
+  },
+  {
+   "name": "サトノダイヤモンド",
+   "sire": "ディープインパクト",
+   "dam": "マルペンサ",
+   "bms": "Orpen",
+   "grandam": "マルセラ",
+   "gbms": "サザンヘイロー",
+   "line": [
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dist": [
+    1800,
+    3000
+   ],
+   "surface": "芝",
+   "growth": "早熟",
+   "fee_tier": "C",
+   "region": "domestic",
+   "weight": 506,
+   "age2026": 13
+  },
+  {
+   "name": "リアルスティール",
+   "sire": "ディープインパクト",
+   "dam": "ラヴズオンリーミー",
+   "bms": "Storm Cat",
+   "grandam": "モネヴァッシア",
+   "gbms": "Mr. Prospector",
+   "line": [
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dist": [
+    1800,
+    2400
+   ],
+   "surface": "芝",
+   "growth": "普通",
+   "fee_tier": "A",
+   "region": "domestic",
+   "weight": 506,
+   "age2026": 14
+  },
+  {
+   "name": "ジャスタウェイ",
+   "sire": "ハーツクライ",
+   "dam": "シビル",
+   "bms": "Wild Again",
+   "grandam": "シャロン",
+   "gbms": "Mo Exception",
+   "line": [
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dist": [
+    1600,
+    2000
+   ],
+   "surface": "芝",
+   "growth": "普通",
+   "fee_tier": "B",
+   "region": "domestic",
+   "weight": 498,
+   "age2026": 17
+  },
+  {
+   "name": "ダノンスコーピオン",
+   "sire": "ロードカナロア",
+   "dam": "レキシールー",
+   "bms": "Sligo Bay",
+   "grandam": "Oneexcessivenite",
+   "gbms": "In Excess",
+   "line": [
+    "キングカメハメハ",
+    "キングマンボ",
+    "ミスタープロスペクター"
+   ],
+   "dist": [
+    1400,
+    1600
+   ],
+   "surface": "芝",
+   "growth": "早熟",
+   "fee_tier": "C",
+   "region": "overseas",
+   "weight": 460,
+   "age2026": 7
+  },
+  {
+   "name": "キセキ",
+   "sire": "ルーラーシップ",
+   "dam": "ブリッツフィナーレ",
+   "bms": "ディープインパクト",
+   "grandam": "ロンドンブリッジ",
+   "gbms": "ドクターデヴィアス",
+   "line": [
+    "キングカメハメハ",
+    "キングマンボ",
+    "ミスタープロスペクター"
+   ],
+   "dist": [
+    2000,
+    3000
+   ],
+   "surface": "芝",
+   "growth": "普通",
+   "fee_tier": "C",
+   "region": "domestic",
+   "weight": 508,
+   "age2026": 12
+  },
+  {
+   "name": "レモンポップ",
+   "sire": "Lemon Drop Kid",
+   "dam": "Unreachable",
+   "bms": "Giant's Causeway",
+   "grandam": "Harpia",
+   "gbms": "Danzig",
+   "line": [
+    "キングマンボ",
+    "ミスタープロスペクター",
+    "レイズアネイティヴ"
+   ],
+   "dist": [
+    1400,
+    1800
+   ],
+   "surface": "ダート",
+   "growth": "普通",
+   "fee_tier": "B",
+   "region": "domestic",
+   "weight": 518,
+   "age2026": 8
+  },
+  {
+   "name": "パンサラッサ",
+   "sire": "ロードカナロア",
+   "dam": "ミスペンバリー",
+   "bms": "Montjeu",
+   "grandam": "スティッチング",
+   "gbms": "ハイエステイト",
+   "line": [
+    "キングカメハメハ",
+    "キングマンボ",
+    "ミスタープロスペクター"
+   ],
+   "dist": [
+    1800,
+    2000
+   ],
+   "surface": "芝",
+   "growth": "普通",
+   "fee_tier": "B",
+   "region": "domestic",
+   "weight": 480,
+   "age2026": 9
+  },
+  {
+   "name": "ウシュバテソーロ",
+   "sire": "オルフェーヴル",
+   "dam": "ミルフィアタッチ",
+   "bms": "キングカメハメハ",
+   "grandam": "シジェームサン",
+   "gbms": "Septieme Ciel",
+   "line": [
+    "ステイゴールド",
+    "サンデーサイレンス",
+    "ヘイロー"
+   ],
+   "dist": [
+    1800,
+    2100
+   ],
+   "surface": "ダート",
+   "growth": "晩成",
+   "fee_tier": "B",
+   "region": "domestic",
+   "weight": 524,
+   "age2026": 9
+  },
+  {
+   "name": "オーギュストロダン",
+   "sire": "ディープインパクト",
+   "dam": "ロードデンドロン",
+   "bms": "Galileo",
+   "grandam": "Halfway To Heaven",
+   "gbms": "Pivotal",
+   "line": [
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dist": [
+    1600,
+    2400
+   ],
+   "surface": "芝",
+   "growth": "早熟",
+   "fee_tier": "A",
+   "region": "overseas",
+   "weight": 454,
+   "age2026": 6
+  },
+  {
+   "name": "フライトライン",
+   "sire": "Tapit",
+   "dam": "Feathered",
+   "bms": "Indian Charlie",
+   "grandam": "Receipt",
+   "gbms": "Dynaformer",
+   "line": [
+    "Pulpit",
+    "A.P. Indy",
+    "Seattle Slew"
+   ],
+   "dist": [
+    1400,
+    2000
+   ],
+   "surface": "ダート",
+   "growth": "普通",
+   "fee_tier": "S",
+   "region": "overseas",
+   "weight": 508,
+   "age2026": 8
+  },
+  {
+   "name": "ダノンプレミアム",
+   "sire": "ディープインパクト",
+   "dam": "インディアナギャル",
+   "bms": "Intikhab",
+   "grandam": "Genial Jenny",
+   "gbms": "Danehill",
+   "line": [
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dist": [
+    1600,
+    2000
+   ],
+   "surface": "芝",
+   "growth": "早熟",
+   "fee_tier": "C",
+   "region": "domestic",
+   "weight": 498,
+   "age2026": 11
+  },
+  {
+   "name": "アルアイン",
+   "sire": "ディープインパクト",
+   "dam": "ドバイマジェスティ",
+   "bms": "Essence of Dubai",
+   "grandam": "Great Majesty",
+   "gbms": "Great Above",
+   "line": [
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dist": [
+    1800,
+    2000
+   ],
+   "surface": "芝",
+   "growth": "普通",
+   "fee_tier": "C",
+   "region": "domestic",
+   "weight": 518,
+   "age2026": 12
+  },
+  {
+   "name": "マカヒキ",
+   "sire": "ディープインパクト",
+   "dam": "ウィキウィキ",
+   "bms": "フレンチデピュティ",
+   "grandam": "リアルナンバー",
+   "gbms": "Rainbow Corner",
+   "line": [
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dist": [
+    2000,
+    2400
+   ],
+   "surface": "芝",
+   "growth": "早熟",
+   "fee_tier": "C",
+   "region": "domestic",
+   "weight": 502,
+   "age2026": 13
+  },
+  {
+   "name": "ジャスティンミラノ",
+   "sire": "キズナ",
+   "dam": "マーゴットディド",
+   "bms": "Exceed And Excel",
+   "grandam": "Special Dancer",
+   "gbms": "Shareef Dancer",
+   "line": [
+    "ディープインパクト",
+    "サンデーサイレンス",
+    "ヘイロー"
+   ],
+   "dist": [
+    1800,
+    2400
+   ],
+   "surface": "芝",
+   "growth": "早熟",
+   "fee_tier": "A",
+   "region": "domestic",
+   "weight": 512,
+   "age2026": 5
+  },
+  {
+   "name": "グローリーヴェイズ",
+   "sire": "ディープインパクト",
+   "dam": "メジロツボネ",
+   "bms": "スウェプトオーヴァーボード",
+   "grandam": "メジロルバート",
+   "gbms": "メジロライアン",
+   "line": [
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dist": [
+    2400,
+    3200
+   ],
+   "surface": "芝",
+   "growth": "普通",
+   "fee_tier": "C",
+   "region": "domestic",
+   "weight": 456,
+   "age2026": 11
+  },
+  {
+   "name": "ステファノス",
+   "sire": "ディープインパクト",
+   "dam": "ココシュニック",
+   "bms": "クロフネ",
+   "grandam": "ゴールドティアラ",
+   "gbms": "Seeking the Gold",
+   "line": [
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dist": [
+    1600,
+    2200
+   ],
+   "surface": "芝",
+   "growth": "普通",
+   "fee_tier": "C",
+   "region": "overseas",
+   "weight": 486,
+   "age2026": 15
+  },
+  {
+   "name": "セリフォス",
+   "sire": "ダイワメジャー",
+   "dam": "シーフロント",
+   "bms": "Le Havre",
+   "grandam": "Freedom Herself",
+   "gbms": "Freedom Cry",
+   "line": [
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dist": [
+    1600,
+    1600
+   ],
+   "surface": "芝",
+   "growth": "早熟",
+   "fee_tier": "B",
+   "region": "domestic",
+   "weight": 486,
+   "age2026": 7
+  },
+  {
+   "name": "ダノンキングリー",
+   "sire": "ディープインパクト",
+   "dam": "マイグッドネス",
+   "bms": "Storm Cat",
+   "grandam": "カレシング",
+   "gbms": "Honour and Glory",
+   "line": [
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dist": [
+    1600,
+    1800
+   ],
+   "surface": "芝",
+   "growth": "普通",
+   "fee_tier": "C",
+   "region": "domestic",
+   "weight": 456,
+   "age2026": 10
+  },
+  {
+   "name": "グレーターロンドン",
+   "sire": "ディープインパクト",
+   "dam": "ロンドンブリッジ",
+   "bms": "ドクターデヴィアス",
+   "grandam": "オールフォーロンドン",
+   "gbms": "Danzig",
+   "line": [
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dist": [
+    1400,
+    1800
+   ],
+   "surface": "芝",
+   "growth": "晩成",
+   "fee_tier": "C",
+   "region": "domestic",
+   "weight": 468,
+   "age2026": 14
+  },
+  {
+   "name": "ヴィクトワールピサ",
+   "sire": "ネオユニヴァース",
+   "dam": "ホワイトウォーターアフェア",
+   "bms": "Machiavellian",
+   "grandam": "Much Too Risky",
+   "gbms": "Bustino",
+   "line": [
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dist": [
+    1800,
+    2500
+   ],
+   "surface": "芝",
+   "growth": "早熟",
+   "fee_tier": "B",
+   "region": "overseas",
+   "weight": 512,
+   "age2026": 19
+  },
+  {
+   "name": "ダノンスマッシュ",
+   "sire": "ロードカナロア",
+   "dam": "スピニングワイルドキャット",
+   "bms": "ハードスパン",
+   "grandam": "Hollywood Wildcat",
+   "gbms": "Kris S.",
+   "line": [
+    "キングカメハメハ",
+    "キングマンボ",
+    "ミスタープロスペクター"
+   ],
+   "dist": [
+    1200,
+    1200
+   ],
+   "surface": "芝",
+   "growth": "晩成",
+   "fee_tier": "B",
+   "region": "domestic",
+   "weight": 472,
+   "age2026": 11
+  },
+  {
+   "name": "アジアエクスプレス",
+   "sire": "ヘニーヒューズ",
+   "dam": "ランニングボブキャッツ",
+   "bms": "Running Stag",
+   "grandam": "Backatem",
+   "gbms": "Notebook",
+   "line": [
+    "Hennessy",
+    "Storm Cat",
+    "Storm Bird"
+   ],
+   "dist": [
+    1400,
+    1800
+   ],
+   "surface": "ダート",
+   "growth": "早熟",
+   "fee_tier": "C",
+   "region": "domestic",
+   "weight": 534,
+   "age2026": 15
+  },
+  {
+   "name": "モズアスコット",
+   "sire": "Frankel",
+   "dam": "India",
+   "bms": "ヘネシー",
+   "grandam": "Misty Hour",
+   "gbms": "Miswaki",
+   "line": [
+    "Galileo",
+    "Sadler's Wells",
+    "Northern Dancer"
+   ],
+   "dist": [
+    1400,
+    1600
+   ],
+   "surface": "芝",
+   "growth": "普通",
+   "fee_tier": "B",
+   "region": "domestic",
+   "weight": 488,
+   "age2026": 12
+  },
+  {
+   "name": "アラビアンナイト",
+   "sire": "Uncle Mo",
+   "dam": "Borealis Night",
+   "bms": "Astrology",
+   "grandam": "Winter Forest",
+   "gbms": "Forestry",
+   "line": [
+    "Indian Charlie",
+    "In Excess",
+    "Siberian Express"
+   ],
+   "dist": [
+    1400,
+    2000
+   ],
+   "surface": "ダート",
+   "growth": "早熟",
+   "fee_tier": "B",
+   "region": "overseas",
+   "weight": 508,
+   "age2026": 6
+  },
+  {
+   "name": "スマートファルコン",
+   "sire": "ゴールドアリュール",
+   "dam": "ケイシュウハーブ",
+   "bms": "ミシシッピアン",
+   "grandam": "キョウエイシラユキ",
+   "gbms": "クラウンドプリンス",
+   "line": [
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dist": [
+    1800,
+    2400
+   ],
+   "surface": "ダート",
+   "growth": "晩成",
+   "fee_tier": "C",
+   "region": "domestic",
+   "weight": 513,
+   "age2026": 21
+  },
+  {
+   "name": "ルヴァンスレーヴ",
+   "sire": "シンボリクリスエス",
+   "dam": "マエストラーレ",
+   "bms": "ネオユニヴァース",
+   "grandam": "オータムブリーズ",
+   "gbms": "ティンバーカントリー",
+   "line": [
+    "クリスエス",
+    "ロベルト",
+    "ヘイルトゥリーズン"
+   ],
+   "dist": [
+    1600,
+    2000
+   ],
+   "surface": "ダート",
+   "growth": "早熟",
+   "fee_tier": "B",
+   "region": "domestic",
+   "weight": 490,
+   "age2026": 11
+  },
+  {
+   "name": "ダノンレジェンド",
+   "sire": "Macho Uno",
+   "dam": "マイグッドネス",
+   "bms": "Storm Cat",
+   "grandam": "カレシング",
+   "gbms": "Honour and Glory",
+   "line": [
+    "Holy Bull",
+    "Great Above",
+    "Minnesota Mac"
+   ],
+   "dist": [
+    1200,
+    1400
+   ],
+   "surface": "ダート",
+   "growth": "晩成",
+   "fee_tier": "C",
+   "region": "domestic",
+   "weight": 445,
+   "age2026": 16
+  },
+  {
+   "name": "ベストウォーリア",
+   "sire": "マジェスティックウォリアー",
+   "dam": "Flirtatious Miss",
+   "bms": "Mr. Greeley",
+   "grandam": "Seductive Smile",
+   "gbms": "Silver Hawk",
+   "line": [
+    "A.P. Indy",
+    "Seattle Slew",
+    "Bold Reasoning"
+   ],
+   "dist": [
+    1400,
+    1600
+   ],
+   "surface": "ダート",
+   "growth": "普通",
+   "fee_tier": "C",
+   "region": "domestic",
+   "weight": 506,
+   "age2026": 16
+  },
+  {
+   "name": "アメリカンファラオ",
+   "sire": "Pioneerof the Nile",
+   "dam": "Littleprincessemma",
+   "bms": "Yankee Gentleman",
+   "grandam": "Exclusive Rosette",
+   "gbms": "Ecliptical",
+   "line": [
+    "Empire Maker",
+    "Unbridled",
+    "Fappiano"
+   ],
+   "dist": [
+    1400,
+    2400
+   ],
+   "surface": "ダート",
+   "growth": "早熟",
+   "fee_tier": "S",
+   "region": "overseas",
+   "weight": 516,
+   "age2026": 14
+  },
+  {
+   "name": "コンスティテューション",
+   "sire": "Tapit",
+   "dam": "Baffled",
+   "bms": "Distorted Humor",
+   "grandam": "Surf Club",
+   "gbms": "Ocean Crest",
+   "line": [
+    "Pulpit",
+    "A.P. Indy",
+    "Seattle Slew"
+   ],
+   "dist": [
+    1400,
+    1800
+   ],
+   "surface": "ダート",
+   "growth": "普通",
+   "fee_tier": "A",
+   "region": "overseas",
+   "weight": 508,
+   "age2026": 15
+  },
+  {
+   "name": "クオリティロード",
+   "sire": "Elusive Quality",
+   "dam": "Kobla",
+   "bms": "Strawberry Road",
+   "grandam": "Winglet",
+   "gbms": "Alydar",
+   "line": [
+    "Gone West",
+    "Mr. Prospector",
+    "Raise a Native"
+   ],
+   "dist": [
+    1600,
+    1800
+   ],
+   "surface": "ダート",
+   "growth": "普通",
+   "fee_tier": "A",
+   "region": "overseas",
+   "weight": 508,
+   "age2026": 20
+  },
+  {
+   "name": "カーリン",
+   "sire": "Smart Strike",
+   "dam": "Sherriff's Deputy",
+   "bms": "Deputy Minister",
+   "grandam": "Barbarika",
+   "gbms": "Bates Motel",
+   "line": [
+    "Mr. Prospector",
+    "Raise a Native",
+    "Native Dancer"
+   ],
+   "dist": [
+    1700,
+    2000
+   ],
+   "surface": "ダート",
+   "growth": "普通",
+   "fee_tier": "A",
+   "region": "overseas",
+   "weight": 516,
+   "age2026": 22
+  },
+  {
+   "name": "ノットディスタイム",
+   "sire": "Giant's Causeway",
+   "dam": "Miss Macy Sue",
+   "bms": "Trippi",
+   "grandam": "Yada Yada",
+   "gbms": "Great Above",
+   "line": [
+    "Storm Cat",
+    "Northern Dancer",
+    "Nearctic"
+   ],
+   "dist": [
+    1200,
+    1700
+   ],
+   "surface": "ダート",
+   "growth": "早熟",
+   "fee_tier": "A",
+   "region": "overseas",
+   "weight": 508,
+   "age2026": 12
+  },
+  {
+   "name": "ライフイズグッド",
+   "sire": "Into Mischief",
+   "dam": "Beach Walk",
+   "bms": "Distorted Humor",
+   "grandam": "Bonnie Blue Flag",
+   "gbms": "Mineshaft",
+   "line": [
+    "Harlan's Holiday",
+    "Harlan",
+    "Storm Cat"
+   ],
+   "dist": [
+    1400,
+    1800
+   ],
+   "surface": "ダート",
+   "growth": "普通",
+   "fee_tier": "B",
+   "region": "overseas",
+   "weight": 508,
+   "age2026": 8
+  },
+  {
+   "name": "エリートパワー",
+   "sire": "Curlin",
+   "dam": "Broadway's Alibi",
+   "bms": "Vindication",
+   "grandam": "Broadway Gold",
+   "gbms": "Seeking the Gold",
+   "line": [
+    "Smart Strike",
+    "Mr. Prospector",
+    "Raise a Native"
+   ],
+   "dist": [
+    1200,
+    1400
+   ],
+   "surface": "ダート",
+   "growth": "普通",
+   "fee_tier": "B",
+   "region": "overseas",
+   "weight": 500,
+   "age2026": 8
+  },
+  {
+   "name": "フォルテ",
+   "sire": "Violence",
+   "dam": "Queen Caroline",
+   "bms": "Blame",
+   "grandam": "Queens Plaza",
+   "gbms": "Forestry",
+   "line": [
+    "Medaglia d'Oro",
+    "El Prado",
+    "Sadler's Wells"
+   ],
+   "dist": [
+    1400,
+    1800
+   ],
+   "surface": "ダート",
+   "growth": "早熟",
+   "fee_tier": "B",
+   "region": "overseas",
+   "weight": 508,
+   "age2026": 6
+  },
+  {
+   "name": "アルカンジェロ",
+   "sire": "Arrogate",
+   "dam": "Modeling",
+   "bms": "Tapit",
+   "grandam": "Teeming",
+   "gbms": "Storm Cat",
+   "line": [
+    "Unbridled's Song",
+    "Unbridled",
+    "Fappiano"
+   ],
+   "dist": [
+    1800,
+    2400
+   ],
+   "surface": "ダート",
+   "growth": "早熟",
+   "fee_tier": "B",
+   "region": "overseas",
+   "weight": 516,
+   "age2026": 6
+  },
+  {
+   "name": "ジャッキーズウォリアー",
+   "sire": "Maclean's Music",
+   "dam": "Unicorn Girl",
+   "bms": "A. P. Five Hundred",
+   "grandam": "Horah for Bailey",
+   "gbms": "Doneraile Court",
+   "line": [
+    "Distorted Humor",
+    "Forty Niner",
+    "Mr. Prospector"
+   ],
+   "dist": [
+    1200,
+    1600
+   ],
+   "surface": "ダート",
+   "growth": "早熟",
+   "fee_tier": "B",
+   "region": "overseas",
+   "weight": 508,
+   "age2026": 8
+  },
+  {
+   "name": "シティオブトロイ",
+   "sire": "Justify",
+   "dam": "Together Forever",
+   "bms": "Galileo",
+   "grandam": "Green Room",
+   "gbms": "Theatrical",
+   "line": [
+    "Scat Daddy",
+    "Johannesburg",
+    "Hennessy"
+   ],
+   "dist": [
+    1400,
+    2400
+   ],
+   "surface": "芝",
+   "growth": "早熟",
+   "fee_tier": "A",
+   "region": "overseas",
+   "weight": 506,
+   "age2026": 5
+  },
+  {
+   "name": "パディントン",
+   "sire": "Siyouni",
+   "dam": "Modern Eagle",
+   "bms": "Montjeu",
+   "grandam": "Millionaia",
+   "gbms": "Peintre Celebre",
+   "line": [
+    "Pivotal",
+    "Polar Falcon",
+    "Nureyev"
+   ],
+   "dist": [
+    1400,
+    2000
+   ],
+   "surface": "芝",
+   "growth": "早熟",
+   "fee_tier": "B",
+   "region": "overseas",
+   "weight": 498,
+   "age2026": 6
+  },
+  {
+   "name": "エースインパクト",
+   "sire": "Cracksman",
+   "dam": "Absolutly Me",
+   "bms": "Anabaa Blue",
+   "grandam": "Tadawul",
+   "gbms": "Diesis",
+   "line": [
+    "Frankel",
+    "Galileo",
+    "Sadler's Wells"
+   ],
+   "dist": [
+    2000,
+    2400
+   ],
+   "surface": "芝",
+   "growth": "早熟",
+   "fee_tier": "A",
+   "region": "overseas",
+   "weight": 514,
+   "age2026": 6
+  },
+  {
+   "name": "ブルーポイント",
+   "sire": "Shamardal",
+   "dam": "Scarlett Rose",
+   "bms": "Royal Applause",
+   "grandam": "Billie Blue",
+   "gbms": "Ballad Rock",
+   "line": [
+    "Giant's Causeway",
+    "Storm Cat",
+    "Northern Dancer"
+   ],
+   "dist": [
+    1000,
+    1200
+   ],
+   "surface": "芝",
+   "growth": "普通",
+   "fee_tier": "A",
+   "region": "overseas",
+   "weight": 490,
+   "age2026": 12
+  },
+  {
+   "name": "トゥーダーンホット",
+   "sire": "Dubawi",
+   "dam": "Dar Re Mi",
+   "bms": "Singspiel",
+   "grandam": "Darara",
+   "gbms": "Top Ville",
+   "line": [
+    "Dubai Millennium",
+    "Seeking the Gold",
+    "Mr. Prospector"
+   ],
+   "dist": [
+    1400,
+    1600
+   ],
+   "surface": "芝",
+   "growth": "早熟",
+   "fee_tier": "A",
+   "region": "overseas",
+   "weight": 498,
+   "age2026": 10
+  },
+  {
+   "name": "ピナトゥボ",
+   "sire": "Shamardal",
+   "dam": "Lava Flow",
+   "bms": "Dalakhani",
+   "grandam": "Mount Elbrus",
+   "gbms": "Barathea",
+   "line": [
+    "Giant's Causeway",
+    "Storm Cat",
+    "Northern Dancer"
+   ],
+   "dist": [
+    1200,
+    1600
+   ],
+   "surface": "芝",
+   "growth": "早熟",
+   "fee_tier": "B",
+   "region": "overseas",
+   "weight": 498,
+   "age2026": 9
+  },
+  {
+   "name": "ガイヤース",
+   "sire": "Dubawi",
+   "dam": "Nightime",
+   "bms": "Galileo",
+   "grandam": "Caumshinaun",
+   "gbms": "Indian Ridge",
+   "line": [
+    "Dubai Millennium",
+    "Seeking the Gold",
+    "Mr. Prospector"
+   ],
+   "dist": [
+    2000,
+    2400
+   ],
+   "surface": "芝",
+   "growth": "普通",
+   "fee_tier": "B",
+   "region": "overseas",
+   "weight": 514,
+   "age2026": 11
+  },
+  {
+   "name": "セントマークスバシリカ",
+   "sire": "Siyouni",
+   "dam": "Cabaret",
+   "bms": "Galileo",
+   "grandam": "Witch of Fife",
+   "gbms": "Lear Fan",
+   "line": [
+    "Pivotal",
+    "Polar Falcon",
+    "Nureyev"
+   ],
+   "dist": [
+    1400,
+    2100
+   ],
+   "surface": "芝",
+   "growth": "早熟",
+   "fee_tier": "B",
+   "region": "overseas",
+   "weight": 506,
+   "age2026": 8
+  },
+  {
+   "name": "キャメロット",
+   "sire": "Montjeu",
+   "dam": "Tarfah",
+   "bms": "Kingmambo",
+   "grandam": "Fickle",
+   "gbms": "Danehill",
+   "line": [
+    "Sadler's Wells",
+    "Northern Dancer",
+    "Nearctic"
+   ],
+   "dist": [
+    1600,
+    2400
+   ],
+   "surface": "芝",
+   "growth": "早熟",
+   "fee_tier": "B",
+   "region": "overseas",
+   "weight": 506,
+   "age2026": 17
+  },
+  {
+   "name": "ノーネイネヴァー",
+   "sire": "Scat Daddy",
+   "dam": "Cat's Eye Witness",
+   "bms": "Elusive Quality",
+   "grandam": "Comical Cat",
+   "gbms": "Exceller",
+   "line": [
+    "Johannesburg",
+    "Hennessy",
+    "Storm Cat"
+   ],
+   "dist": [
+    1000,
+    1200
+   ],
+   "surface": "芝",
+   "growth": "早熟",
+   "fee_tier": "A",
+   "region": "overseas",
+   "weight": 490,
+   "age2026": 15
+  },
+  {
+   "name": "ゾウスター",
+   "sire": "Northern Meteor",
+   "dam": "Zouzou",
+   "bms": "Redoute's Choice",
+   "grandam": "Meteor Mist",
+   "gbms": "Star Shower",
+   "line": [
+    "Encosta de Lago",
+    "Fairy King",
+    "Northern Dancer"
+   ],
+   "dist": [
+    1200,
+    1400
+   ],
+   "surface": "芝",
+   "growth": "早熟",
+   "fee_tier": "A",
+   "region": "overseas",
+   "weight": 490,
+   "age2026": 16
+  },
+  {
+   "name": "アイアムインヴィンシブル",
+   "sire": "Invincible Spirit",
+   "dam": "Cannarelle",
+   "bms": "Canny Lad",
+   "grandam": "Countess Pedrille",
+   "gbms": "Zoffany",
+   "line": [
+    "Green Desert",
+    "Danzig",
+    "Northern Dancer"
+   ],
+   "dist": [
+    1000,
+    1200
+   ],
+   "surface": "芝",
+   "growth": "普通",
+   "fee_tier": "S",
+   "region": "overseas",
+   "weight": 490,
+   "age2026": 22
+  },
+  {
+   "name": "トロナド",
+   "sire": "High Chaparral",
+   "dam": "Wana Doo",
+   "bms": "Grand Slam",
+   "grandam": "Wedding Gift",
+   "gbms": "Always Fair",
+   "line": [
+    "Sadler's Wells",
+    "Northern Dancer",
+    "Nearctic"
+   ],
+   "dist": [
+    1400,
+    1600
+   ],
+   "surface": "芝",
+   "growth": "普通",
+   "fee_tier": "B",
+   "region": "overseas",
+   "weight": 498,
+   "age2026": 16
+  },
+  {
+   "name": "ザオータムサン",
+   "sire": "Redoute's Choice",
+   "dam": "Azmiyna",
+   "bms": "Galileo",
+   "grandam": "Asmara",
+   "gbms": "Lear Fan",
+   "line": [
+    "Danehill",
+    "Danzig",
+    "Northern Dancer"
+   ],
+   "dist": [
+    1400,
+    2000
+   ],
+   "surface": "芝",
+   "growth": "早熟",
+   "fee_tier": "B",
+   "region": "overseas",
+   "weight": 498,
+   "age2026": 11
+  },
+  {
+   "name": "デュンデル",
+   "sire": "High Chaparral",
+   "dam": "Stareel",
+   "bms": "Zabeel",
+   "grandam": "Staring",
+   "gbms": "Fiesta Star",
+   "line": [
+    "Sadler's Wells",
+    "Northern Dancer",
+    "Nearctic"
+   ],
+   "dist": [
+    1600,
+    2400
+   ],
+   "surface": "芝",
+   "growth": "普通",
+   "fee_tier": "B",
+   "region": "overseas",
+   "weight": 506,
+   "age2026": 17
+  },
+  {
+   "name": "ステイインサイド",
+   "sire": "Extreme Choice",
+   "dam": "Nothin Leica Storm",
+   "bms": "Anabaa",
+   "grandam": "Nothin' Leica",
+   "gbms": "Nothin' Leica Dane",
+   "line": [
+    "Not A Single Doubt",
+    "Redoute's Choice",
+    "Danehill"
+   ],
+   "dist": [
+    1100,
+    1200
+   ],
+   "surface": "芝",
+   "growth": "早熟",
+   "fee_tier": "B",
+   "region": "overseas",
+   "weight": 490,
+   "age2026": 8
+  },
+  {
+   "name": "エクストリームチョイス",
+   "sire": "Not A Single Doubt",
+   "dam": "Extremely",
+   "bms": "Hussonet",
+   "grandam": "Going to Extremes",
+   "gbms": "Nasty and Bold",
+   "line": [
+    "Redoute's Choice",
+    "Danehill",
+    "Danzig"
+   ],
+   "dist": [
+    1000,
+    1200
+   ],
+   "surface": "芝",
+   "growth": "早熟",
+   "fee_tier": "S",
+   "region": "overseas",
+   "weight": 490,
+   "age2026": 13
+  },
+  {
+   "name": "キャピタリスト",
+   "sire": "Written Tycoon",
+   "dam": "Kitalpha",
+   "bms": "Fusaichi Pegasus",
+   "grandam": "Compulsion",
+   "gbms": "Danehill",
+   "line": [
+    "Iglesia",
+    "Last Tycoon",
+    "Try My Best"
+   ],
+   "dist": [
+    1000,
+    1200
+   ],
+   "surface": "芝",
+   "growth": "早熟",
+   "fee_tier": "B",
+   "region": "overseas",
+   "weight": 490,
+   "age2026": 13
+  },
+  {
+   "name": "オールトゥーハード",
+   "sire": "Casino Prince",
+   "dam": "Helsinge",
+   "bms": "Desert Sun",
+   "grandam": "Scandinavia",
+   "gbms": "Snippets",
+   "line": [
+    "Flying Spur",
+    "Danehill",
+    "Danzig"
+   ],
+   "dist": [
+    1100,
+    1600
+   ],
+   "surface": "芝",
+   "growth": "早熟",
+   "fee_tier": "C",
+   "region": "overseas",
+   "weight": 498,
+   "age2026": 17
+  },
+  {
+   "name": "ハリーエンジェル",
+   "sire": "Dark Angel",
+   "dam": "Beatrix Potter",
+   "bms": "Cadeaux Genereux",
+   "grandam": "Great Joy",
+   "gbms": "Grand Lodge",
+   "line": [
+    "Acclamation",
+    "Royal Applause",
+    "Waajib"
+   ],
+   "dist": [
+    1200,
+    1200
+   ],
+   "surface": "芝",
+   "growth": "早熟",
+   "fee_tier": "B",
+   "region": "overseas",
+   "weight": 490,
+   "age2026": 12
+  },
+  {
+   "name": "キズナ",
+   "sire": "ディープインパクト",
+   "dam": "キャットクイル",
+   "bms": "Storm Cat",
+   "grandam": "Pacific Princess",
+   "gbms": "Damascus",
+   "line": [
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dist": [
+    1800,
+    2400
+   ],
+   "surface": "芝",
+   "growth": "早熟",
+   "fee_tier": "S",
+   "region": "domestic",
+   "weight": 480,
+   "age2026": 16
+  },
+  {
+   "name": "ジャックドール",
+   "sire": "モーリス",
+   "dam": "ラヴァリーノ",
+   "bms": "Unbridled's Song",
+   "grandam": "スーアンタンデュ",
+   "gbms": "Shadeed",
+   "line": [
+    "スクリーンヒーロー",
+    "グラスワンダー",
+    "シルヴァーホーク"
+   ],
+   "dist": [
+    1600,
+    2000
+   ],
+   "surface": "芝",
+   "growth": "普通",
+   "fee_tier": "C",
+   "region": "domestic",
+   "weight": 512,
+   "age2026": 8
+  },
+  {
+   "name": "シュネルマイスター",
+   "sire": "Kingman",
+   "dam": "セリエンホルデ",
+   "bms": "Soldier Hollow",
+   "grandam": "ザルデネーレ",
+   "gbms": "Highest Honor",
+   "line": [
+    "Invincible Spirit",
+    "Green Desert",
+    "Danzig"
+   ],
+   "dist": [
+    1500,
+    1800
+   ],
+   "surface": "芝",
+   "growth": "早熟",
+   "fee_tier": "B",
+   "region": "domestic",
+   "weight": 480,
+   "age2026": 8
+  },
+  {
+   "name": "エイシンヒカリ",
+   "sire": "ディープインパクト",
+   "dam": "キャタリナ",
+   "bms": "Storm Cat",
+   "grandam": "カロライナサガ",
+   "gbms": "Caro",
+   "line": [
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dist": [
+    1800,
+    2000
+   ],
+   "surface": "芝",
+   "growth": "普通",
+   "fee_tier": "C",
+   "region": "domestic",
+   "weight": 504,
+   "age2026": 15
+  },
+  {
+   "name": "ミッキーロケット",
+   "sire": "キングカメハメハ",
+   "dam": "マネーキャントバイミーラヴ",
+   "bms": "Pivotal",
+   "grandam": "サブリアン",
+   "gbms": "Caerleon",
+   "line": [
+    "キングマンボ",
+    "ミスタープロスペクター",
+    "レイズアネイティヴ"
+   ],
+   "dist": [
+    2200,
+    2400
+   ],
+   "surface": "芝",
+   "growth": "普通",
+   "fee_tier": "C",
+   "region": "domestic",
+   "weight": 476,
+   "age2026": 13
+  },
+  {
+   "name": "シルバーステート",
+   "sire": "ディープインパクト",
+   "dam": "シルヴァースカヤ",
+   "bms": "Silver Hawk",
+   "grandam": "Boubskaia",
+   "gbms": "Niniski",
+   "line": [
+    "サンデーサイレンス",
+    "ヘイロー",
+    "ヘイルトゥリーズン"
+   ],
+   "dist": [
+    1600,
+    2000
+   ],
+   "surface": "芝",
+   "growth": "普通",
+   "fee_tier": "B",
+   "region": "domestic",
+   "weight": 496,
+   "age2026": 13
+  },
+  {
+   "name": "ルクセンブルク",
+   "sire": "Camelot",
+   "dam": "Attire",
+   "bms": "Danehill Dancer",
+   "grandam": "Asnieres",
+   "gbms": "Spend a Buck",
+   "line": [
+    "Montjeu",
+    "Sadler's Wells",
+    "Northern Dancer"
+   ],
+   "dist": [
+    1600,
+    2400
+   ],
+   "surface": "芝",
+   "growth": "早熟",
+   "fee_tier": "C",
+   "region": "overseas",
+   "weight": 506,
+   "age2026": 7
+  },
+  {
+   "name": "アップトゥザマーク",
+   "sire": "Not This Time",
+   "dam": "Belle's Finale",
+   "bms": "Ghostzapper",
+   "grandam": "Capote Belle",
+   "gbms": "Capote",
+   "line": [
+    "Giant's Causeway",
+    "Storm Cat",
+    "Northern Dancer"
+   ],
+   "dist": [
+    1600,
+    2000
+   ],
+   "surface": "芝",
+   "growth": "普通",
+   "fee_tier": "B",
+   "region": "overseas",
+   "weight": 506,
+   "age2026": 7
+  },
+  {
+   "name": "コーディーズウィッシュ",
+   "sire": "Curlin",
+   "dam": "Dance Card",
+   "bms": "Tapit",
+   "grandam": "Tempting Note",
+   "gbms": "Editor's Note",
+   "line": [
+    "Smart Strike",
+    "Mr. Prospector",
+    "Raise a Native"
+   ],
+   "dist": [
+    1400,
+    1600
+   ],
+   "surface": "ダート",
+   "growth": "普通",
+   "fee_tier": "B",
+   "region": "overseas",
+   "weight": 508,
+   "age2026": 8
+  },
+  {
+   "name": "カフェファラオ",
+   "sire": "アメリカンファラオ",
+   "dam": "Mary's Follies",
+   "bms": "More Than Ready",
+   "grandam": "Catch the Queen",
+   "gbms": "Miswaki",
+   "line": [
+    "Pioneerof the Nile",
+    "Empire Maker",
+    "Unbridled"
+   ],
+   "dist": [
+    1600,
+    1900
+   ],
+   "surface": "ダート",
+   "growth": "普通",
+   "fee_tier": "B",
+   "region": "domestic",
+   "weight": 520,
+   "age2026": 9
+  },
+  {
+   "name": "メイショウハリオ",
+   "sire": "パイロ",
+   "dam": "メイショウオウヒ",
+   "bms": "マンハッタンカフェ",
+   "grandam": "アルペンローズ",
+   "gbms": "Kris S.",
+   "line": [
+    "Pulpit",
+    "A.P. Indy",
+    "Seattle Slew"
+   ],
+   "dist": [
+    1600,
+    2100
+   ],
+   "surface": "ダート",
+   "growth": "普通",
+   "fee_tier": "C",
+   "region": "domestic",
+   "weight": 502,
+   "age2026": 9
+  },
+  {
+   "name": "ジュンライトボルト",
+   "sire": "キングカメハメハ",
+   "dam": "スペシャルグルーヴ",
+   "bms": "スペシャルウィーク",
+   "grandam": "ソニックグルーヴ",
+   "gbms": "フレンチデピュティ",
+   "line": [
+    "キングマンボ",
+    "ミスタープロスペクター",
+    "レイズアネイティヴ"
+   ],
+   "dist": [
+    1800,
+    1900
+   ],
+   "surface": "ダート",
+   "growth": "普通",
+   "fee_tier": "C",
+   "region": "domestic",
+   "weight": 486,
+   "age2026": 9
+  },
+  {
+   "name": "ナショナルトレジャー",
+   "sire": "Quality Road",
+   "dam": "Treasure",
+   "bms": "Medaglia d'Oro",
+   "grandam": "Proposal",
+   "gbms": "Mt. Livermore",
+   "line": [
+    "Elusive Quality",
+    "Gone West",
+    "Mr. Prospector"
+   ],
+   "dist": [
+    1800,
+    1900
+   ],
+   "surface": "ダート",
+   "growth": "普通",
+   "fee_tier": "B",
+   "region": "overseas",
+   "weight": 516,
+   "age2026": 6
+  },
+  {
+   "name": "シエラレオーネ",
+   "sire": "Gun Runner",
+   "dam": "Heavenly Love",
+   "bms": "Malibu Moon",
+   "grandam": "Darling My Darling",
+   "gbms": "Deputy Minister",
+   "line": [
+    "Candy Ride",
+    "Ride the Rails",
+    "Cryptoclearance"
+   ],
+   "dist": [
+    1700,
+    2000
+   ],
+   "surface": "ダート",
+   "growth": "早熟",
+   "fee_tier": "A",
+   "region": "overseas",
+   "weight": 516,
+   "age2026": 5
+  },
+  {
+   "name": "ドルノック",
+   "sire": "Good Magic",
+   "dam": "Puca",
+   "bms": "Big Brown",
+   "grandam": "Boat's Ghost",
+   "gbms": "Silver Ghost",
+   "line": [
+    "Curlin",
+    "Smart Strike",
+    "Mr. Prospector"
+   ],
+   "dist": [
+    1700,
+    2000
+   ],
+   "surface": "ダート",
+   "growth": "早熟",
+   "fee_tier": "B",
+   "region": "overseas",
+   "weight": 516,
+   "age2026": 5
+  },
+  {
+   "name": "ロザリオン",
+   "sire": "Blue Point",
+   "dam": "Rosaline",
+   "bms": "New Approach",
+   "grandam": "Reem Three",
+   "gbms": "Mark of Esteem",
+   "line": [
+    "Shamardal",
+    "Giant's Causeway",
+    "Storm Cat"
+   ],
+   "dist": [
+    1400,
+    1600
+   ],
+   "surface": "芝",
+   "growth": "早熟",
+   "fee_tier": "B",
+   "region": "overseas",
+   "weight": 498,
+   "age2026": 5
+  },
+  {
+   "name": "ノータブルスピーチ",
+   "sire": "Dubawi",
+   "dam": "Swift Rose",
+   "bms": "Invincible Spirit",
+   "grandam": "Tulips",
+   "gbms": "Pivotal",
+   "line": [
+    "Dubai Millennium",
+    "Seeking the Gold",
+    "Mr. Prospector"
+   ],
+   "dist": [
+    1400,
+    1600
+   ],
+   "surface": "芝",
+   "growth": "早熟",
+   "fee_tier": "B",
+   "region": "overseas",
+   "weight": 498,
+   "age2026": 5
+  },
+  {
+   "name": "アナモー",
+   "sire": "Street Boss",
+   "dam": "Anamato",
+   "bms": "Redoute's Choice",
+   "grandam": "Voltage",
+   "gbms": "Whiskey Road",
+   "line": [
+    "Street Cry",
+    "Machiavellian",
+    "Mr. Prospector"
+   ],
+   "dist": [
+    1400,
+    2000
+   ],
+   "surface": "芝",
+   "growth": "普通",
+   "fee_tier": "A",
+   "region": "overseas",
+   "weight": 498,
+   "age2026": 8
+  },
+  {
+   "name": "ホームアフェアーズ",
+   "sire": "I Am Invincible",
+   "dam": "Miss Interiors",
+   "bms": "Flying Spur",
+   "grandam": "Ballet d'Amour",
+   "gbms": "Stravinsky",
+   "line": [
+    "Invincible Spirit",
+    "Green Desert",
+    "Danzig"
+   ],
+   "dist": [
+    1000,
+    1200
+   ],
+   "surface": "芝",
+   "growth": "早熟",
+   "fee_tier": "A",
+   "region": "overseas",
+   "weight": 490,
+   "age2026": 8
+  }
+ ]
+}
