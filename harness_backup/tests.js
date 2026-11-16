@@ -933,7 +933,7 @@ function buildFamily(P, dauCount, grandPer){
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
   T('v57 filly retirement flow untouched in build', src.includes("id='retireSellBtn'") && src.includes("id='retireBroodBtn'") && src.includes('繁殖入りしない場合は、そのまま'));
   T('v57 old colt label removed', !src.includes('種牡馬にせず引退する'));
-  T('v57 footer bumped', src.includes('競馬シミュレーター（趣味） v1.2')); /* フッターは現行版に追随（v1.01） */
+  T('v57 footer bumped', src.includes('競馬シミュレーター（趣味） v2.0')); /* フッターは現行版に追随（v1.01） */
 }
 
 // ---- v0.58: kanmuri applies to gift / debug auto-names (regression: suite had NO kanmuri coverage) ----
@@ -1000,7 +1000,7 @@ function buildFamily(P, dauCount, grandPer){
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
   T('v58 build: makeGift uses farmFoalName', src.includes('name:farmFoalName()'));
   T('v58 build: debug fallback uses farmFoalName', src.includes(': farmFoalName()')); /* v0.59 で buildDebugHorse に分離されても自動名は farmFoalName のまま */
-  T('v58 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.2')); /* フッターは現行版に追随（v1.01） */
+  T('v58 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.0')); /* フッターは現行版に追随（v1.01） */
 }
 
 // ---- v0.59: debug creator brought up to current spec + gift affinities initialised at creation ----
@@ -1092,7 +1092,7 @@ function buildFamily(P, dauCount, grandPer){
   T('v59 build: affinity controls present', src.includes('"dbgRootAff"') && src.includes('"dbgYuso"') && src.includes('"dbgCourseBulk"'));
   T('v11 build: rootDist debug control removed', !src.includes('dbgRootDist'));
   T('v59 build: param range note present', src.includes('パラメータ通常 35〜85'));
-  T('v59 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.2'));
+  T('v59 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.0'));
 }
 
 
@@ -1177,7 +1177,7 @@ function buildFamily(P, dauCount, grandPer){
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
   T('v100 build: SAVE_KEY bumped to v8', src.includes('nkc_whc_keiba_proto_v8'));
   T('v100 build: import refuses pre-rework saves', src.includes('data.calVer !== 2') && src.includes('カレンダー再編（v1.00）より前の形式のため読み込めません'));
-  T('v100 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.2'));
+  T('v100 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.0'));
   T('v100 build: skip week 5 option exists', src.includes('<option>5</option>'));
 }
 
@@ -1263,7 +1263,7 @@ function buildFamily(P, dauCount, grandPer){
 {
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
   T('v101 build: fixed gift models present', src.includes('ケイティーズハート') && src.includes('スタセリタ') && src.includes('エンドスウィープ'));
-  T('v101 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.2'));
+  T('v101 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.0'));
 }
 
 // ---- v1.01: roster expansion 54 -> 60 (Terai, 2026-11-15) ----
@@ -1453,7 +1453,7 @@ function buildFamily(P, dauCount, grandPer){
 // ---- v1.02: スマホ横画面・小画面対応（表示のみ。構造の確認） ----
 {
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
-  T('v102 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.2'));
+  T('v102 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.0'));
   T('v102 build: compact media queries present', src.includes('@media (max-width:640px), (max-height:500px)'));
   T('v102 build: tscroll wrapper css', src.includes('.tscroll { overflow-x:auto'));
   T('v102 build: wrapTables defined', src.includes('function wrapTables(root)'));
@@ -1473,7 +1473,7 @@ function buildFamily(P, dauCount, grandPer){
 // ---- v1.03: compact 表示をもう一段締める（表示のみ。構造の確認） ----
 {
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
-  T('v103 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.2'));
+  T('v103 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.0'));
   T('v103 build: compact base font 13.5px', src.includes('body { font-size:13.5px; line-height:1.5; }'));
   T('v103 build: modal h2 17px', src.includes('.modal h2 { font-size:17px; }'));
   T('v103 build: h3 14.5px', src.includes('h3 { font-size:14.5px; margin:12px 0 6px; }'));
@@ -1497,7 +1497,7 @@ function buildFamily(P, dauCount, grandPer){
 // ---- v1.04: プルダウン均一化／ツールバーの列揃え／スキップ並び（表示のみ。構造の確認） ----
 {
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
-  T('v104 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.2'));
+  T('v104 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.0'));
   T('v104 build: select height pinned base 32px', src.includes('select { height:32px; padding:0 8px; }'));
   T('v104 build: select height pinned compact 36px', src.includes('select { height:36px; padding:0 8px; }'));
   T('v104 build: horse toolbar uses listtools', src.includes("class='flex listtools'"));
@@ -1521,7 +1521,7 @@ function buildFamily(P, dauCount, grandPer){
 // ---- v1.05: コントロール群の文字サイズ統一（表示のみ。構造の確認） ----
 {
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
-  T('v105 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.2'));
+  T('v105 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.0'));
   T('v105 build: skip group font unified 13.5px', src.includes('.skipctl .sub, .skipctl button, .skipctl select, .skipctl input[type=text] { font-size:13.5px; }'));
   T('v105 build: toolbar select font matches label base 13.5px', src.includes('.listtools select { font-size:13.5px; }') && src.includes('body { font-size:13.5px; line-height:1.5; }'));
   T('v105 build: typing-input 16px guard kept', src.includes('select, input[type=text], textarea { font-size:16px; }'));
@@ -1574,7 +1574,7 @@ function buildFamily(P, dauCount, grandPer){
   const h = buildDebugHorse({ age: 3, rootAff: '✕' });
   T('v11 debug builds with rootAff only (no rootDist needed)', h.aff.rootAff === '✕' && !('rootDist' in h.aff));
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
-  T('v11 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.2'));
+  T('v11 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.0'));
   T('v11 build: no rootDist anywhere in build', !src.includes('rootDist') && !src.includes('snapBand'));
 }
 
@@ -1669,7 +1669,262 @@ function buildFamily(P, dauCount, grandPer){
   T('v12 December still queues only the fixed filly', S.giftQueue.length === 1 && S.giftQueue[0].sire === 'キタサンブラック' && S.giftDecDone === true);
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
   T('v12 build: new gift models + set table present', src.includes('マリアージュ') && src.includes('ヴィートマルシェ') && src.includes('ミスワキ') && src.includes('GIFT_SETS'));
-  T('v12 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.2'));
+  T('v12 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.0'));
+}
+
+// ---- v2.0: 自動出走（オート出走決定） ----
+function raceOfEntry(h){
+  const keys = Object.keys(h.entries || {});
+  if(!keys.length) return null;
+  const a = +keys[0], e = h.entries[a];
+  const t = fromAbs(a);
+  const race = racesThisWeek(t[0], t[1], t[2]).find(r => a + "@" + r.name + "|" + (r.racecourse||"") + "|" + (r.grade||"") === e.key);
+  return { abs: a, entry: e, race };
+}
+{
+  freshS({ year: 2032, month: 6, week: 1, phase: 'play' });
+  const h = mk({ name: '自動基本', wins: 1, birthYear: 2028 });
+  T('v20 new horses default to auto OFF with the standard default rotation', h.autoEntry === false && h.autoRot === null && S.autoRotDefault === 8);
+  S.horses = [h];
+  autoEntryPass();
+  T('v20 OFF horse is never auto-entered', Object.keys(h.entries).length === 0);
+  h.autoEntry = true;
+  autoEntryPass();
+  const got = raceOfEntry(h);
+  T('v20 auto pass registers an eligible horse inside the window', !!got && got.abs >= absWeek() && got.abs <= absWeek() + 3);
+  T('v20 picked race fits surface/class/distance', !!got && got.race.surface === '芝' && got.race.grade === '1勝クラス' && got.race.distance_m >= 1600 && got.race.distance_m <= 2400);
+  T('v20 auto registration is announced in the weekly topics', S.topics.some(t => t.includes('自動出走') && t.includes('自動基本')));
+  const target = got.abs;
+  let guard = 0;
+  while(absWeek() < target && guard++ < 6) advanceWeek();
+  advanceWeek();
+  T('v20 auto registration is an ordinary registration (the race runs)', h.results.length === 1);
+}
+{
+  freshS({ year: 2032, month: 6, week: 1, phase: 'play' });
+  const h = mk({ name: '間隔テスト', wins: 1, birthYear: 2028, autoEntry: true });
+  h.lastRaceAbs = absWeek() - 3;
+  S.horses = [h];
+  autoEntryPass();
+  T('v20 rotation minimum (default 中8週) blocks a horse raced 3 weeks ago', Object.keys(h.entries).length === 0);
+  h.autoRot = 4;
+  h.lastRaceAbs = absWeek() - 5;
+  autoEntryPass();
+  T('v20 per-horse rotation override (中4週) lets the horse run at a 5-week gap', Object.keys(h.entries).length === 1);
+}
+{
+  // pace-derived spacing, unit level
+  freshS({ year: 2032, month: 1, week: 1, phase: 'play' });
+  const yStart = absOf(2032, 1, 1);
+  const fresh = mk({ name: 'ペース未出走', wins: 1, birthYear: 2028 });
+  T('v20 pace: unraced horse first due lands ~7-8 weeks into the year', (() => { const d = autoDueAbs(fresh, 2032, false) - yStart; return d >= 6 && d <= 9; })());
+  T('v20 pace: graded due ignores pace (hard guard only, already met)', autoDueAbs(fresh, 2032, true) <= yStart);
+  const mid = mk({ name: 'ペース中盤', wins: 1, birthYear: 2028 });
+  mid.results = [1, 2, 3].map(() => ({ when: '2032年2月第1週', race: 'テスト', grade: '1勝クラス', finish: 2 }));
+  mid.lastRaceAbs = absOf(2032, 3, 1);
+  T('v20 pace: 3 used by March spreads the rest (due = last + 14)', autoDueAbs(mid, 2032, false) === absOf(2032, 3, 1) + 14);
+  T('v20 pace: graded due for the same horse is just the rotation minimum', autoDueAbs(mid, 2032, true) === absOf(2032, 3, 1) + 9);
+  const done = mk({ name: 'ペース目標到達', wins: 4, birthYear: 2027 });
+  done.results = [1, 2, 3, 4, 5, 6].map(() => ({ when: '2032年5月第1週', race: 'テスト', grade: 'OP', finish: 2 }));
+  done.lastRaceAbs = absOf(2032, 5, 1);
+  T('v20 pace: at target (6) ordinary entries stop but graded stays possible', autoDueAbs(done, 2032, false) === Infinity && autoDueAbs(done, 2032, true) === absOf(2032, 5, 1) + 9);
+  done.results.push({ when: '2032年6月第1週', race: 'テスト', grade: 'OP', finish: 2 });
+  T('v20 cap: at 7 starts everything stops', autoDueAbs(done, 2032, false) === Infinity && autoDueAbs(done, 2032, true) === Infinity);
+  const late = mk({ name: 'ペース出遅れ', wins: 1, birthYear: 2028 });
+  T('v20 pace: a horse that has not run by November is due immediately (compression)', autoDueAbs(late, 2032, false) <= absOf(2032, 11, 1));
+}
+{
+  freshS({ year: 2032, month: 11, week: 4, phase: 'play' });
+  const capped = mk({ name: '上限到達', wins: 1, birthYear: 2028, autoEntry: true });
+  capped.results = [1, 2, 3, 4, 5, 6, 7].map(() => ({ when: '2032年8月第1週', race: 'テスト', grade: '1勝クラス', finish: 3 }));
+  S.horses = [capped];
+  autoEntryPass();
+  T('v20 yearly cap (7) blocks any further auto entry', Object.keys(capped.entries).length === 0);
+}
+{
+  freshS({ year: 2032, month: 11, week: 4, phase: 'play' });
+  const h3 = mk({ name: '格上禁止', wins: 3, birthYear: 2028, distMin: 1600, distMax: 1600, autoEntry: true });
+  const op = mk({ name: '重賞可', wins: 4, birthYear: 2028, distMin: 1600, distMax: 1600, autoEntry: true });
+  S.horses = [h3, op];
+  autoEntryPass();
+  const g3 = raceOfEntry(h3), gOp = raceOfEntry(op);
+  T('v20 a 3-win horse is never auto-entered above its class (no Mile CS)', !g3 || (g3.race.name !== 'マイルチャンピオンシップ' && autoRaceRank(g3.race) <= 3));
+  T('v20 an OP horse IS auto-entered in a fitting G1 (grade beats the listed race in-window)', !!gOp && gOp.race.name === 'マイルチャンピオンシップ');
+}
+{
+  freshS({ year: 2032, month: 6, week: 1, phase: 'play' });
+  const dirt = mk({ name: 'ダート専', wins: 1, birthYear: 2028, surface: 'ダート', distMin: 2000, distMax: 2000, autoEntry: true });
+  S.horses = [dirt];
+  autoEntryPass();
+  const g = raceOfEntry(dirt);
+  T('v20 surface mismatch is never chosen (turf 2000 ignored for a dirt-only horse)', !g || g.race.surface === 'ダート');
+}
+{
+  freshS({ year: 2032, month: 12, week: 4, phase: 'play' });
+  const op = mk({ name: '地方G1可', wins: 4, birthYear: 2027, surface: 'ダート', distMin: 2000, distMax: 2000, autoEntry: true });
+  S.horses = [op];
+  autoEntryPass();
+  const g = raceOfEntry(op);
+  T('v20 a regional (NAR) G1 is auto-enterable (Tokyo Daishoten)', !!g && g.race.name === '東京大賞典' && g.race.sector === 'regional');
+}
+{
+  const setup = (mut) => {
+    freshS({ year: 2032, month: 6, week: 1, phase: 'play' });
+    const h = mk({ name: 'ガード検証', wins: 1, birthYear: 2028, autoEntry: true });
+    mut(h);
+    S.horses = [h];
+    autoEntryPass();
+    return h;
+  };
+  T('v20 injured horses are skipped', Object.keys(setup(h => { h.injuredUntil = absWeek() + 3; }).entries).length === 0);
+  T('v20 fatigued horses are skipped (fatigue 75)', Object.keys(setup(h => { h.fatigue = 75; }).entries).length === 0);
+  T('v20 horses in poor condition are skipped (condition 30)', Object.keys(setup(h => { h.condition = 30; }).entries).length === 0);
+  T('v20 already-registered horses are skipped (manual entry kept)', (() => { const h = setup(h => { h.entries[absWeek() + 1] = { key: 'manual', style: null, sector: 'central', course: '', dist: null, name: '手動登録' }; }); return Object.keys(h.entries).length === 1; })());
+}
+{
+  freshS({ year: 2032, month: 1, week: 1, phase: 'play' });
+  const h = mk({ name: '海外検証', wins: 4, gradedWin: true, birthYear: 2027, distMin: 1000, distMax: 3600, autoEntry: true });
+  S.horses = [h];
+  let made = 0, overseasSeen = 0;
+  for(let a = absOf(2032, 1, 1); a < absOf(2033, 1, 1); a++){
+    const t = fromAbs(a); S.year = t[0]; S.month = t[1]; S.week = t[2];
+    h.entries = {}; h.results = []; h.lastRaceAbs = -999; h.fatigue = 0; h.condition = 80;
+    autoEntryPass();
+    for(const k of Object.keys(h.entries)){ made++; if(h.entries[k].sector === 'overseas') overseasSeen++; }
+  }
+  T('v20 overseas races are never auto-entered (52-week scan)', overseasSeen === 0);
+  T('v20 the scan still enters plenty of domestic races', made >= 10);
+}
+{
+  freshS({ year: 2032, month: 6, week: 1, phase: 'play' });
+  const r1 = mk({ name: '一括1', wins: 1, birthYear: 2028 });
+  const r2 = mk({ name: '一括2', wins: 2, birthYear: 2028 });
+  const mare = mk({ name: '一括対象外', sex: '牝', status: 'broodmare', birthYear: 2026 });
+  S.horses = [r1, r2, mare];
+  setAllAutoEntry(true);
+  T('v20 bulk ON enables all racehorses only', r1.autoEntry === true && r2.autoEntry === true && mare.autoEntry === false);
+  setAllAutoEntry(false);
+  T('v20 bulk OFF disables all racehorses', r1.autoEntry === false && r2.autoEntry === false);
+  r1.autoEntry = true; r1.autoRot = 6; S.autoRotDefault = 12;
+  autoEntryPass();
+  T('v20 bulk-enabled horse actually gets registered', Object.keys(r1.entries).length === 1);
+  save();
+  r1.autoEntry = false; r1.autoRot = null; S.autoRotDefault = 8; r1.entries = {};
+  load();
+  const back = S.horses.find(x => x.name === '一括1');
+  T('v20 settings + registration survive save/load', back.autoEntry === true && back.autoRot === 6 && S.autoRotDefault === 12 && Object.keys(back.entries).length === 1);
+}
+{
+  // wait for the big one: Mile Championship (G1, Nov wk4) vs a listed race in-window (Nov wk1)
+  freshS({ year: 2032, month: 10, week: 4, phase: 'play' });
+  const h = mk({ name: '大レース待ち', wins: 4, birthYear: 2028, distMin: 1600, distMax: 1600, autoEntry: true });
+  S.horses = [h];
+  autoEntryPass();
+  T('v20 with a G1 just beyond the window, the lesser listed race is NOT taken', Object.keys(h.entries).length === 0);
+  S.month = 11; S.week = 1;
+  autoEntryPass();
+  const g = raceOfEntry(h);
+  T('v20 once the G1 enters the registration window it is taken', !!g && g.race.name === 'マイルチャンピオンシップ');
+}
+{
+  // G1 reserve: summer starvation guard
+  const julyHorse = (used) => {
+    freshS({ year: 2032, month: 7, week: 1, phase: 'play' });
+    const h = mk({ name: 'リザーブ検証', wins: 4, birthYear: 2027, distMin: 2000, distMax: 2400, autoEntry: true });
+    h.results = Array.from({ length: used }, () => ({ when: '2032年4月第1週', race: 'テスト', grade: 'OP', finish: 2 }));
+    h.lastRaceAbs = absWeek() - 20;
+    S.horses = [h];
+    return h;
+  };
+  const hA = julyHorse(5);
+  T('v20 reserve counts the 2 remaining fitting autumn G1s', autoG1Reserve(hA, 2032) === 2);
+  autoEntryPass();
+  T('v20 reserve blocks a summer graded race when it would eat the G1 budget (5 used)', Object.keys(hA.entries).length === 0);
+  const hB = julyHorse(3);
+  autoEntryPass();
+  T('v20 with slack, July still holds for the higher-grade Sapporo Kinen (big-race wait)', Object.keys(hB.entries).length === 0);
+  S.month = 8; S.week = 1;
+  autoEntryPass();
+  const gB = raceOfEntry(hB);
+  T('v20 with genuine slack (3 used) a summer graded race IS taken (reserve does not block)', !!gB && gB.race.name === '札幌記念');
+  freshS({ year: 2032, month: 7, week: 1, phase: 'play' });
+  const hC = mk({ name: 'リザーブ無関係', wins: 3, birthYear: 2028, distMin: 2000, distMax: 2400, autoEntry: true });
+  hC.results = [1, 2].map(() => ({ when: '2032年4月第1週', race: 'テスト', grade: '3勝クラス', finish: 2 }));
+  hC.lastRaceAbs = absWeek() - 9;
+  S.horses = [hC];
+  T('v20 a non-G1-class horse has reserve 0', autoG1Reserve(hC, 2032) === 0);
+  autoEntryPass();
+  T('v20 a non-G1 horse uses summer normally', Object.keys(hC.entries).length === 1);
+}
+{
+  // a G1 entered on the hard-guard interval (pace-soft), reserve counting itself; then pacing re-spreads
+  freshS({ year: 2032, month: 11, week: 1, phase: 'play' });
+  const h = mk({ name: '秋G1', wins: 4, birthYear: 2027, distMin: 2000, distMax: 2400, autoEntry: true });
+  h.results = [1, 2, 3, 4, 5].map(() => ({ when: '2032年6月第1週', race: 'テスト', grade: 'OP', finish: 2 }));
+  h.lastRaceAbs = absWeek() - 9; /* rotation minimum exactly met; the pace interval for a 6th ordinary start points at year-end */
+  S.horses = [h];
+  autoEntryPass();
+  const g = raceOfEntry(h);
+  T('v20 a fitting G1 is entered on the hard-guard interval, ahead of pace (reserve counts itself)', !!g && g.race.name === '天皇賞（秋）');
+  h.results.push({ when: '2032年11月第1週', race: '天皇賞（秋）', grade: 'GI', finish: 3 });
+  h.lastRaceAbs = absOf(2032, 11, 1);
+  delete h.entries[g.abs];
+  S.month = 11; S.week = 5;
+  autoEntryPass();
+  T('v20 after the G1, pacing re-spreads: the next G1 inside the rotation minimum is not taken', Object.keys(h.entries).length === 0);
+}
+{
+  // full-year campaign through the real weekly path (advanceWeek)
+  freshS({ year: 2032, month: 1, week: 1, phase: 'play', funds: 100000 });
+  const h = mk({ name: '年間ペース', wins: 1, birthYear: 2028, policy: 'rest' });
+  setParams(h, 35, 35, 35);
+  h.autoEntry = true;
+  S.horses = [h];
+  for(let i = 0; i < 52; i++) advanceWeek();
+  const starts = h.results.filter(r => parseInt(r.when, 10) === 2032);
+  const absList = starts.map(r => { const m = r.when.match(/(\d+)年(\d+)月第(\d+)週/); return absOf(+m[1], +m[2], +m[3]); });
+  T('v20 full year of weekly auto passes: campaign lands in the 5-7 band', starts.length >= 5 && starts.length <= 7);
+  T('v20 full year: starts reach the autumn (Oct-Dec)', absList.some(a => a >= absOf(2032, 10, 1)));
+  T('v20 full year: no 3-month span holds more than 2 starts', absList.every(a => absList.filter(b => b >= a && b <= a + 12).length <= 2));
+  T('v20 full year: consecutive starts respect the rotation minimum', absList.every((a, i) => i === 0 || a - absList[i - 1] >= 9));
+}
+{
+  // the same through the actual skip feature (skipTo loops advanceWeek, so the hook cannot be missed)
+  freshS({ year: 2032, month: 1, week: 1, phase: 'play', funds: 100000 });
+  const h = mk({ name: 'スキップ検証', wins: 1, birthYear: 2028, policy: 'rest' });
+  setParams(h, 35, 35, 35);
+  h.autoEntry = true;
+  S.horses = [h];
+  skipTo(2033, 1, 1);
+  const starts = h.results.filter(r => parseInt(r.when, 10) === 2032);
+  T('v20 a 1-year skip runs the auto pass every week (campaign in the 5-7 band)', starts.length >= 5 && starts.length <= 7 && S.year === 2033);
+  T('v20 skip: the horse still has autumn starts (no early-year burn-out)', starts.some(r => +r.when.match(/(\d+)月/)[1] >= 10));
+}
+{
+  // G1-class horse under skip: the reserve keeps its autumn budget intact
+  freshS({ year: 2032, month: 1, week: 1, phase: 'play', funds: 100000 });
+  const g = mk({ name: 'スキップG1', wins: 4, gradedWin: true, birthYear: 2027, distMin: 2000, distMax: 2400, policy: 'rest' });
+  setParams(g, 35, 35, 35);
+  g.autoEntry = true;
+  S.horses = [g];
+  skipTo(2032, 10, 1);
+  const usedByOct = g.results.filter(r => parseInt(r.when, 10) === 2032).length;
+  T('v20 skip: G1 horse reaches October with budget for the autumn G1s (<=5 used)', usedByOct <= 5);
+  skipTo(2033, 1, 1);
+  const all = g.results.filter(r => parseInt(r.when, 10) === 2032);
+  T('v20 skip: G1 horse finishes the year inside the cap with an autumn start', all.length >= 4 && all.length <= 7 && all.some(r => +r.when.match(/(\d+)月/)[1] >= 10));
+}
+{
+  freshS({ year: 2032, month: 6, week: 1, phase: 'play' });
+  const h = mk({ name: 'UI検証', wins: 1, birthYear: 2028 });
+  S.horses = [h];
+  const ev = viewEntry();
+  T('v20 entry view has the bulk controls and the ローテ設定 button', ev.includes('data-auto-all') && ev.includes('data-auto-defrot') && ev.includes('data-goto-cal') && ev.includes('ローテ設定'));
+  const cal = viewCalendar();
+  T('v20 calendar view hosts the rotation settings (per-horse on/off + rotation)', cal.includes('ローテ設定') && cal.includes('data-auto-on') && cal.includes('data-auto-rot') && cal.includes('UI検証'));
+  const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
+  T('v20 build: horse page carries the auto controls next to the policy select', src.includes('autoEntrySel') && src.includes('autoRotSel'));
+  T('v20 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.0'));
 }
 
 console.log('\nRESULT: ' + pass + ' passed, ' + fail + ' failed');
