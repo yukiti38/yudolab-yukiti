@@ -1,0 +1,232 @@
+[
+  {
+    "name": "ダノンプレミアム",
+    "sire": "ディープインパクト",
+    "dam": "インディアナギャル",
+    "bms": "Intikhab",
+    "grandam": "Genial Jenny",
+    "gbms": "Danehill",
+    "line": [
+      "サンデーサイレンス",
+      "ヘイロー",
+      "ヘイルトゥリーズン"
+    ],
+    "dist": [
+      1600,
+      2000
+    ],
+    "surface": "芝",
+    "growth": "早熟",
+    "fee_tier": "C",
+    "region": "domestic",
+    "weight": 498,
+    "source": "https://www.jbis.or.jp/horse/0001208294/"
+  },
+  {
+    "name": "アルアイン",
+    "sire": "ディープインパクト",
+    "dam": "ドバイマジェスティ",
+    "bms": "Essence of Dubai",
+    "grandam": "Great Majesty",
+    "gbms": "Great Above",
+    "line": [
+      "サンデーサイレンス",
+      "ヘイロー",
+      "ヘイルトゥリーズン"
+    ],
+    "dist": [
+      1800,
+      2000
+    ],
+    "surface": "芝",
+    "growth": "普通",
+    "fee_tier": "C",
+    "region": "domestic",
+    "weight": 518,
+    "source": "https://www.jbis.or.jp/horse/0001191607/"
+  },
+  {
+    "name": "マカヒキ",
+    "sire": "ディープインパクト",
+    "dam": "ウィキウィキ",
+    "bms": "フレンチデピュティ",
+    "grandam": "リアルナンバー",
+    "gbms": "Rainbow Corner",
+    "line": [
+      "サンデーサイレンス",
+      "ヘイロー",
+      "ヘイルトゥリーズン"
+    ],
+    "dist": [
+      2000,
+      2400
+    ],
+    "surface": "芝",
+    "growth": "早熟",
+    "fee_tier": "C",
+    "region": "domestic",
+    "weight": 502,
+    "source": "https://www.jbis.or.jp/horse/0001171707/"
+  },
+  {
+    "name": "ロジャーバローズ",
+    "sire": "ディープインパクト",
+    "dam": "リトルブック",
+    "bms": "Librettist",
+    "grandam": "Cal Norma's Lady",
+    "gbms": "Lyphard's Special",
+    "line": [
+      "サンデーサイレンス",
+      "ヘイロー",
+      "ヘイルトゥリーズン"
+    ],
+    "dist": [
+      2000,
+      2400
+    ],
+    "surface": "芝",
+    "growth": "早熟",
+    "fee_tier": "C",
+    "region": "domestic",
+    "weight": 486,
+    "source": "https://www.jbis.or.jp/horse/0001221464/"
+  },
+  {
+    "name": "グローリーヴェイズ",
+    "sire": "ディープインパクト",
+    "dam": "メジロツボネ",
+    "bms": "スウェプトオーヴァーボード",
+    "grandam": "メジロルバート",
+    "gbms": "メジロライアン",
+    "line": [
+      "サンデーサイレンス",
+      "ヘイロー",
+      "ヘイルトゥリーズン"
+    ],
+    "dist": [
+      2400,
+      3200
+    ],
+    "surface": "芝",
+    "growth": "普通",
+    "fee_tier": "C",
+    "region": "domestic",
+    "weight": 456,
+    "source": "https://www.jbis.or.jp/horse/0001208666/"
+  },
+  {
+    "name": "ステファノス",
+    "sire": "ディープインパクト",
+    "dam": "ココシュニック",
+    "bms": "クロフネ",
+    "grandam": "ゴールドティアラ",
+    "gbms": "Seeking the Gold",
+    "line": [
+      "サンデーサイレンス",
+      "ヘイロー",
+      "ヘイルトゥリーズン"
+    ],
+    "dist": [
+      1600,
+      2200
+    ],
+    "surface": "芝",
+    "growth": "普通",
+    "fee_tier": "C",
+    "region": "overseas",
+    "weight": 486,
+    "source": "https://www.jbis.or.jp/horse/0001141375/"
+  },
+  {
+    "name": "ワールドエース",
+    "sire": "ディープインパクト",
+    "dam": "マンデラ",
+    "bms": "Acatenango",
+    "grandam": "Mandellicht",
+    "gbms": "Be My Guest",
+    "line": [
+      "サンデーサイレンス",
+      "ヘイロー",
+      "ヘイルトゥリーズン"
+    ],
+    "dist": [
+      1600,
+      2000
+    ],
+    "surface": "芝",
+    "growth": "普通",
+    "fee_tier": "C",
+    "region": "domestic",
+    "weight": 466,
+    "source": "https://www.jbis.or.jp/horse/0001111008/"
+  },
+  {
+    "name": "ディーマジェスティ",
+    "sire": "ディープインパクト",
+    "dam": "エルメスティアラ",
+    "bms": "ブライアンズタイム",
+    "grandam": "シンコウエルメス",
+    "gbms": "Sadler's Wells",
+    "line": [
+      "サンデーサイレンス",
+      "ヘイロー",
+      "ヘイルトゥリーズン"
+    ],
+    "dist": [
+      1800,
+      2400
+    ],
+    "surface": "芝",
+    "growth": "早熟",
+    "fee_tier": "C",
+    "region": "domestic",
+    "weight": 476,
+    "source": "https://www.jbis.or.jp/horse/0001167517/"
+  },
+  {
+    "name": "ダノンキングリー",
+    "sire": "ディープインパクト",
+    "dam": "マイグッドネス",
+    "bms": "Storm Cat",
+    "grandam": "カレシング",
+    "gbms": "Honour and Glory",
+    "line": [
+      "サンデーサイレンス",
+      "ヘイロー",
+      "ヘイルトゥリーズン"
+    ],
+    "dist": [
+      1600,
+      1800
+    ],
+    "surface": "芝",
+    "growth": "普通",
+    "fee_tier": "C",
+    "region": "domestic",
+    "weight": 456,
+    "source": "https://www.jbis.or.jp/horse/0001221761/"
+  },
+  {
+    "name": "グレーターロンドン",
+    "sire": "ディープインパクト",
+    "dam": "ロンドンブリッジ",
+    "bms": "ドクターデヴィアス",
+    "grandam": "オールフォーロンドン",
+    "gbms": "Danzig",
+    "line": [
+      "サンデーサイレンス",
+      "ヘイロー",
+      "ヘイルトゥリーズン"
+    ],
+    "dist": [
+      1400,
+      1800
+    ],
+    "surface": "芝",
+    "growth": "晩成",
+    "fee_tier": "B",
+    "region": "domestic",
+    "weight": 468,
+    "source": "https://www.jbis.or.jp/horse/0001149061/"
+  }
+]
