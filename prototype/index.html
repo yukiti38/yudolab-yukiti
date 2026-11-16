@@ -993,7 +993,7 @@ function retireStallion(st){
   const hh = S.horses.find(x=>x.status==="stallion" && x.name===st.name);
   if(hh) hh.studRetired = true;
   topic("🌿 " + st.name + " が種牡馬を引退しました");
-  chron("【種牡馬引退】" + st.name + " が種牡馬を引退しました");
+  /* v3.1.1：種牡馬引退は年表に残さない（オーナー指示：年表の要素を減らす）。告知はトピックのみ */
 }
 /* 年次処理（onNewYear から呼ぶ）：引退判定→最終年の予告→架空種牡馬の補充 */
 function processStallionYear(){
@@ -1216,7 +1216,7 @@ function migrateV029(){
      マイルストーン状態を既存の戦績から復元する（達成済みの初制覇などが遡って発火しないように） */
   if(S.chronicle && !S.statsBirths){ S.statsBirths = {}; for(const c of S.chronicle) if(c.text.indexOf("【誕生】")===0) S.statsBirths[c.y] = (S.statsBirths[c.y]||0)+1; }
   if(S.chronicle) S.chronicle = S.chronicle.filter(c=>{
-    if(/^【(初制覇|二冠|三冠|殿堂入り|種牡馬引退)】/.test(c.text)) return true;
+    if(/^【(初制覇|二冠|三冠|殿堂入り)】/.test(c.text)) return true; /* v3.1.1：種牡馬引退エントリは保持対象から外し、旧セーブの残存分もここで除去される */
     if(c.text.indexOf("【牧場レコード】")===0){ const nm = c.text.slice(8).split(" が")[0]; const hh = (S.horses||[]).find(x=>x.name===nm); return !!hh && (hh.earnings||0) >= 1000000; }
     return false;
   }); /* v0.48-0.49：年表は牧場初の記録＋牧場レコード（10億円以上の馬）のみ（オーナー決定） */
@@ -3612,8 +3612,11 @@ function produceSection(h){
    牝系は S.horses の母（dam）リンクだけで毎回計算する（保存フラグは持たない）。
    根元牝馬＝自分の母が S.horses 内にいない牝馬。各馬は母を辿った先の根元牝馬のラインに属し、
    牡馬は葉で終わって木は牝馬だけがつなぐ（産駒一覧 v0.40 と同じ dam 照合）。
-   成立条件は3つ全部：根元の直仔5頭以上・ラインの子孫20頭以上・ライン内のG1勝ち馬3頭以上
-   （G1勝ちは hasG1Win＝GI/JpnI/海外G1 の既存判定をそのまま使う）。
+   成立条件は3つ全部：根元の直仔5頭以上・ラインの子孫25頭以上・ラインのポイント20点以上
+   （2026-11-16 の v3.1.1 で厳格化。当初 v0.55 は直仔5・子孫20・G1勝ち馬3頭）。
+   ポイントは子孫の重賞勝ち馬（gradedWinList＝GRADED_SET のグレードでの勝利）を世代で重み付けして
+   数える：直仔1点・孫2点・曾孫以降3点。G1勝ち馬（hasG1Win＝GI/JpnI/海外G1）はその2倍（2・4・6点）。
+   1頭は1回だけ計上し、G1勝ち馬は重賞勝ち馬として重ねて数えない。根元牝馬自身はポイント対象外。
    売却した馬は S.horses から消えるため、系図・頭数は「現在の所有馬」の範囲で数える（仕様として受容）。
    establishedLines() を系図ビューと馬ページの「牝系」表示の両方が使うので、両者は食い違わない。 */
 let lineCollapsed = new Set();
@@ -3629,22 +3632,34 @@ function femaleLines(){
   const founders = S.horses.filter(h=>h.sex==="牝" && !(h.dam && inFarm.has(h.dam)));
   return founders.map(f=>{
     const descendants = [];
+    const depthOf = new Map(); /* 根元からの世代（直仔=1・孫=2・曾孫=3…）。ポイントの重み付けに使う */
     const seen = new Set([f.id]);
-    const queue = [...(kids[f.name]||[])];
+    const queue = (kids[f.name]||[]).map(c=>({ h: c, d: 1 }));
     while(queue.length){
-      const c = queue.shift();
+      const item = queue.shift();
+      const c = item.h;
       if(seen.has(c.id)) continue;
-      seen.add(c.id); descendants.push(c);
-      if(c.sex==="牝") for(const g of (kids[c.name]||[])) queue.push(g);
+      seen.add(c.id); descendants.push(c); depthOf.set(c.id, item.d);
+      if(c.sex==="牝") for(const g of (kids[c.name]||[])) queue.push({ h: g, d: item.d + 1 });
     }
     const members = [f, ...descendants];
+    /* ポイント（v3.1.1）：子孫の重賞勝ち馬を世代で重み付け（直仔1点・孫2点・曾孫以降3点）、
+       G1勝ち馬はその2倍。1頭は1回だけ計上し、G1勝ち馬は重賞勝ち馬として重ねて数えない */
+    let points = 0;
+    for(const h of descendants){
+      if(!gradedWinList(h).length) continue;
+      const d = depthOf.get(h.id) || 1;
+      const base = d<=1 ? 1 : (d===2 ? 2 : 3);
+      points += hasG1Win(h) ? base * 2 : base;
+    }
     return { founder: f, name: f.name+"系", directKids: kids[f.name]||[], descendants,
-      members, memberIds: new Set(members.map(h=>h.id)), g1Winners: members.filter(h=>hasG1Win(h)) };
+      members, memberIds: new Set(members.map(h=>h.id)), g1Winners: members.filter(h=>hasG1Win(h)),
+      gradedWinners: members.filter(h=>gradedWinList(h).length>0), points };
   });
 }
 function establishedLines(){
   return femaleLines()
-    .filter(L=>L.directKids.length>=5 && L.descendants.length>=20 && L.g1Winners.length>=3)
+    .filter(L=>L.directKids.length>=5 && L.descendants.length>=25 && L.points>=20)
     .sort((a,b)=>(b.descendants.length-a.descendants.length) || (a.founder.birthYear-b.founder.birthYear));
 }
 function lineOfHorse(h){ return establishedLines().find(L=>L.memberIds.has(h.id)) || null; }
@@ -3700,11 +3715,11 @@ function lineTreeNode(h, kids){
 function viewLineage(){
   const lines = establishedLines();
   let html = "<h3>🌳 牝系図</h3>"
-    + "<div class='sub'>成立した牝系だけを表示します（根元牝馬の直仔5頭以上・子孫20頭以上・G1勝ち馬3頭以上）。世代は左から右へ進み、横線が親→子です。カードをタップするとその馬のページが開きます。「－／＋」で枝を畳んだり開いたりできます。</div>";
+    + "<div class='sub'>成立した牝系だけを表示します（根元牝馬の直仔5頭以上・子孫25頭以上・20ポイント以上）。ポイントは子孫の重賞勝ち馬を世代で重み付けしたもの（直仔1点・孫2点・曾孫以降3点、G1勝ち馬は2倍）です。世代は左から右へ進み、横線が親→子です。カードをタップするとその馬のページが開きます。「－／＋」で枝を畳んだり開いたりできます。</div>";
   if(!lines.length) return html + "<div class='sub' style='margin-top:10px;'>まだ成立した牝系はありません。1頭の繁殖牝馬の血が広がり、G1馬を出すようになると、ここに系図が現れます。</div>";
   const kids = childrenByDam();
   for(const L of lines){
-    html += "<h3 style='margin-top:20px;'>"+L.name+" <span class='sub'>（根元："+L.founder.name+"／子孫"+L.descendants.length+"頭／G1勝ち馬"+L.g1Winners.length+"頭）</span></h3>"
+    html += "<h3 style='margin-top:20px;'>"+L.name+" <span class='sub'>（根元："+L.founder.name+"／子孫"+L.descendants.length+"頭／G1勝ち馬"+L.g1Winners.length+"頭／"+L.points+"ポイント）</span></h3>"
       + "<div class='ltree-scroll'><div class='ltree'>"+lineTreeNode(L.founder, kids)+"</div></div>";
   }
   return html;
@@ -4238,6 +4253,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>競馬シミュレーター（趣味） v3.1</footer>
+<footer>競馬シミュレーター（趣味） v3.1.1</footer>
 </body>
 </html>
