@@ -23,27 +23,28 @@
     "source": "https://www.jbis.or.jp/horse/0001046333/"
   },
   {
-    "name": "スノードラゴン",
-    "sire": "アドマイヤコジーン",
-    "dam": "マイネカプリース",
-    "bms": "タヤスツヨシ",
-    "grandam": "ダイナカプリ",
-    "gbms": "サウスアトランティック",
+    "name": "ダノンスマッシュ",
+    "sire": "ロードカナロア",
+    "dam": "スピニングワイルドキャット",
+    "bms": "ハードスパン",
+    "grandam": "Hollywood Wildcat",
+    "gbms": "Kris S.",
     "line": [
-      "Cozzene",
-      "Caro",
-      "Fortino"
+      "キングカメハメハ",
+      "キングマンボ",
+      "ミスタープロスペクター"
     ],
     "dist": [
       1200,
-      1400
+      1200
     ],
     "surface": "芝",
     "growth": "晩成",
-    "fee_tier": "C",
+    "fee_tier": "B",
     "region": "domestic",
-    "weight": 512,
-    "source": "https://www.jbis.or.jp/horse/0001091384/"
+    "weight": 472,
+    "source": "https://www.jbis.or.jp/horse/0001208468/",
+    "age2026": 11
   },
   {
     "name": "アジアエクスプレス",
@@ -92,27 +93,28 @@
     "source": "https://www.jbis.or.jp/horse/0001213491/"
   },
   {
-    "name": "トランセンド",
-    "sire": "ワイルドラッシュ",
-    "dam": "シネマスコープ",
-    "bms": "トニービン",
-    "grandam": "ブルーハワイ",
-    "gbms": "スリルショー",
+    "name": "アラビアンナイト",
+    "sire": "Uncle Mo",
+    "dam": "Borealis Night",
+    "bms": "Astrology",
+    "grandam": "Winter Forest",
+    "gbms": "Forestry",
     "line": [
-      "Wild Again",
-      "Icecapade",
-      "Nearctic"
+      "Indian Charlie",
+      "In Excess",
+      "Siberian Express"
     ],
     "dist": [
-      1600,
-      1800
+      1400,
+      2000
     ],
     "surface": "ダート",
-    "growth": "普通",
-    "fee_tier": "C",
-    "region": "domestic",
-    "weight": 518,
-    "source": "https://www.jbis.or.jp/horse/0000989072/"
+    "growth": "早熟",
+    "fee_tier": "B",
+    "region": "overseas",
+    "weight": "不明",
+    "source": "https://www.bloodhorse.com/stallion-register/stallions/172918/arabian-knight",
+    "age2026": 6
   },
   {
     "name": "スマートファルコン",
@@ -207,26 +209,27 @@
     "source": "https://www.jbis.or.jp/horse/0001163175/"
   },
   {
-    "name": "ウインブライト",
-    "sire": "ステイゴールド",
-    "dam": "サマーエタニティ",
-    "bms": "アドマイヤコジーン",
-    "grandam": "オールフォーゲラン",
-    "gbms": "ジェイドロバリー",
+    "name": "ユーキャンスマイル",
+    "sire": "キングカメハメハ",
+    "dam": "ムードインディゴ",
+    "bms": "ダンスインザダーク",
+    "grandam": "リープフォージョイ",
+    "gbms": "Sharpo",
     "line": [
-      "ステイゴールド",
-      "サンデーサイレンス",
-      "ヘイロー"
+      "キングマンボ",
+      "ミスタープロスペクター",
+      "レイズアネイティヴ"
     ],
     "dist": [
-      1800,
-      2000
+      2000,
+      3400
     ],
     "surface": "芝",
     "growth": "普通",
     "fee_tier": "C",
     "region": "domestic",
-    "weight": 486,
-    "source": "https://www.jbis.or.jp/horse/0001188466/"
+    "weight": 500,
+    "source": "https://www.jbis.or.jp/horse/0001204799/",
+    "age2026": 11
   }
 ]
