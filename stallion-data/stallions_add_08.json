@@ -1,0 +1,232 @@
+[
+  {
+    "name": "カフェファラオ",
+    "sire": "アメリカンファラオ",
+    "dam": "Mary's Follies",
+    "bms": "More Than Ready",
+    "grandam": "Catch the Queen",
+    "gbms": "Miswaki",
+    "line": [
+      "Pioneerof the Nile",
+      "Empire Maker",
+      "Unbridled"
+    ],
+    "dist": [
+      1600,
+      1900
+    ],
+    "surface": "ダート",
+    "growth": "普通",
+    "fee_tier": "B",
+    "region": "domestic",
+    "weight": 520,
+    "source": "https://www.jbis.or.jp/horse/0001314504/"
+  },
+  {
+    "name": "メイショウハリオ",
+    "sire": "パイロ",
+    "dam": "メイショウオウヒ",
+    "bms": "マンハッタンカフェ",
+    "grandam": "アルペンローズ",
+    "gbms": "Kris S.",
+    "line": [
+      "Pulpit",
+      "A.P. Indy",
+      "Seattle Slew"
+    ],
+    "dist": [
+      1600,
+      2100
+    ],
+    "surface": "ダート",
+    "growth": "普通",
+    "fee_tier": "C",
+    "region": "domestic",
+    "weight": 502,
+    "source": "https://www.jbis.or.jp/horse/0001234732/"
+  },
+  {
+    "name": "ジュンライトボルト",
+    "sire": "キングカメハメハ",
+    "dam": "スペシャルグルーヴ",
+    "bms": "スペシャルウィーク",
+    "grandam": "ソニックグルーヴ",
+    "gbms": "フレンチデピュティ",
+    "line": [
+      "キングマンボ",
+      "ミスタープロスペクター",
+      "レイズアネイティヴ"
+    ],
+    "dist": [
+      1800,
+      1900
+    ],
+    "surface": "ダート",
+    "growth": "普通",
+    "fee_tier": "C",
+    "region": "domestic",
+    "weight": 486,
+    "source": "https://www.jbis.or.jp/horse/0001233905/"
+  },
+  {
+    "name": "ナショナルトレジャー",
+    "sire": "Quality Road",
+    "dam": "Treasure",
+    "bms": "Medaglia d'Oro",
+    "grandam": "Proposal",
+    "gbms": "Mt. Livermore",
+    "line": [
+      "Elusive Quality",
+      "Gone West",
+      "Mr. Prospector"
+    ],
+    "dist": [
+      1800,
+      1900
+    ],
+    "surface": "ダート",
+    "growth": "普通",
+    "fee_tier": "B",
+    "region": "overseas",
+    "weight": "不明",
+    "source": "https://www.jbis.or.jp/horse/0001366306/"
+  },
+  {
+    "name": "シエラレオーネ",
+    "sire": "Gun Runner",
+    "dam": "Heavenly Love",
+    "bms": "Malibu Moon",
+    "grandam": "Darling My Darling",
+    "gbms": "Deputy Minister",
+    "line": [
+      "Candy Ride",
+      "Ride the Rails",
+      "Cryptoclearance"
+    ],
+    "dist": [
+      1700,
+      2000
+    ],
+    "surface": "ダート",
+    "growth": "早熟",
+    "fee_tier": "A",
+    "region": "overseas",
+    "weight": "不明",
+    "source": "https://www.thoroughbreddailynews.com/sierra-leone-tops-new-coolmore-america-sires-at-75000/"
+  },
+  {
+    "name": "ドルノック",
+    "sire": "Good Magic",
+    "dam": "Puca",
+    "bms": "Big Brown",
+    "grandam": "Boat's Ghost",
+    "gbms": "Silver Ghost",
+    "line": [
+      "Curlin",
+      "Smart Strike",
+      "Mr. Prospector"
+    ],
+    "dist": [
+      1700,
+      2000
+    ],
+    "surface": "ダート",
+    "growth": "早熟",
+    "fee_tier": "B",
+    "region": "overseas",
+    "weight": "不明",
+    "source": "https://www.spendthriftfarm.com/stallions/dornoch/"
+  },
+  {
+    "name": "ロザリオン",
+    "sire": "Blue Point",
+    "dam": "Rosaline",
+    "bms": "New Approach",
+    "grandam": "Reem Three",
+    "gbms": "Mark of Esteem",
+    "line": [
+      "Shamardal",
+      "Giant's Causeway",
+      "Storm Cat"
+    ],
+    "dist": [
+      1400,
+      1600
+    ],
+    "surface": "芝",
+    "growth": "早熟",
+    "fee_tier": "B",
+    "region": "overseas",
+    "weight": "不明",
+    "source": "http://www.darleyeurope.com/news/outstanding-champion-miler-rosallion-and-royal-ascot-g1-winner-inisherin-retire-dalham-hall"
+  },
+  {
+    "name": "ノータブルスピーチ",
+    "sire": "Dubawi",
+    "dam": "Swift Rose",
+    "bms": "Invincible Spirit",
+    "grandam": "Tulips",
+    "gbms": "Pivotal",
+    "line": [
+      "Dubai Millennium",
+      "Seeking the Gold",
+      "Mr. Prospector"
+    ],
+    "dist": [
+      1400,
+      1600
+    ],
+    "surface": "芝",
+    "growth": "早熟",
+    "fee_tier": "B",
+    "region": "overseas",
+    "weight": "不明",
+    "source": "https://www.jbis.or.jp/horse/0001400503/"
+  },
+  {
+    "name": "アナモー",
+    "sire": "Street Boss",
+    "dam": "Anamato",
+    "bms": "Redoute's Choice",
+    "grandam": "Voltage",
+    "gbms": "Whiskey Road",
+    "line": [
+      "Street Cry",
+      "Machiavellian",
+      "Mr. Prospector"
+    ],
+    "dist": [
+      1400,
+      2000
+    ],
+    "surface": "芝",
+    "growth": "普通",
+    "fee_tier": "A",
+    "region": "overseas",
+    "weight": "不明",
+    "source": "https://www.jbis.or.jp/horse/0001350610/"
+  },
+  {
+    "name": "ホームアフェアーズ",
+    "sire": "I Am Invincible",
+    "dam": "Miss Interiors",
+    "bms": "Flying Spur",
+    "grandam": "Ballet d'Amour",
+    "gbms": "Stravinsky",
+    "line": [
+      "Invincible Spirit",
+      "Green Desert",
+      "Danzig"
+    ],
+    "dist": [
+      1000,
+      1200
+    ],
+    "surface": "芝",
+    "growth": "早熟",
+    "fee_tier": "A",
+    "region": "overseas",
+    "weight": "不明",
+    "source": "https://en.wikipedia.org/wiki/Home_Affairs_(horse)"
+  }
+]
