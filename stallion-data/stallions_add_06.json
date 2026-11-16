@@ -1,0 +1,232 @@
+[
+  {
+    "name": "ゾウスター",
+    "sire": "Northern Meteor",
+    "dam": "Zouzou",
+    "bms": "Redoute's Choice",
+    "grandam": "Meteor Mist",
+    "gbms": "Star Shower",
+    "line": [
+      "Encosta de Lago",
+      "Fairy King",
+      "Northern Dancer"
+    ],
+    "dist": [
+      1200,
+      1400
+    ],
+    "surface": "芝",
+    "growth": "早熟",
+    "fee_tier": "A",
+    "region": "overseas",
+    "weight": "不明",
+    "source": "https://www.jbis.or.jp/horse/0001296846/"
+  },
+  {
+    "name": "アイアムインヴィンシブル",
+    "sire": "Invincible Spirit",
+    "dam": "Cannarelle",
+    "bms": "Canny Lad",
+    "grandam": "Countess Pedrille",
+    "gbms": "Zoffany",
+    "line": [
+      "Green Desert",
+      "Danzig",
+      "Northern Dancer"
+    ],
+    "dist": [
+      1000,
+      1200
+    ],
+    "surface": "芝",
+    "growth": "普通",
+    "fee_tier": "S",
+    "region": "overseas",
+    "weight": "不明",
+    "source": "https://www.jbis.or.jp/horse/0001077228/"
+  },
+  {
+    "name": "トロナド",
+    "sire": "High Chaparral",
+    "dam": "Wana Doo",
+    "bms": "Grand Slam",
+    "grandam": "Wedding Gift",
+    "gbms": "Always Fair",
+    "line": [
+      "Sadler's Wells",
+      "Northern Dancer",
+      "Nearctic"
+    ],
+    "dist": [
+      1400,
+      1600
+    ],
+    "surface": "芝",
+    "growth": "普通",
+    "fee_tier": "B",
+    "region": "overseas",
+    "weight": "不明",
+    "source": "https://swettenham.com.au/toronado-stallion-profile/"
+  },
+  {
+    "name": "ザオータムサン",
+    "sire": "Redoute's Choice",
+    "dam": "Azmiyna",
+    "bms": "Galileo",
+    "grandam": "Asmara",
+    "gbms": "Lear Fan",
+    "line": [
+      "Danehill",
+      "Danzig",
+      "Northern Dancer"
+    ],
+    "dist": [
+      1400,
+      2000
+    ],
+    "surface": "芝",
+    "growth": "早熟",
+    "fee_tier": "B",
+    "region": "overseas",
+    "weight": "不明",
+    "source": "https://www.jbis.or.jp/horse/0001316980/"
+  },
+  {
+    "name": "デュンデル",
+    "sire": "High Chaparral",
+    "dam": "Stareel",
+    "bms": "Zabeel",
+    "grandam": "Staring",
+    "gbms": "Fiesta Star",
+    "line": [
+      "Sadler's Wells",
+      "Northern Dancer",
+      "Nearctic"
+    ],
+    "dist": [
+      1600,
+      2400
+    ],
+    "surface": "芝",
+    "growth": "普通",
+    "fee_tier": "B",
+    "region": "overseas",
+    "weight": "不明",
+    "source": "https://www.jbis.or.jp/horse/0001302727/"
+  },
+  {
+    "name": "ソーユーシンク",
+    "sire": "High Chaparral",
+    "dam": "Triassic",
+    "bms": "Tights",
+    "grandam": "Astral Row",
+    "gbms": "Long Row",
+    "line": [
+      "Sadler's Wells",
+      "Northern Dancer",
+      "Nearctic"
+    ],
+    "dist": [
+      1800,
+      2100
+    ],
+    "surface": "芝",
+    "growth": "普通",
+    "fee_tier": "B",
+    "region": "overseas",
+    "weight": "不明",
+    "source": "https://www.jbis.or.jp/horse/0001192943/"
+  },
+  {
+    "name": "エクストリームチョイス",
+    "sire": "Not A Single Doubt",
+    "dam": "Extremely",
+    "bms": "Hussonet",
+    "grandam": "Going to Extremes",
+    "gbms": "Nasty and Bold",
+    "line": [
+      "Redoute's Choice",
+      "Danehill",
+      "Danzig"
+    ],
+    "dist": [
+      1000,
+      1200
+    ],
+    "surface": "芝",
+    "growth": "早熟",
+    "fee_tier": "S",
+    "region": "overseas",
+    "weight": "不明",
+    "source": "https://www.bloodhorse.com/horse-racing/horses/card/9580346"
+  },
+  {
+    "name": "キャピタリスト",
+    "sire": "Written Tycoon",
+    "dam": "Kitalpha",
+    "bms": "Fusaichi Pegasus",
+    "grandam": "Compulsion",
+    "gbms": "Danehill",
+    "line": [
+      "Iglesia",
+      "Last Tycoon",
+      "Try My Best"
+    ],
+    "dist": [
+      1000,
+      1200
+    ],
+    "surface": "芝",
+    "growth": "早熟",
+    "fee_tier": "B",
+    "region": "overseas",
+    "weight": "不明",
+    "source": "https://db.netkeiba.com/horse/000a01d389/"
+  },
+  {
+    "name": "オールトゥーハード",
+    "sire": "Casino Prince",
+    "dam": "Helsinge",
+    "bms": "Desert Sun",
+    "grandam": "Scandinavia",
+    "gbms": "Snippets",
+    "line": [
+      "Flying Spur",
+      "Danehill",
+      "Danzig"
+    ],
+    "dist": [
+      1100,
+      1600
+    ],
+    "surface": "芝",
+    "growth": "早熟",
+    "fee_tier": "C",
+    "region": "overseas",
+    "weight": "不明",
+    "source": "https://www.breednet.com.au/sire/premium/all-too-hard/aus/pedigree"
+  },
+  {
+    "name": "ハリーエンジェル",
+    "sire": "Dark Angel",
+    "dam": "Beatrix Potter",
+    "bms": "Cadeaux Genereux",
+    "grandam": "Great Joy",
+    "gbms": "Grand Lodge",
+    "line": [
+      "Acclamation",
+      "Royal Applause",
+      "Waajib"
+    ],
+    "dist": [
+      1200,
+      1200
+    ],
+    "surface": "芝",
+    "growth": "早熟",
+    "fee_tier": "B",
+    "region": "overseas",
+    "weight": "不明",
+    "source": "https://www.jbis.or.jp/horse/0001249621/"
+  }
+]
