@@ -1,0 +1,232 @@
+[
+  {
+    "name": "アメリカンファラオ",
+    "sire": "Pioneerof the Nile",
+    "dam": "Littleprincessemma",
+    "bms": "Yankee Gentleman",
+    "grandam": "Exclusive Rosette",
+    "gbms": "Ecliptical",
+    "line": [
+      "Empire Maker",
+      "Unbridled",
+      "Fappiano"
+    ],
+    "dist": [
+      1400,
+      2400
+    ],
+    "surface": "ダート",
+    "growth": "早熟",
+    "fee_tier": "S",
+    "region": "overseas",
+    "weight": "不明",
+    "source": "https://www.jbis.or.jp/horse/0001238289/"
+  },
+  {
+    "name": "コンスティチューション",
+    "sire": "Tapit",
+    "dam": "Baffled",
+    "bms": "Distorted Humor",
+    "grandam": "Surf Club",
+    "gbms": "Ocean Crest",
+    "line": [
+      "Pulpit",
+      "A.P. Indy",
+      "Seattle Slew"
+    ],
+    "dist": [
+      1400,
+      1800
+    ],
+    "surface": "ダート",
+    "growth": "普通",
+    "fee_tier": "A",
+    "region": "overseas",
+    "weight": "不明",
+    "source": "https://www.jbis.or.jp/horse/0001238287/"
+  },
+  {
+    "name": "クオリティロード",
+    "sire": "Elusive Quality",
+    "dam": "Kobla",
+    "bms": "Strawberry Road",
+    "grandam": "Winglet",
+    "gbms": "Alydar",
+    "line": [
+      "Gone West",
+      "Mr. Prospector",
+      "Raise a Native"
+    ],
+    "dist": [
+      1600,
+      1800
+    ],
+    "surface": "ダート",
+    "growth": "普通",
+    "fee_tier": "A",
+    "region": "overseas",
+    "weight": "不明",
+    "source": "https://www.jbis.or.jp/horse/0001112380/"
+  },
+  {
+    "name": "カーリン",
+    "sire": "Smart Strike",
+    "dam": "Sherriff's Deputy",
+    "bms": "Deputy Minister",
+    "grandam": "Barbarika",
+    "gbms": "Bates Motel",
+    "line": [
+      "Mr. Prospector",
+      "Raise a Native",
+      "Native Dancer"
+    ],
+    "dist": [
+      1700,
+      2000
+    ],
+    "surface": "ダート",
+    "growth": "普通",
+    "fee_tier": "A",
+    "region": "overseas",
+    "weight": "不明",
+    "source": "https://www.jbis.or.jp/horse/0001051353/"
+  },
+  {
+    "name": "ノットディスタイム",
+    "sire": "Giant's Causeway",
+    "dam": "Miss Macy Sue",
+    "bms": "Trippi",
+    "grandam": "Yada Yada",
+    "gbms": "Great Above",
+    "line": [
+      "Storm Cat",
+      "Northern Dancer",
+      "Nearctic"
+    ],
+    "dist": [
+      1200,
+      1700
+    ],
+    "surface": "ダート",
+    "growth": "早熟",
+    "fee_tier": "A",
+    "region": "overseas",
+    "weight": "不明",
+    "source": "https://www.jbis.or.jp/horse/0001293380/"
+  },
+  {
+    "name": "ライフイズグッド",
+    "sire": "Into Mischief",
+    "dam": "Beach Walk",
+    "bms": "Distorted Humor",
+    "grandam": "Bonnie Blue Flag",
+    "gbms": "Mineshaft",
+    "line": [
+      "Harlan's Holiday",
+      "Harlan",
+      "Storm Cat"
+    ],
+    "dist": [
+      1400,
+      1800
+    ],
+    "surface": "ダート",
+    "growth": "普通",
+    "fee_tier": "B",
+    "region": "overseas",
+    "weight": "不明",
+    "source": "https://www.jbis.or.jp/horse/0001350454/"
+  },
+  {
+    "name": "エリートパワー",
+    "sire": "Curlin",
+    "dam": "Broadway's Alibi",
+    "bms": "Vindication",
+    "grandam": "Broadway Gold",
+    "gbms": "Seeking the Gold",
+    "line": [
+      "Smart Strike",
+      "Mr. Prospector",
+      "Raise a Native"
+    ],
+    "dist": [
+      1200,
+      1400
+    ],
+    "surface": "ダート",
+    "growth": "普通",
+    "fee_tier": "B",
+    "region": "overseas",
+    "weight": "不明",
+    "source": "https://www.jbis.or.jp/horse/0001366426/"
+  },
+  {
+    "name": "フォルテ",
+    "sire": "Violence",
+    "dam": "Queen Caroline",
+    "bms": "Blame",
+    "grandam": "Queens Plaza",
+    "gbms": "Forestry",
+    "line": [
+      "Medaglia d'Oro",
+      "El Prado",
+      "Sadler's Wells"
+    ],
+    "dist": [
+      1400,
+      1800
+    ],
+    "surface": "ダート",
+    "growth": "早熟",
+    "fee_tier": "B",
+    "region": "overseas",
+    "weight": "不明",
+    "source": "https://www.jbis.or.jp/horse/0001365945/"
+  },
+  {
+    "name": "アルカンジェロ",
+    "sire": "Arrogate",
+    "dam": "Modeling",
+    "bms": "Tapit",
+    "grandam": "Teeming",
+    "gbms": "Storm Cat",
+    "line": [
+      "Unbridled's Song",
+      "Unbridled",
+      "Fappiano"
+    ],
+    "dist": [
+      1800,
+      2400
+    ],
+    "surface": "ダート",
+    "growth": "早熟",
+    "fee_tier": "B",
+    "region": "overseas",
+    "weight": "不明",
+    "source": "https://www.jbis.or.jp/horse/0001384335/"
+  },
+  {
+    "name": "ジャッキーズウォリアー",
+    "sire": "Maclean's Music",
+    "dam": "Unicorn Girl",
+    "bms": "A. P. Five Hundred",
+    "grandam": "Horah for Bailey",
+    "gbms": "Doneraile Court",
+    "line": [
+      "Distorted Humor",
+      "Forty Niner",
+      "Mr. Prospector"
+    ],
+    "dist": [
+      1200,
+      1600
+    ],
+    "surface": "ダート",
+    "growth": "早熟",
+    "fee_tier": "B",
+    "region": "overseas",
+    "weight": "不明",
+    "source": "https://www.jbis.or.jp/horse/0001350453/"
+  }
+]
