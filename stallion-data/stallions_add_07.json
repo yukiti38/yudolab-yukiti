@@ -115,27 +115,28 @@
     "source": "https://www.jbis.or.jp/horse/0001175196/"
   },
   {
-    "name": "フェノーメノ",
-    "sire": "ステイゴールド",
-    "dam": "ディラローシェ",
-    "bms": "Danehill",
-    "grandam": "Sea Port",
-    "gbms": "Averof",
+    "name": "オーソリティ",
+    "sire": "オルフェーヴル",
+    "dam": "ロザリンド",
+    "bms": "シンボリクリスエス",
+    "grandam": "シーザリオ",
+    "gbms": "スペシャルウィーク",
     "line": [
       "ステイゴールド",
       "サンデーサイレンス",
       "ヘイロー"
     ],
     "dist": [
-      2200,
-      3200
+      2100,
+      2500
     ],
     "surface": "芝",
     "growth": "普通",
     "fee_tier": "C",
     "region": "domestic",
-    "weight": 496,
-    "source": "https://www.jbis.or.jp/horse/0001110458/"
+    "weight": 500,
+    "source": "https://www.jbis.or.jp/horse/0001236591/",
+    "age2026": 9
   },
   {
     "name": "シルバーステート",
