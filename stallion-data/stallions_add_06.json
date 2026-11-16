@@ -115,27 +115,28 @@
     "source": "https://www.jbis.or.jp/horse/0001302727/"
   },
   {
-    "name": "ソーユーシンク",
-    "sire": "High Chaparral",
-    "dam": "Triassic",
-    "bms": "Tights",
-    "grandam": "Astral Row",
-    "gbms": "Long Row",
+    "name": "ステイインサイド",
+    "sire": "Extreme Choice",
+    "dam": "Nothin Leica Storm",
+    "bms": "Anabaa",
+    "grandam": "Nothin' Leica",
+    "gbms": "Nothin' Leica Dane",
     "line": [
-      "Sadler's Wells",
-      "Northern Dancer",
-      "Nearctic"
+      "Not A Single Doubt",
+      "Redoute's Choice",
+      "Danehill"
     ],
     "dist": [
-      1800,
-      2100
+      1100,
+      1200
     ],
     "surface": "芝",
-    "growth": "普通",
+    "growth": "早熟",
     "fee_tier": "B",
     "region": "overseas",
     "weight": "不明",
-    "source": "https://www.jbis.or.jp/horse/0001192943/"
+    "source": "https://www.stallions.com.au/listing/stay-inside/",
+    "age2026": 8
   },
   {
     "name": "エクストリームチョイス",
