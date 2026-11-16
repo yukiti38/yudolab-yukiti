@@ -7,7 +7,7 @@
 <style>
   :root { --bg:#10160f; --panel:#1b241a; --panel2:#232f22; --line:#3a4a38; --txt:#e8f0e4; --sub:#a9bfa2; --acc:#7fe07a; --warn:#ffcf6e; --bad:#ff8f8f; }
   * { box-sizing:border-box; }
-  body { margin:0; font-family:"Hiragino Sans","Noto Sans JP",sans-serif; background:var(--bg); color:var(--txt); overflow-x:hidden; overflow-x:clip; } /* v3.1.2：ページ全体の横幅暴走を止める保険（clip 非対応環境では hidden が効く）。fixed のモーダルや .tscroll/.entryscroll 内の sticky は各スクロール枠が基点なので影響しない */
+  body { margin:0; font-family:"Hiragino Sans","Noto Sans JP",sans-serif; background:var(--bg); color:var(--txt); }
   header { background:#0b100a; border-bottom:1px solid var(--line); padding:10px 16px; display:flex; flex-wrap:wrap; gap:10px 18px; align-items:center; }
   header .date { font-size:20px; font-weight:700; }
   header .funds { color:var(--warn); font-weight:700; }
@@ -2690,7 +2690,7 @@ function viewChoose(){
   const rows = S.candidates.map(m =>
     "<tr><td><b>"+m.name+"</b></td><td>"+ageOf(m)+"歳</td><td>父 "+m.sire+"／母父 "+m.bms+"</td><td>"+m.surface+" "+m.distMin+"-"+m.distMax+"m</td><td>"+m.growth+"</td><td>"+evalComment(m)+"</td><td><button data-choose='"+m.id+"'>この馬にする</button></td></tr>").join("");
   return "<h2 style='margin-top:0;'>最初の繁殖牝馬を選ぶ</h2><div class='sub' style='margin-bottom:8px;'>牧場の基礎になる1頭です。父（この馬の父＝将来の母父）・適性・成長型を見て選んでください。選ばなかった4頭は、後の繁殖牝馬セールに回ります。</div>"
-    + "<div class='tscroll'><table style='min-width:640px'><tr><th>馬名</th><th>年齢</th><th>血統</th><th>適性</th><th>成長</th><th>スタッフ評価</th><th></th></tr>"+rows+"</table></div>";
+    + "<table><tr><th>馬名</th><th>年齢</th><th>血統</th><th>適性</th><th>成長</th><th>スタッフ評価</th><th></th></tr>"+rows+"</table>";
 }
 /* ================= 描画 ================= */
 let currentTab = "horses";
@@ -2794,7 +2794,7 @@ function viewHorses(){
   const sortOpts = [["default","既定の順"],["young","若い順"],["old","高齢順"],["earnings","獲得賞金順"],["wins","勝ち数順"],["ability","評価順"],["name","名前順"]]
     .map(o=>"<option value='"+o[0]+"'"+(horseSort===o[0]?" selected":"")+">"+o[1]+"</option>").join("");
   return "<div class='flex listtools' style='margin-bottom:8px;'><label>表示：</label><select id='horseFilterSel'>"+opts+"</select><label>並び替え：</label><select id='horseSortSel'>"+sortOpts+"</select><span class='sub'>"+list.length+"頭（全 "+S.horses.length+" 頭）。繁殖牝馬・種牡馬は「繁殖」「種牡馬」タブでも見られます。引退馬は「牧場年表」タブの引退馬リストにいます</span></div>"
-    + "<div class='tscroll'><table style='min-width:700px'><tr><th>馬名</th><th>性</th><th>年齢</th><th>状態</th><th>成長</th><th>クラス</th><th>成績</th><th>スタッフ評価</th><th>コンディション</th></tr>"+rows+"</table></div><div class='sub'>馬名を押すと履歴ページが開きます。</div>";
+    + "<table><tr><th>馬名</th><th>性</th><th>年齢</th><th>状態</th><th>成長</th><th>クラス</th><th>成績</th><th>スタッフ評価</th><th>コンディション</th></tr>"+rows+"</table><div class='sub'>馬名を押すと履歴ページが開きます。</div>";
 }
 let entryHorseId = null, entrySort = "recommend", entryOnlyOk = false, entryWeekAhead = 0;
 let entryFilter = { sector:"all", grade:"all", surface:"all", dist:"all", label:"all" };
@@ -3166,13 +3166,13 @@ function broodmareTable(){
     const mareBmsLine = majorLineOfName(m.sire); /* この牝馬の父＝産駒の母父の系（系統の個性 v0.54） */
     const list = sortedForMating(m);
     html += "<div class='sub' style='margin-top:6px;'>"+m.name+"（"+m.surface+" "+m.distMin+"-"+m.distMax+"m・母父 "+m.bms+"）への種付け候補 "+list.length+" 頭。相性は馬場と距離の重なりから見た目安です。</div>";
-    html += "<div class='tscroll'><table style='min-width:720px'><tr><th></th><th>種牡馬</th><th>地域</th><th>馬場</th><th>距離</th><th>成長</th><th>格</th><th>傾向</th><th>種付料</th><th>相性</th><th></th></tr>";
+    html += "<table><tr><th></th><th>種牡馬</th><th>地域</th><th>馬場</th><th>距離</th><th>成長</th><th>格</th><th>傾向</th><th>種付料</th><th>相性</th><th></th></tr>";
     for(const st of list){
       const note = inbreedNote(m, st);
       const hotNote = isHotCross(stallionGen(st).temp, m.temp) ? "気性が荒くなりやすい配合（確変）" : "";
       html += "<tr><td><button data-fav='"+st.name+"' class='ghost' title='お気に入り'>"+((S.favs||[]).includes(st.name)?"★":"☆")+"</button></td><td>"+st.name+(isHomebredStallion(st)?" <span class='ok'>自家製</span>":"")+(st.sire?" <span class='sub'>父 "+st.sire+"</span>":"")+"<br><span class='sub'>配合の色："+lineColourText(lineBlend(stallionMajorLine(st), mareBmsLine, m.bms))+"</span></td><td>"+(st.region==="overseas"?"海外":"国内")+"</td><td>"+st.surface+"</td><td>"+st.dist[0]+"-"+st.dist[1]+"m</td><td>"+st.growth+"</td><td>"+st.fee_tier+"</td><td>"+stallionTendency(st)+"</td><td>"+(stallionFee(st)===0 ? "無料" : man(stallionFee(st)))+"</td><td>"+compatMark(m, st)+(note?" <span class='bad'>"+note+"</span>":"")+(hotNote?" <span class='bad'>"+hotNote+"</span>":"")+"</td><td><button data-matewith='"+st.name+"'>種付け</button></td></tr>";
     }
-    html += "</table></div>";
+    html += "</table>";
   }
   html += broodmareStatusTable(mares) + "<div class='sub'>種付けした仔は翌年の年初に生まれます。種付料はティア別の設計値です（自家製種牡馬は無料）。</div>";
   setTimeout(()=>{
@@ -3277,7 +3277,7 @@ function viewStallions(){
     + "<label><input type='checkbox' id='sfFav'"+(stallionFilter.favOnly?" checked":"")+"> ★だけ</label>"
     + "<label><input type='checkbox' id='sfHome'"+(stallionFilter.homeOnly?" checked":"")+"> 自家製だけ</label></div>"
     + "<div class='sub'>表示 "+list.length+" 頭</div>"
-    + "<div class='tscroll'><table style='min-width:700px'><tr><th>種牡馬</th><th>地域</th><th>馬場</th><th>距離</th><th>成長</th><th>格</th><th>傾向</th><th>系統</th><th>種付料</th><th>体重</th></tr>"+rows+"</table></div>";
+    + "<table><tr><th>種牡馬</th><th>地域</th><th>馬場</th><th>距離</th><th>成長</th><th>格</th><th>傾向</th><th>系統</th><th>種付料</th><th>体重</th></tr>"+rows+"</table>";
 }
 /* ================= レーシングカレンダー（v0.33） =================
    特別戦〜重賞を月ごとに、中央・NKC／地方・TKC／海外・WHC に分けて一覧する。一般戦（自動生成）は除く */
@@ -3349,7 +3349,7 @@ function retiredListHtml(){
     if(r.wasBroodmare && r.rank) notes.push("ランク"+r.rank);
     rows.push("<tr><td>"+r.name+"</td><td>"+r.sex+"</td><td>"+r.birthYear+"年生</td><td>"+career(r.starts||0, r.wins||0, r.earnings||0)+"</td><td>"+notes.join("・")+"</td></tr>");
   }
-  return html + "<div class='tscroll'><table style='min-width:600px'><tr><th>馬名</th><th>性</th><th>世代</th><th>成績</th><th>備考</th></tr>"+rows.join("")+"</table></div></details>";
+  return html + "<table><tr><th>馬名</th><th>性</th><th>世代</th><th>成績</th><th>備考</th></tr>"+rows.join("")+"</table></details>";
 }
 function viewChron(){
   let html = "";
@@ -3371,7 +3371,7 @@ function viewChron(){
       const now = h.status==="broodmare" ? "繁殖牝馬" : h.status==="stallion" ? "種牡馬" : "引退";
       return "<tr><td><span class='horse-link' data-horse='"+h.id+"'>"+h.name+"</span></td><td>"+h.sex+"</td><td>"+span+"</td><td>"+(h.results.length+(h.preStarts||0))+"戦"+h.wins+"勝</td><td>"+man(h.earnings)+"</td><td>"+(best?best.r.race+"（"+best.r.grade+"）":"―")+"</td><td>"+now+"</td></tr>";
     }).join("");
-    html += "<div class='tscroll'><table style='min-width:660px'><tr><th>馬名</th><th>性</th><th>現役期間</th><th>成績</th><th>獲得賞金</th><th>代表勝ち鞍</th><th>現在</th></tr>"+rows+"</table></div>";
+    html += "<table><tr><th>馬名</th><th>性</th><th>現役期間</th><th>成績</th><th>獲得賞金</th><th>代表勝ち鞍</th><th>現在</th></tr>"+rows+"</table>";
   } else {
     html += "<div class='sub'>まだ殿堂入りした馬はいません。GI・JpnI・海外G1を勝つか、生涯5億円以上を稼いだ馬が現役を終えると、ここに残ります。</div>";
   }
@@ -3395,7 +3395,7 @@ function viewChron(){
   }
   /* 年ごとのまとめはプルダウンで畳めるようにする（v0.33）。年表の主役は殿堂と記念イベント */
   html += "<details style='margin-top:16px;'><summary style='cursor:pointer;font-size:16px;font-weight:bold;'>📖 牧場の歩み（年ごとのまとめ）</summary>"
-    + "<div class='tscroll'><table style='min-width:620px'><tr><th>年</th><th>出走</th><th>勝利</th><th>獲得賞金</th><th>誕生</th><th>代表馬（その年の獲得賞金トップ）</th></tr>"+yrows.join("")+"</table></div></details>";
+    + "<table><tr><th>年</th><th>出走</th><th>勝利</th><th>獲得賞金</th><th>誕生</th><th>代表馬（その年の獲得賞金トップ）</th></tr>"+yrows.join("")+"</table></details>";
   /* ===== 年表（詳細ログ） ===== */
   const items = [...S.chronicle].reverse().slice(0,160).map(c=>"<div><span class='when'>"+c.y+"年"+c.m+"月第"+c.w+"週</span>"+c.text+"</div>").join("");
   html += "<h3 style='margin-top:16px;'>年表</h3><div class='chron'>"+items+"</div>";
@@ -4256,6 +4256,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>競馬シミュレーター（趣味） v3.1.2</footer>
+<footer>競馬シミュレーター（趣味） v3.1.3</footer>
 </body>
 </html>
