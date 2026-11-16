@@ -16,7 +16,7 @@
   button.primary { background:#2c5b2a; border-color:var(--acc); font-weight:700; }
   button:disabled { opacity:.38; cursor:not-allowed; }
   main { max-width:1180px; margin:0 auto; padding:14px; display:grid; grid-template-columns:1fr; gap:14px; }
-  .panel { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px 14px; }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px 14px; min-width:0; } /* v3.1.4：min-width:0 はグリッドの膨張防止（牝系図など横スクロール前提の中身にパネル幅を引っ張らせない） */
   .panel h2 { margin:2px 0 10px; font-size:16px; }
   .tabs { display:flex; gap:8px; flex-wrap:wrap; }
   .tabs button.active { background:#2c5b2a; border-color:var(--acc); }
@@ -63,16 +63,16 @@
   .sellmenu { margin:10px 0; border:1px solid var(--line); border-radius:10px; padding:8px 10px; background:var(--panel2); }
   .sellmenu summary { cursor:pointer; font-size:14px; }
   .sellmenu-body { margin-top:8px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-  .ltree-scroll { overflow-x:auto; max-width:100%; padding:8px 2px 12px; }
+  .ltree-scroll { overflow-x:auto; max-width:100%; min-width:0; padding:8px 2px 12px; }
   .ltree { display:inline-block; }
-  .lnode { display:flex; align-items:center; position:relative; }
+  .lnode { display:flex; align-items:flex-start; position:relative; } /* v3.1.4：親カードは枝の上端に置く（根元牝馬が左上に来る） */
   .lnode + .lnode { margin-top:10px; }
   .lkids { display:flex; flex-direction:column; justify-content:center; position:relative; margin-left:14px; padding-left:28px; }
-  .lkids::before { content:""; position:absolute; left:-14px; top:50%; width:14px; border-top:2px solid var(--line); }
-  .lkids > .lnode::before { content:""; position:absolute; left:-28px; top:50%; width:28px; border-top:2px solid var(--line); }
+  .lkids::before { content:""; position:absolute; left:-14px; top:30px; width:14px; border-top:2px solid var(--line); } /* v3.1.4：親カード（上端揃え）の中心付近から枝を出す */
+  .lkids > .lnode::before { content:""; position:absolute; left:-28px; top:30px; width:28px; border-top:2px solid var(--line); }
   .lkids > .lnode::after { content:""; position:absolute; left:-28px; top:-6px; bottom:-6px; border-left:2px solid var(--line); }
-  .lkids > .lnode:first-child::after { top:50%; }
-  .lkids > .lnode:last-child::after { bottom:50%; }
+  .lkids > .lnode:first-child::after { top:30px; }
+  .lkids > .lnode:last-child::after { bottom:calc(100% - 30px); }
   .lcard { display:flex; flex-direction:column; gap:1px; background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:5px 9px; min-width:118px; cursor:pointer; }
   .lcard:hover { border-color:var(--acc); }
   .lname { font-weight:700; font-size:13.5px; color:var(--acc); }
@@ -809,7 +809,7 @@ function mareCapReached(){ return mareCount() >= mareLimitOf(); }
    同じ引退馬リストに「売却」として載せる（牝系の頭数・殿堂には戻らない＝記録のみ） */
 /* 引退馬リスト（年表側）に載る馬か：新ステータス retired（繁殖引退した牝馬）か、
    競走引退フラグが立った馬（種牡馬入りした馬は現役の種牡馬なので除く） */
-function isAlumni(h){ return h.status==="retired" || (!!h.retired && h.status!=="stallion"); }
+function isAlumni(h){ return h.status==="retired" || !!h.studRetired || (!!h.retired && h.status!=="stallion"); } /* v3.1.4：種牡馬引退した自家製種牡馬も引退馬（年表リスト側）。現役種牡馬は studRetired が無いので残る */
 /* 繁殖引退の確定処理：ステータスを retired に変え、枠・繋養費から即時に外す */
 function retireFromBreeding(h){
   if(!h || h.status!=="broodmare") return;
@@ -2760,6 +2760,7 @@ function render(){
   if(S.retireQueue && S.retireQueue.length) openRetireQueue(); /* v3.1：年末の引退確認キューがあればモーダルを出す */
 }
 function statusJa(h){
+  if(h.status==="stallion" && !h.studRetired) return "種牡馬"; /* v3.1.4：現役種牡馬は競走引退フラグが立っていても「種牡馬」と出す */
   if(h.retired) return "引退";
   return {foal:"当歳", yearling:"1歳", racehorse:"現役", broodmare: h.pregnant? "繁殖（受胎中）":"繁殖", stallion:"種牡馬"}[h.status] || h.status;
 }
@@ -2786,15 +2787,26 @@ function viewHorses(){
   else if(horseSort==="wins") sorted.sort((a,b)=>(b.wins||0)-(a.wins||0));
   else if(horseSort==="ability") sorted.sort((a,b)=>effAvg(b)-effAvg(a)); /* v0.50：評価順は素質（上限）でなく現在の実効で並べる */
   else if(horseSort==="name") sorted.sort((a,b)=>a.name.localeCompare(b.name, "ja"));
-  const rows = sorted.map(h =>
-    "<tr><td><span class='horse-link' data-horse='"+h.id+"'>"+h.name+"</span>"+(h.unnamed ? " <span class='sub'>（仮名）</span>" : "")+(h.status==="broodmare" ? " <span class='sub'>ランク"+mareRankOf(h)+"</span>" : "")+"</td><td>"+h.sex+"</td><td>"+ageOf(h)+"歳</td><td>"+statusJa(h)+"</td><td>"+growthStage(h)+"</td><td>"+(h.status==="racehorse" && !h.retired ? horseClass(h) : "―")+"</td><td>"+h.wins+"勝 / "+man(h.earnings)+"</td><td>"+evalComment(h)+"</td><td>状態"+Math.round(h.condition)+" 疲労"+Math.round(h.fatigue)+"</td></tr>").join("");
+  const rowOf = h =>
+    "<tr><td><span class='horse-link' data-horse='"+h.id+"'>"+h.name+"</span>"+(h.unnamed ? " <span class='sub'>（仮名）</span>" : "")+(h.status==="broodmare" ? " <span class='sub'>ランク"+mareRankOf(h)+"</span>" : "")+"</td><td>"+h.sex+"</td><td>"+ageOf(h)+"歳</td><td>"+statusJa(h)+"</td><td>"+growthStage(h)+"</td><td>"+(h.status==="racehorse" && !h.retired ? horseClass(h) : "―")+"</td><td>"+h.wins+"勝 / "+man(h.earnings)+"</td><td>"+evalComment(h)+"</td><td>状態"+Math.round(h.condition)+" 疲労"+Math.round(h.fatigue)+"</td></tr>";
   const opts = [["active","現役＋若馬（既定）"],["racehorse","現役のみ"],["young","若馬のみ"],["breeding","繁殖・種牡馬"],["all","すべて"]]
     .map(o=>"<option value='"+o[0]+"'"+(horseFilter===o[0]?" selected":"")+">"+o[1]+"</option>").join("");
   setTimeout(()=>{ const el = $("#horseFilterSel"); if(el) el.onchange = () => { horseFilter = el.value; render(); }; const so = $("#horseSortSel"); if(so) so.onchange = () => { horseSort = so.value; render(); }; }, 0);
   const sortOpts = [["default","既定の順"],["young","若い順"],["old","高齢順"],["earnings","獲得賞金順"],["wins","勝ち数順"],["ability","評価順"],["name","名前順"]]
     .map(o=>"<option value='"+o[0]+"'"+(horseSort===o[0]?" selected":"")+">"+o[1]+"</option>").join("");
+  const tableHead = "<tr><th>馬名</th><th>性</th><th>年齢</th><th>状態</th><th>成長</th><th>クラス</th><th>成績</th><th>スタッフ評価</th><th>コンディション</th></tr>";
+  let bodyHtml;
+  if(horseFilter==="breeding"){ /* v3.1.4（Terai指示）：繁殖ビューは種牡馬と繁殖牝馬を別々の表に分ける。引退馬（種牡馬引退・繁殖引退含む）は isAlumni 側で既に除かれている */
+    const sts = sorted.filter(h=>h.status==="stallion"), mrs = sorted.filter(h=>h.status==="broodmare");
+    bodyHtml = "";
+    if(sts.length) bodyHtml += "<h3 style='margin:10px 0 6px;'>種牡馬（"+sts.length+"頭）</h3><table>"+tableHead+sts.map(rowOf).join("")+"</table>";
+    if(mrs.length) bodyHtml += "<h3 style='margin:14px 0 6px;'>繁殖牝馬（"+mrs.length+"頭）</h3><table>"+tableHead+mrs.map(rowOf).join("")+"</table>";
+    if(!bodyHtml) bodyHtml = "<table>"+tableHead+"</table>";
+  } else {
+    bodyHtml = "<table>"+tableHead+sorted.map(rowOf).join("")+"</table>";
+  }
   return "<div class='flex listtools' style='margin-bottom:8px;'><label>表示：</label><select id='horseFilterSel'>"+opts+"</select><label>並び替え：</label><select id='horseSortSel'>"+sortOpts+"</select><span class='sub'>"+list.length+"頭（全 "+S.horses.length+" 頭）。繁殖牝馬・種牡馬は「繁殖」「種牡馬」タブでも見られます。引退馬は「牧場年表」タブの引退馬リストにいます</span></div>"
-    + "<table><tr><th>馬名</th><th>性</th><th>年齢</th><th>状態</th><th>成長</th><th>クラス</th><th>成績</th><th>スタッフ評価</th><th>コンディション</th></tr>"+rows+"</table><div class='sub'>馬名を押すと履歴ページが開きます。</div>";
+    + bodyHtml + "<div class='sub'>馬名を押すと履歴ページが開きます。</div>";
 }
 let entryHorseId = null, entrySort = "recommend", entryOnlyOk = false, entryWeekAhead = 0;
 let entryFilter = { sector:"all", grade:"all", surface:"all", dist:"all", label:"all" };
@@ -3746,7 +3758,7 @@ function coltRetireMenuHtml(h, price){
 function retireColtCore(h, toStud){
   h.retired = true;
   if(toStud){
-    h.status="stallion"; h.studYear = S.year;
+    h.status="stallion"; h.retired = false; h.studYear = S.year; /* v3.1.4：繁殖入りする牝馬と同様、競走引退フラグは下ろす */
     /* v3.0：自家製種牡馬も世代交代の対象。retireAge は種牡馬入りの年齢＋19（入り年を含めて20年供用＝v0.40 の20年リミット）。
        母系も可能な範囲で埋め、血統表と母父ラインが引けるようにする */
     const damH = S.horses.find(x=>x.name===h.dam);
@@ -4256,6 +4268,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>競馬シミュレーター（趣味） v3.1.3</footer>
+<footer>競馬シミュレーター（趣味） v3.1.4</footer>
 </body>
 </html>
