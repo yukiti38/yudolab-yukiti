@@ -816,7 +816,7 @@ function refreshSale(){
 function initState(){
   S = { year:2026, month:1, week:1, calVer:2, funds:30000, horses:[], stallions: JSON.parse(JSON.stringify(DATA.stallions)),
         chronicle:[], statsBirths:{}, topics:[], yearEndDone:false, phase:"choose", candidates:[], salePool:[], saleYear:2026, usedTemplates:[], firstMatingDone:false,
-        giftQueue:[], giftAprDone:false, giftDecDone:false, favs:[], mile:null, farmWins:0, farmPrize:0, kanmuri:"", soldHorses:[] };
+        giftQueue:[], giftAprDone:false, giftDecDone:false, giftSet:null, favs:[], mile:null, farmWins:0, farmPrize:0, kanmuri:"", soldHorses:[] };
   const sts = S.stallions;
   // 種牡馬ロスターは固定（約50頭・引退／世代交代なし。WS4b・2026-11-13）。
   // 自家生産の牡馬が引退時に種牡馬入りすることはある（そちらは従来どおり）。
@@ -1567,7 +1567,7 @@ function weeklyEvents(){
     if(unn.length) topic("🍼 まだ仮名の1歳馬がいます："+unn.map(h=>h.name).join("、")+"（2歳になる前に名前を付けてください）");
   }
   if(S.month===11 && S.week===1 && S.salePool && S.salePool.length) topic("🐴 繁殖牝馬セールが始まりました（11〜12月、「繁殖」タブ）。最初に選ばなかった候補も出ています");
-  if(S.year===2026 && S.month===4 && S.week===1 && !S.giftAprDone){ S.giftAprDone = true; S.giftQueue.push(makeGift("aprColt")); S.giftQueue.push(makeGift("aprFilly")); topic("🎁 初年度の支援で2歳馬が2頭（牡馬・牝馬）贈られます。1頭ずつ、名前を付けて迎えるか、辞退もできます"); }
+  if(S.year===2026 && S.month===4 && S.week===1 && !S.giftAprDone){ S.giftAprDone = true; if(!S.giftSet) S.giftSet = Math.random()<0.5 ? "A" : "B"; for(const k of GIFT_SETS[S.giftSet]) S.giftQueue.push(makeGift(k)); topic("🎁 初年度の支援で2歳馬が2頭（牡馬・牝馬）贈られます。1頭ずつ、名前を付けて迎えるか、辞退もできます"); }
   if(S.year===2026 && S.month===12 && S.week===1 && !S.giftDecDone){ S.giftDecDone = true; S.giftQueue.push(makeGift("decFilly")); topic("🎁 初年度の支援で1歳牝馬が贈られます。名前を付けて迎えるか、辞退もできます"); }
   for(const h of S.horses){
     if(h.status==="racehorse" && ageOf(h)>=7 && !h.retireNudged){ h.retireNudged = true; topic("引退を考え始める時期です："+h.name+"（"+ageOf(h)+"歳）。馬のページから引退させられます"); }
@@ -1640,9 +1640,12 @@ function buyMare(id){
   save(); render();
 }
 /* ---- 初年度限定ギフト（v1.01・Terai 決定 2026-11-15）：ランダム生成を廃し、固定のモデル馬に差し替え。
-   4月＝2歳2頭（牡：エフフォーリア型／牝：ソウルスターリング型）をまとめてキューに入れ、パネルで1頭ずつ迎える／辞退する。
+   4月＝2歳2頭をまとめてキューに入れ、パネルで1頭ずつ迎える／辞退する。
    12月＝1歳牝馬1頭（父キタサンブラック／母父キングカメハメハ／母母父エンドスウィープの血統固定）。
-   能力は3頭とも B ランク相当で統一。名前は従来どおり farmFoalName の候補をプレイヤーが編集して迎える（辞退可） ---- */
+   能力は全モデルとも B ランク相当で統一。名前は従来どおり farmFoalName の候補をプレイヤーが編集して迎える（辞退可）
+   v1.2（Terai 決定 2026-11-16）：4月組を「セット制」に変更。セットA＝エフフォーリア型（芝牡）＋マルシュロレーヌ型（ダート牝）、
+   セットB＝ミックファイア型（ダート牡）＋ソウルスターリング型（芝牝）のどちらか一方が 50/50 で選ばれる。
+   抽選は4月ギフト生成時に1回だけ行い S.giftSet に残す（再読込・セーブ経由でも再抽選しない）。選ばれなかったセットは現れない ---- */
 /* B ランク相当のパラメータ生成（v1.01）：中心 74〜76 にバランス寄せ（off）と小ブレ ±2 を加え、
    3パラ平均（丸め）が B 帯（73〜77）に必ず収まるよう根性で微調整してから 35〜85 にクランプする */
 function giftBParams(off){
@@ -1665,14 +1668,29 @@ const GIFT_SPECS = {
      持続の明示指定は外した（spec.jizoku の配管自体は残す） */
   aprFilly: { sex: "牝", age2: true, sire: "Frankel", dam: "スタセリタ", bms: "モンズーン", grandam: "ソワニエ", gbms: "ダッシングブレイド",
     surface: "芝", distMin: 1600, distMax: 2400, gtype: "早熟", off: { spd: 2, sta: 1, gut: 0 }, coat: "青鹿毛" },
+  /* ミックファイア型（v1.2・セットBの牡）：父シニスターミニスター（ロスターB枠・シアトルスルー系）／母マリアージュ／
+     母父ブライアンズタイム／母母アーミールージュ／母母父ミスワキ（系統はチェーン補完でミスタープロスペクターへ接続）。
+     ダート1600-2000（全勝利がこの帯：羽田盃1800・東京ダービー2000・ジャパンダートダービー2000）・普通早
+     （2歳3戦3勝→3歳で南関東三冠とピーク、その後は脚部不安で6歳まで勝ち星なし）。先行して押し切るスピード寄せ */
+  aprColtDirt: { sex: "牡", age2: true, sire: "シニスターミニスター", dam: "マリアージュ", bms: "ブライアンズタイム", grandam: "アーミールージュ", gbms: "ミスワキ",
+    surface: "ダート", distMin: 1600, distMax: 2000, gtype: "普通早", off: { spd: 2, sta: 1, gut: 1 }, coat: "鹿毛" },
+  /* マルシュロレーヌ型（v1.2・セットAの牝）：父オルフェーヴル（ロスターB枠）／母ヴィートマルシェ／母父フレンチデピュティ／
+     母母キョウエイマーチ／母母父ダンシングブレーヴ。
+     ダート1700-2100（重賞勝ちは1800〜2100、1700はオープン勝ち込み）・普通遅
+     （デビュー3歳、初重賞4歳、ピークは5歳＝TCK女王盃・エンプレス杯・ブリーダーズGC・BCディスタフ）。末脚型でスタミナ寄せ */
+  aprFillyDirt: { sex: "牝", age2: true, sire: "オルフェーヴル", dam: "ヴィートマルシェ", bms: "フレンチデピュティ", grandam: "キョウエイマーチ", gbms: "ダンシングブレーヴ",
+    surface: "ダート", distMin: 1700, distMax: 2100, gtype: "普通遅", off: { spd: 1, sta: 2, gut: 1 }, coat: "鹿毛" },
   /* 12月の1歳牝馬：父キタサンブラック／母父キングカメハメハ／母母父エンドスウィープ（母・母母は架空名）。
      芝は父の適性（1800-3000）に合わせ、普通遅。能力も他2頭と揃えて B ランク相当（Terai 未指定のため ゆきち の仮置き） */
   decFilly: { sex: "牝", age2: false, sire: "キタサンブラック", dam: null, bms: "キングカメハメハ", grandam: null, gbms: "エンドスウィープ",
     surface: "芝", distMin: 1800, distMax: 3000, gtype: "普通遅", off: { spd: 1, sta: 2, gut: 0 }, coat: null }
 };
+/* 4月ギフトのセット表（v1.2）：A＝芝牡＋ダート牝／B＝ダート牡＋芝牝。芝ダートが必ず対になる組み合わせで、
+   抽選結果は S.giftSet に残り、選ばれなかったセットの2頭はその牧場には現れない */
+const GIFT_SETS = { A: ["aprColt", "aprFillyDirt"], B: ["aprColtDirt", "aprFilly"] };
 function makeGift(kind){
   const spec = GIFT_SPECS[kind]; if(!spec) return null;
-  const sireRec = S.stallions.find(s => s.name === spec.sire) || null; /* 現在の3モデルは父が全てロスター内。ロスターにレコードの無い父は null：気性・体重は中庸フォールバックにする */
+  const sireRec = S.stallions.find(s => s.name === spec.sire) || null; /* 現在の5モデルは父が全てロスター内。ロスターにレコードの無い父は null：気性・体重は中庸フォールバックにする */
   const is2 = spec.age2;
   /* 贈呈馬の名前は farmFoalName で冠名を効かせる（v0.58・Terai指摘）。母名は実在モデルの名前／架空名のいずれも冠名を付けない */
   const h = newHorse({ name:farmFoalName(), sex: spec.sex, birthYear: is2 ? 2024 : 2025, sire: spec.sire, dam: spec.dam || foalName(), bms: spec.bms,
@@ -1683,7 +1701,7 @@ function makeGift(kind){
   if(!spec.grandam){ while(h.grandam === h.name || h.grandam === h.dam) h.grandam = foalName(); }
   const p = giftBParams(spec.off);
   setParams(h, p.spd, p.sta, p.gut); /* ability は setParams が3パラ平均で更新する */
-  h.jizoku = spec.jizoku != null ? !!spec.jizoku : Math.random() < (sireRec && sireRec.jizoku ? 0.05 : 0.001); /* 持続：スペックで明示指定があればそのまま付与（現行の3モデルに明示指定は無いが配管は残す）。それ以外は父が持続なら5%、他は突然変異0.1%（v0.50） */
+  h.jizoku = spec.jizoku != null ? !!spec.jizoku : Math.random() < (sireRec && sireRec.jizoku ? 0.05 : 0.001); /* 持続：スペックで明示指定があればそのまま付与（現行の5モデルに明示指定は無いが配管は残す）。それ以外は父が持続なら5%、他は突然変異0.1%（v0.50） */
   h.matureWeight = Math.round((sireRec && sireRec.weight != null ? sireRec.weight : 490) + triSpread(25)); /* 馬体重（v0.53・フレーバーのみ） */
   h.temp = sireRec ? clamp(Math.round(stallionGen(sireRec).temp + triSpread(12)), 25, 98) : irnd(45, 70); /* ロスター外の父は中庸な気性 */
   h.quirk = rollQuirk(h.temp);
@@ -2373,10 +2391,14 @@ for(const t of (DATA.mareTemplates||[])){ for(const c of [t.sireLine||[], t.bmsL
    どこにも系統チェーンが無く、このままでは血統表が辿れない。テンプレの gbmsLine／bmsLine が果たす
    役割として、実父への1段だけをガード付きで補う
    （エンドスウィープ → フォーティナイナー → ミスタープロスペクター系／スマートストライク → ミスタープロスペクター系／
-    モンズーン → ケーニヒスシュトゥール：ブランドフォード系の傍流で8大系のマーカーには届かないため、大系は null のまま＝他の傍流と同じ扱い） */
+    モンズーン → ケーニヒスシュトゥール：ブランドフォード系の傍流で8大系のマーカーには届かないため、大系は null のまま＝他の傍流と同じ扱い）
+   v1.2：ミスワキ（ミックファイア型の母母父）も同型の補完。ラテン表記 "Miswaki" は Sea The Stars 等の
+   bmsLine で「Miswaki → Mr. Prospector」のチェーンが既にあるが、カタカナ表記のキーはどこにも無いため、
+   実父ミスタープロスペクターへの1段だけを補う（ミスワキ → ミスタープロスペクター系） */
 if(!PEDIGREE_LINES["エンドスウィープ"]) PEDIGREE_LINES["エンドスウィープ"] = "フォーティナイナー";
 if(!PEDIGREE_LINES["スマートストライク"]) PEDIGREE_LINES["スマートストライク"] = "ミスタープロスペクター";
 if(!PEDIGREE_LINES["モンズーン"]) PEDIGREE_LINES["モンズーン"] = "ケーニヒスシュトゥール";
+if(!PEDIGREE_LINES["ミスワキ"]) PEDIGREE_LINES["ミスワキ"] = "ミスタープロスペクター";
 /* 種牡馬の母系（v0.43）：母→{父=母父, 母=母母}、母母→{父=母母父} を引けるようにする */
 const PEDIGREE_DAMS = {};
 for(const st of DATA.stallions){ if(st.dam){ if(!PEDIGREE_DAMS[st.dam]) PEDIGREE_DAMS[st.dam] = { sire: st.bms||null, dam: st.grandam||null }; if(st.grandam && !PEDIGREE_DAMS[st.grandam]) PEDIGREE_DAMS[st.grandam] = { sire: st.gbms||null, dam: null }; } }
@@ -2897,6 +2919,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>競馬シミュレーター（趣味） v1.1</footer>
+<footer>競馬シミュレーター（趣味） v1.2</footer>
 </body>
 </html>
