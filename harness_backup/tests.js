@@ -933,7 +933,7 @@ function buildFamily(P, dauCount, grandPer){
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
   T('v57 filly retirement flow untouched in build', src.includes("id='retireSellBtn'") && src.includes("id='retireBroodBtn'") && src.includes('繁殖入りしない場合は、そのまま'));
   T('v57 old colt label removed', !src.includes('種牡馬にせず引退する'));
-  T('v57 footer bumped', src.includes('競馬シミュレーター（趣味） v2.0')); /* フッターは現行版に追随（v1.01） */
+  T('v57 footer bumped', src.includes('競馬シミュレーター（趣味） v2.1')); /* フッターは現行版に追随（v1.01） */
 }
 
 // ---- v0.58: kanmuri applies to gift / debug auto-names (regression: suite had NO kanmuri coverage) ----
@@ -1000,7 +1000,7 @@ function buildFamily(P, dauCount, grandPer){
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
   T('v58 build: makeGift uses farmFoalName', src.includes('name:farmFoalName()'));
   T('v58 build: debug fallback uses farmFoalName', src.includes(': farmFoalName()')); /* v0.59 で buildDebugHorse に分離されても自動名は farmFoalName のまま */
-  T('v58 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.0')); /* フッターは現行版に追随（v1.01） */
+  T('v58 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.1')); /* フッターは現行版に追随（v1.01） */
 }
 
 // ---- v0.59: debug creator brought up to current spec + gift affinities initialised at creation ----
@@ -1092,7 +1092,7 @@ function buildFamily(P, dauCount, grandPer){
   T('v59 build: affinity controls present', src.includes('"dbgRootAff"') && src.includes('"dbgYuso"') && src.includes('"dbgCourseBulk"'));
   T('v11 build: rootDist debug control removed', !src.includes('dbgRootDist'));
   T('v59 build: param range note present', src.includes('パラメータ通常 35〜85'));
-  T('v59 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.0'));
+  T('v59 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.1'));
 }
 
 
@@ -1177,7 +1177,7 @@ function buildFamily(P, dauCount, grandPer){
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
   T('v100 build: SAVE_KEY bumped to v8', src.includes('nkc_whc_keiba_proto_v8'));
   T('v100 build: import refuses pre-rework saves', src.includes('data.calVer !== 2') && src.includes('カレンダー再編（v1.00）より前の形式のため読み込めません'));
-  T('v100 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.0'));
+  T('v100 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.1'));
   T('v100 build: skip week 5 option exists', src.includes('<option>5</option>'));
 }
 
@@ -1263,7 +1263,7 @@ function buildFamily(P, dauCount, grandPer){
 {
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
   T('v101 build: fixed gift models present', src.includes('ケイティーズハート') && src.includes('スタセリタ') && src.includes('エンドスウィープ'));
-  T('v101 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.0'));
+  T('v101 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.1'));
 }
 
 // ---- v1.01: roster expansion 54 -> 60 (オーナー, 2026-11-15) ----
@@ -1453,7 +1453,7 @@ function buildFamily(P, dauCount, grandPer){
 // ---- v1.02: スマホ横画面・小画面対応（表示のみ。構造の確認） ----
 {
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
-  T('v102 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.0'));
+  T('v102 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.1'));
   T('v102 build: compact media queries present', src.includes('@media (max-width:640px), (max-height:500px)'));
   T('v102 build: tscroll wrapper css', src.includes('.tscroll { overflow-x:auto'));
   T('v102 build: wrapTables defined', src.includes('function wrapTables(root)'));
@@ -1473,7 +1473,7 @@ function buildFamily(P, dauCount, grandPer){
 // ---- v1.03: compact 表示をもう一段締める（表示のみ。構造の確認） ----
 {
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
-  T('v103 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.0'));
+  T('v103 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.1'));
   T('v103 build: compact base font 13.5px', src.includes('body { font-size:13.5px; line-height:1.5; }'));
   T('v103 build: modal h2 17px', src.includes('.modal h2 { font-size:17px; }'));
   T('v103 build: h3 14.5px', src.includes('h3 { font-size:14.5px; margin:12px 0 6px; }'));
@@ -1497,7 +1497,7 @@ function buildFamily(P, dauCount, grandPer){
 // ---- v1.04: プルダウン均一化／ツールバーの列揃え／スキップ並び（表示のみ。構造の確認） ----
 {
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
-  T('v104 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.0'));
+  T('v104 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.1'));
   T('v104 build: select height pinned base 32px', src.includes('select { height:32px; padding:0 8px; }'));
   T('v104 build: select height pinned compact 36px', src.includes('select { height:36px; padding:0 8px; }'));
   T('v104 build: horse toolbar uses listtools', src.includes("class='flex listtools'"));
@@ -1521,7 +1521,7 @@ function buildFamily(P, dauCount, grandPer){
 // ---- v1.05: コントロール群の文字サイズ統一（表示のみ。構造の確認） ----
 {
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
-  T('v105 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.0'));
+  T('v105 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.1'));
   T('v105 build: skip group font unified 13.5px', src.includes('.skipctl .sub, .skipctl button, .skipctl select, .skipctl input[type=text] { font-size:13.5px; }'));
   T('v105 build: toolbar select font matches label base 13.5px', src.includes('.listtools select { font-size:13.5px; }') && src.includes('body { font-size:13.5px; line-height:1.5; }'));
   T('v105 build: typing-input 16px guard kept', src.includes('select, input[type=text], textarea { font-size:16px; }'));
@@ -1574,7 +1574,7 @@ function buildFamily(P, dauCount, grandPer){
   const h = buildDebugHorse({ age: 3, rootAff: '✕' });
   T('v11 debug builds with rootAff only (no rootDist needed)', h.aff.rootAff === '✕' && !('rootDist' in h.aff));
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
-  T('v11 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.0'));
+  T('v11 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.1'));
   T('v11 build: no rootDist anywhere in build', !src.includes('rootDist') && !src.includes('snapBand'));
 }
 
@@ -1669,7 +1669,7 @@ function buildFamily(P, dauCount, grandPer){
   T('v12 December still queues only the fixed filly', S.giftQueue.length === 1 && S.giftQueue[0].sire === 'キタサンブラック' && S.giftDecDone === true);
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
   T('v12 build: new gift models + set table present', src.includes('マリアージュ') && src.includes('ヴィートマルシェ') && src.includes('ミスワキ') && src.includes('GIFT_SETS'));
-  T('v12 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.0'));
+  T('v12 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.1'));
 }
 
 // ---- v2.0: 自動出走（オート出走決定） ----
@@ -1924,7 +1924,194 @@ function raceOfEntry(h){
   T('v20 calendar view hosts the rotation settings (per-horse on/off + rotation)', cal.includes('ローテ設定') && cal.includes('data-auto-on') && cal.includes('data-auto-rot') && cal.includes('UI検証'));
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
   T('v20 build: horse page carries the auto controls next to the policy select', src.includes('autoEntrySel') && src.includes('autoRotSel'));
-  T('v20 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.0'));
+  T('v20 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.1'));
+}
+
+// ---- v2.1: 世代限定重賞の例外（1勝以上の若馬が2歳重賞・3歳クラシックに出られる） ----
+{
+  // helper-level parsing, mirroring eligibility()
+  T('v21 gen limit parsing mirrors eligibility (2yo)', autoGenLimit({ conditions: '2歳' }) === 2 && autoGenLimit({ conditions: '2歳牝' }) === 2 && autoGenLimit({ conditions: '2歳以上' }) === 0);
+  T('v21 gen limit parsing mirrors eligibility (3yo)', autoGenLimit({ conditions: '3歳' }) === 3 && autoGenLimit({ conditions: '3歳牡・牝' }) === 3 && autoGenLimit({ conditions: '3歳以上' }) === 0 && autoGenLimit({ conditions: '' }) === 0);
+  freshS({ year: 2033, month: 3, week: 1, phase: 'play' });
+  const w3 = mk({ name: '世代例外3歳', wins: 1, birthYear: 2030 });
+  const l3 = mk({ name: '世代例外未勝利', wins: 0, birthYear: 2030 });
+  const satsuki = { grade: 'GI', conditions: '3歳牡・牝' };
+  /* v2.1改訂：世代G2/G3は1勝で開放のまま。世代G1は実績ゲート（autoGenG1LadderOk）を通った馬だけ */
+  T('v21 a 1-win 3yo may target a generation G2/G3 (trial tier stays open at 1 win)', autoGenGradedOk(w3, { grade: 'GII', conditions: '3歳' }) === true && autoOverClass(w3, { grade: 'GII', conditions: '3歳' }) === false);
+  T('v21 a record-less 1-win 3yo may NOT target a generation G1 (G1 gate)', autoGenGradedOk(w3, satsuki) === false && autoOverClass(w3, satsuki) === true);
+  const q3 = mk({ name: '世代例外実績3歳', wins: 1, birthYear: 2030, results: [{ when: '2032年11月第2週', race: 'デイリー杯2歳S', grade: 'GII', finish: 2 }] });
+  T('v21 a 1-win 3yo with a generation-graded placing may target a generation G1', autoGenGradedOk(q3, satsuki) === true && autoOverClass(q3, satsuki) === false);
+  T('v21 a winless 3yo may NOT (winless stays locked out of graded)', autoGenGradedOk(l3, satsuki) === false && autoOverClass(l3, satsuki) === true);
+  T('v21 an open-age G1 stays OP-only for a 1-win 3yo', autoGenGradedOk(w3, { grade: 'GI', conditions: '3歳以上' }) === false && autoOverClass(w3, { grade: 'GI', conditions: '3歳以上' }) === true);
+  T('v21 a generation condition race is not part of the exception', autoGenGradedOk(w3, { grade: '1勝クラス', conditions: '3歳' }) === false);
+  const w4 = mk({ name: '世代例外4歳', wins: 2, birthYear: 2029 });
+  T('v21 a 4yo gets no generation exception (not its own generation)', autoGenGradedOk(w4, satsuki) === false && autoOverClass(w4, satsuki) === true);
+  T('v21 a 2-win older horse stays out of an open-age G1 (OP-only preserved)', autoOverClass(w4, { grade: 'GI', conditions: '3歳以上' }) === true);
+}
+{
+  // 1-win 2yo in autumn: a fitting 2yo graded race beats the 1-win class race
+  freshS({ year: 2033, month: 11, week: 1, phase: 'play' });
+  const h = mk({ name: '二歳重賞', wins: 1, birthYear: 2031, distMin: 1600, distMax: 1600, autoEntry: true });
+  S.horses = [h];
+  autoEntryPass();
+  const g = raceOfEntry(h);
+  T('v21 a 1-win 2yo is auto-entered in a fitting 2yo graded race (Daily Hai Nisai S)', !!g && g.race.name === 'デイリー杯2歳S' && g.race.grade === 'GII');
+}
+{
+  // winless 2yo in the same spot: never graded
+  freshS({ year: 2033, month: 11, week: 1, phase: 'play' });
+  const h = mk({ name: '二歳未勝利', wins: 0, birthYear: 2031, distMin: 1600, distMax: 1600, autoEntry: true });
+  S.horses = [h];
+  autoEntryPass();
+  const g = raceOfEntry(h);
+  T('v21 a winless 2yo is never auto-entered in a graded race', !g || g.race.grade === '新馬' || g.race.grade === '未勝利');
+}
+{
+  // 3yo spring: held for the Satsuki Sho, then entered when it reaches the window
+  // （v2.1改訂：2連勝の実績でG1ゲートを通る馬。実績のない馬は次のブロックで確認）
+  freshS({ year: 2033, month: 3, week: 4, phase: 'play' });
+  const h = mk({ name: '皐月狙い', wins: 2, birthYear: 2030, distMin: 2000, distMax: 2000, autoEntry: true,
+    results: [{ when: '2032年9月第2週', race: '2歳未勝利', grade: '未勝利', finish: 1 }, { when: '2032年11月第1週', race: '2歳1勝クラス', grade: '1勝クラス', finish: 1 }] });
+  S.horses = [h];
+  autoEntryPass();
+  T('v21 with the Satsuki Sho 4 weeks out, the horse is held (no condition/listed burn)', Object.keys(h.entries).length === 0);
+  S.month = 4; S.week = 1;
+  autoEntryPass();
+  const g = raceOfEntry(h);
+  T('v21 once the Satsuki Sho enters the window, the 2-win 3yo is entered in it', !!g && g.race.name === '皐月賞' && g.race.grade === 'GI');
+}
+{
+  // the G1 reserve now protects the spring classics for a gate-qualified 3yo winner
+  freshS({ year: 2033, month: 2, week: 1, phase: 'play' });
+  const h = mk({ name: 'リザーブ世代', wins: 1, birthYear: 2030, distMin: 1800, distMax: 2400,
+    results: [{ when: '2032年11月第2週', race: 'デイリー杯2歳S', grade: 'GII', finish: 2 }] });
+  T('v21 reserve counts the fitting spring classics for a gate-qualified 1-win 3yo (Satsuki + Derby)', autoG1Reserve(h, 2033) === 2);
+  const p = mk({ name: 'リザーブ無資格', wins: 1, birthYear: 2030, distMin: 1800, distMax: 2400 });
+  T('v21 reserve stays 0 for a 1-win 3yo without a ladder record (G1 gate)', autoG1Reserve(p, 2033) === 0);
+  const l = mk({ name: 'リザーブ未勝利', wins: 0, birthYear: 2030, distMin: 1800, distMax: 2400 });
+  T('v21 reserve stays 0 for a winless 3yo', autoG1Reserve(l, 2033) === 0);
+}
+{
+  // open-age graded stays OP-only end-to-end: a 2-win 4yo in Mile Championship week
+  freshS({ year: 2032, month: 11, week: 4, phase: 'play' });
+  const h = mk({ name: '古馬格上禁止', wins: 2, birthYear: 2028, distMin: 1600, distMax: 1600, autoEntry: true });
+  S.horses = [h];
+  autoEntryPass();
+  const g = raceOfEntry(h);
+  T('v21 a 2-win older horse is NOT auto-entered in an open-age graded race', !g || !AUTO_BIG_GRADES.includes(g.race.grade));
+}
+{
+  // G1 gate routes, one by one (results-ladder hybrid, オーナー decision)
+  freshS({ year: 2033, month: 3, week: 1, phase: 'play' });
+  const satsuki = { grade: 'GI', conditions: '3歳牡・牝' };
+  const ri = mk({ name: 'ゲートi', wins: 1, birthYear: 2030, results: [{ when: '2032年12月第3週', race: '朝日杯フューチュリティS', grade: 'GI', finish: 3 }] });
+  T('v21 gate (i): a top-3 in a generation graded race qualifies for a generation G1', autoGenG1LadderOk(ri) === true && autoGenGradedOk(ri, satsuki) === true);
+  const riL = mk({ name: 'ゲートiL', wins: 1, birthYear: 2030, results: [{ when: '2033年1月第4週', race: '若駒ステークス', grade: 'L', finish: 3 }] });
+  T('v21 gate (i): a top-3 in a generation LISTED race also qualifies (trial right)', autoGenG1LadderOk(riL) === true);
+  const ri4 = mk({ name: 'ゲートi外', wins: 1, birthYear: 2030, results: [{ when: '2032年12月第3週', race: '朝日杯フューチュリティS', grade: 'GI', finish: 4 }] });
+  T('v21 gate (i): 4th in a generation graded race does NOT qualify', autoGenG1LadderOk(ri4) === false && autoGenGradedOk(ri4, satsuki) === false);
+  const ro = mk({ name: 'ゲートi古馬', wins: 1, birthYear: 2030, results: [{ when: '2033年2月第2週', race: '京都記念', grade: 'GII', finish: 2 }] });
+  T('v21 gate (i): a placing in an OPEN-age graded race does NOT qualify via (i)', autoGenG1LadderOk(ro) === false);
+  const rii = mk({ name: 'ゲートii', wins: 2, birthYear: 2030, results: [{ when: '2032年10月第2週', race: '2歳1勝クラス', grade: '1勝クラス', finish: 1 }, { when: '2032年11月第3週', race: '2歳1勝クラス', grade: '1勝クラス', finish: 1 }] });
+  T('v21 gate (ii): a 2+ win streak qualifies', autoGenG1LadderOk(rii) === true && autoGenGradedOk(rii, satsuki) === true);
+  const riiB = mk({ name: 'ゲートii崩', wins: 2, birthYear: 2030, results: [{ when: '2032年10月第2週', race: '2歳1勝クラス', grade: '1勝クラス', finish: 1 }, { when: '2032年11月第3週', race: '2歳1勝クラス', grade: '1勝クラス', finish: 3 }, { when: '2033年2月第1週', race: '3歳1勝クラス', grade: '1勝クラス', finish: 1 }] });
+  T('v21 gate (ii): a broken streak (win, loss, win) does NOT qualify', autoGenG1LadderOk(riiB) === false);
+  const riii = mk({ name: 'ゲートiii', wins: 1, birthYear: 2030, results: [{ when: '2033年2月第2週', race: 'テストオープン特別', grade: 'OP', finish: 2 }] });
+  T('v21 gate (iii): a top-2 in an OP race qualifies', autoGenG1LadderOk(riii) === true && autoGenGradedOk(riii, satsuki) === true);
+  const riiiL = mk({ name: 'ゲートiiiL', wins: 1, birthYear: 2030, results: [{ when: '2033年2月第2週', race: 'テストリステッド', grade: 'L', finish: 1 }] });
+  T('v21 gate (iii): a top-2 in a listed race qualifies', autoGenG1LadderOk(riiiL) === true);
+  const riii3 = mk({ name: 'ゲートiii外', wins: 1, birthYear: 2030, results: [{ when: '2033年2月第2週', race: 'テストリステッド', grade: 'L', finish: 3 }] });
+  T('v21 gate (iii): 3rd in a listed race does NOT qualify via (iii)', autoGenG1LadderOk(riii3) === false);
+  const op = mk({ name: 'ゲートOP', wins: 4, birthYear: 2030 });
+  T('v21 gate: an OP 3yo is exempt (no ladder record needed)', autoOverClass(op, satsuki) === false);
+}
+{
+  // end-to-end: a record-less 1-win 3yo in the Satsuki window is not thrown into the classic
+  freshS({ year: 2033, month: 4, week: 1, phase: 'play' });
+  const h = mk({ name: 'ゲート未達', wins: 1, birthYear: 2030, distMin: 2000, distMax: 2000, autoEntry: true });
+  S.horses = [h];
+  autoEntryPass();
+  const g = raceOfEntry(h);
+  T('v21 a record-less 1-win 3yo is NOT auto-entered in the Satsuki Sho', !g || g.race.name !== '皐月賞');
+}
+{
+  // policy toggle: 慎重 restores v2.0 behaviour wholesale (entries, reserve, hold)
+  freshS({ year: 2033, month: 3, week: 1, phase: 'play' });
+  T('v21 policy defaults: global default is 積極 and a new horse follows it', S.autoPolicyDefault === '積極' && autoPolicyOf(mk({})) === '積極');
+  const rec = [{ when: '2032年11月第2週', race: 'デイリー杯2歳S', grade: 'GII', finish: 1 }, { when: '2032年12月第3週', race: '朝日杯フューチュリティS', grade: 'GI', finish: 1 }];
+  const shy = mk({ name: '慎重馬', wins: 2, birthYear: 2030, autoPolicy: '慎重', results: rec });
+  const bold = mk({ name: '積極馬', wins: 2, birthYear: 2030, results: rec });
+  const satsuki = { grade: 'GI', conditions: '3歳牡・牝' };
+  const trial = { grade: 'GII', conditions: '3歳' };
+  T('v21 a 慎重 horse ignores the generation exception entirely (G1 and trials)', autoGenGradedOk(shy, satsuki) === false && autoGenGradedOk(shy, trial) === false && autoOverClass(shy, trial) === true);
+  T('v21 the same record under 積極 (default) uses the exception', autoGenGradedOk(bold, satsuki) === true && autoGenGradedOk(bold, trial) === true);
+  const shyR = mk({ name: '慎重リザーブ', wins: 1, birthYear: 2030, distMin: 1800, distMax: 2400, autoPolicy: '慎重', results: [{ when: '2032年11月第2週', race: 'デイリー杯2歳S', grade: 'GII', finish: 2 }] });
+  T('v21 reserve for a 慎重 horse counts no classics (v2.0 behaviour)', autoG1Reserve(shyR, 2033) === 0);
+  const a = mk({ name: '一括1' }); const b = mk({ name: '一括2', status: 'foal' });
+  S.horses = [a, b];
+  setAllAutoPolicy('慎重');
+  T('v21 bulk policy applies to racehorses only', a.autoPolicy === '慎重' && b.autoPolicy == null);
+  S.autoPolicyDefault = '慎重';
+  T('v21 the global default drives horses without an individual policy', autoPolicyOf(mk({})) === '慎重' && autoPolicyOf(mk({ autoPolicy: '積極' })) === '積極');
+  S.autoPolicyDefault = '積極';
+  const mig = mk({ name: '移行馬' }); delete mig.autoPolicy; S.horses = [mig]; S.autoPolicyDefault = undefined;
+  migrateV029();
+  T('v21 migration fills policy defaults (global 積極, per-horse null)', S.autoPolicyDefault === '積極' && mig.autoPolicy === null);
+  const keep = mk({ name: '保存馬', autoPolicy: '慎重' }); S.horses = [keep]; S.autoPolicyDefault = '慎重';
+  save();
+  T('v21 policy settings survive save/load', load() === true && S.autoPolicyDefault === '慎重' && S.horses[0].autoPolicy === '慎重' && autoPolicyOf(S.horses[0]) === '慎重');
+}
+{
+  // end-to-end: a 慎重 3yo with a ladder record still stays out of the classic
+  freshS({ year: 2033, month: 4, week: 1, phase: 'play' });
+  const h = mk({ name: '慎重クラシック回避', wins: 2, birthYear: 2030, distMin: 2000, distMax: 2000, autoEntry: true, autoPolicy: '慎重',
+    results: [{ when: '2032年9月第2週', race: '2歳未勝利', grade: '未勝利', finish: 1 }, { when: '2032年11月第1週', race: '2歳1勝クラス', grade: '1勝クラス', finish: 1 }] });
+  S.horses = [h];
+  autoEntryPass();
+  const g = raceOfEntry(h);
+  T('v21 a 慎重 3yo is NOT auto-entered in the Satsuki Sho even with a ladder record', !g || g.race.name !== '皐月賞');
+}
+{
+  // 京成杯 age-boundary: eligibility is judged at the race date, not the registration date
+  const keisei = DATA.domestic.find(r => r.name === '京成杯');
+  freshS({ year: 2027, month: 12, week: 4, phase: 'play' });
+  const h = mk({ name: '京成杯境界', wins: 3, birthYear: 2024, distMin: 1800, distMax: 2200 });
+  entryWeekAhead = 3; /* 2027 Dec wk4 + 3 weeks = 2028 Jan wk3, the Keisei Hai week */
+  const tgt = fromAbs(absWeek() + entryWeekAhead);
+  T('v21 repro setup: the target week is the Keisei Hai week across the year boundary', tgt[0] === 2028 && tgt[1] === 1 && tgt[2] === keisei.wom);
+  T('v21 a December registration for a January 3yo-only race is blocked at entry (age at race date)', eligibility(h, keisei) === '3歳限定');
+  const h2 = mk({ name: '京成杯年明け3歳', wins: 1, birthYear: 2025, distMin: 1800, distMax: 2200 });
+  T('v21 a horse that turns 3 on Jan 1 CAN be registered in December for a January 3yo race', eligibility(h2, keisei) === null);
+  entryWeekAhead = 0;
+  freshS({ year: 2028, month: 1, week: 3, phase: 'play' });
+  const young = mk({ name: '京成杯3歳', wins: 1, birthYear: 2025, distMin: 1800, distMax: 2200 });
+  const old = mk({ name: '京成杯4歳', wins: 3, birthYear: 2024, distMin: 1800, distMax: 2200 });
+  T('v21 same-week checks unchanged: a 3yo can enter the Keisei Hai, a 4yo cannot', eligibility(young, keisei) === null && eligibility(old, keisei) === '3歳限定');
+  /* the 2yo-June rule is also judged at the race date */
+  freshS({ year: 2026, month: 5, week: 4, phase: 'play' });
+  const june2 = { grade: 'GIII', conditions: '2歳', sector: 'central', surface: '芝', distance_m: 1600, racecourse: '東京' };
+  const two = mk({ name: '二歳6月', wins: 1, birthYear: 2024 });
+  entryWeekAhead = 2; /* May wk4 + 2 = June wk1 */
+  T('v21 the 2yo-June rule is judged at the race date (May registration for a June race is allowed)', eligibility(two, june2) === null);
+  entryWeekAhead = 0;
+  T('v21 the 2yo-June rule still blocks a May race itself', eligibility(two, june2) === '2歳の重賞出走は6月以降（試作ルール）');
+}
+{
+  // safety net: a stale registration made under the old rule is dropped at race time
+  freshS({ year: 2028, month: 1, week: 3, phase: 'play' });
+  const keisei = DATA.domestic.find(r => r.name === '京成杯');
+  const h = mk({ name: '旧登録馬', wins: 3, birthYear: 2024, distMin: 1800, distMax: 2200 });
+  S.horses = [h];
+  const key = absWeek() + '@' + keisei.name + '|' + keisei.racecourse + '|' + keisei.grade;
+  h.entries[absWeek()] = { key, style: null, sector: keisei.sector, course: keisei.racecourse, dist: keisei.distance_m, name: keisei.name };
+  advanceWeek();
+  T('v21 safety net: a stale age-ineligible entry is dropped at race time (no result recorded)', !h.results.some(r => r.race === '京成杯'));
+  T('v21 safety net: the drop is logged in the week topics', S.topics.some(t => t.includes('京成杯') && t.includes('年齢条件')));
+}
+{
+  const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
+  T('v21 build: generation-graded exception present, footer bumped', src.includes('autoGenGradedOk') && src.includes('競馬シミュレーター（趣味） v2.1'));
+  T('v21 build: G1 ladder gate, policy toggle and age safety net present', src.includes('autoGenG1LadderOk') && src.includes('autoPolicySel') && src.includes('data-auto-defpolicy') && src.includes('ageRestrictionViolation'));
 }
 
 console.log('\nRESULT: ' + pass + ' passed, ' + fail + ' failed');
