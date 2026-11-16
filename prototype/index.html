@@ -328,7 +328,7 @@ function foalName(){
 function stallionPower(st){ return st.fee_tier==="S"?79 : st.fee_tier==="A"?74 : st.fee_tier==="B"?69 : 64; } /* v0.50 新スケール */
 function newHorse(o){
   return Object.assign({ id: Math.random().toString(36).slice(2,10), wins:0, earnings:0, results:[], fatigue:0,
-    condition:80, policy:"train", pregnant:null, entries:{}, lastRaceAbs:-9, retired:false, autoEntry:false, autoRot:null, autoPolicy:null, rotation:[], rotMemo:{} }, o);
+    condition:80, policy:"train", pregnant:null, entries:{}, lastRaceAbs:-9, retired:false, autoEntry:false, autoRot:null, autoPolicy:null, autoRangePlus:null, rotation:[], rotMemo:{} }, o);
 }
 function absWeek(){ return absOf(S.year, S.month, S.week); }
 function ageOf(h){ return S.year - h.birthYear; }
@@ -816,7 +816,7 @@ function refreshSale(){
 function initState(){
   S = { year:2026, month:1, week:1, calVer:2, funds:30000, horses:[], stallions: JSON.parse(JSON.stringify(DATA.stallions)),
         chronicle:[], statsBirths:{}, topics:[], yearEndDone:false, phase:"choose", candidates:[], salePool:[], saleYear:2026, usedTemplates:[], firstMatingDone:false,
-        giftQueue:[], giftAprDone:false, giftDecDone:false, giftSet:null, favs:[], mile:null, farmWins:0, farmPrize:0, kanmuri:"", soldHorses:[], autoRotDefault:8, autoPolicyDefault:"積極" };
+        giftQueue:[], giftAprDone:false, giftDecDone:false, giftSet:null, favs:[], mile:null, farmWins:0, farmPrize:0, kanmuri:"", soldHorses:[], autoRotDefault:8, autoPolicyDefault:"積極", autoRangePlusDefault:true };
   const sts = S.stallions;
   // 種牡馬ロスターは固定（約50頭・引退／世代交代なし。WS4b・2026-11-13）。
   // 自家生産の牡馬が引退時に種牡馬入りすることはある（そちらは従来どおり）。
@@ -876,6 +876,9 @@ function migrateV029(){
   for(const h of S.horses){ if(h.autoPolicy !== "慎重" && h.autoPolicy !== "積極") h.autoPolicy = null; }
   /* v2.2 移行：ローテーション（出走指定）。旧セーブには無いので空リストで補う */
   for(const h of S.horses){ if(!Array.isArray(h.rotation)) h.rotation = []; if(!h.rotMemo || typeof h.rotMemo !== "object") h.rotMemo = {}; }
+  /* v2.3 移行：適性±200許容。全体の既定は許容する（true）、馬ごとは null＝既定に従う */
+  if(typeof S.autoRangePlusDefault !== "boolean") S.autoRangePlusDefault = true;
+  for(const h of S.horses){ if(typeof h.autoRangePlus !== "boolean") h.autoRangePlus = null; }
   if(!S.usedTemplates) S.usedTemplates = [];
   ensureMile();
   if(S.kanmuri == null) S.kanmuri = "";
@@ -1653,7 +1656,10 @@ function weeklyEvents(){
    2連勝以上／OP・リステッド連対」のいずれかがないと解禁しない（autoGenG1LadderOk）。G2・G3・
    リステッドは1勝のまま（トライアル役）。温存・リザーブもゲートを通る馬だけが世代G1を数える。
    方針トグル（v2.1改訂）：馬ごとの方針が「慎重」なら世代例外そのものを使わず v2.0 の動きに戻る
-   （重賞はOPのみ・温存とリザーブも同様）。「積極」が既定 */
+   （重賞はOPのみ・温存とリザーブも同様）。「積極」が既定
+   適性±200許容（v2.3・Terai決定）：自動判定の距離範囲は、許容ONの馬だけ ±200m 広げて見る
+   （autoRangeOf）。適性下限2200以上の馬は2歳新馬・未勝利（最長2000m）に適性内の受け皿が無く
+   デビューできない問題への対処。既定は許容する、馬ごと・全体の既定で切り替えられる */
 const AUTO_TARGET = 6;          /* 年間の目標戦数（5〜7戦の中間） */
 const AUTO_CAP = 7;             /* 年間のハード上限 */
 const AUTO_COND_MIN = 50;       /* 自動登録する状態の下限（故障ゾーンは疲労70以上×状態40以下。疲労は eligibility が70以上を弾き、状態50以上で二重に安全側） */
@@ -1732,11 +1738,20 @@ function autoCondOk(h, race, year){
   if(c.includes("牡") && !c.includes("牝") && h.sex!=="牡") return false;
   return true;
 }
+/* 適性±200許容（v2.3・Terai決定）：自動判定で使う実効距離範囲を返す。許容ONの馬は
+   [distMin-200, distMax+200] に広げる。適性下限2200以上のステイヤーは、2歳の新馬・未勝利
+   （芝は最長2000m）に適性内のレースが存在せず、厳密判定のままだとデビューすらできないため。
+   候補フィルタ・軽量フィット（温存／G1リザーブ）・採点の中心距離はすべてこの範囲で統一する。
+   範囲は対称に広がるので中心は変わらず、適性内レースは許容レースより中心に近く、採点でも自然に優先される。
+   ローテーション指定（手動 eligibility・距離フィルタ無し）と手動登録には影響しない */
+const AUTO_RANGE_TOL = 200;
+function autoRangeOf(h){ const t = autoRangePlusOf(h) ? AUTO_RANGE_TOL : 0; return [h.distMin - t, h.distMax + t]; }
 /* 軽量フィット判定（数え上げ・先読み専用）：国内・馬場・距離・クラス・年齢性別条件 */
 function autoFitsLite(h, race, year){
   if(!race || race.sector==="overseas") return false;
   if(race.surface && h.surface!=="両刀" && h.surface!==race.surface) return false;
-  if(race.distance_m == null || race.distance_m < h.distMin || race.distance_m > h.distMax) return false;
+  const aRg = autoRangeOf(h);
+  if(race.distance_m == null || race.distance_m < aRg[0] || race.distance_m > aRg[1]) return false;
   if(autoOverClass(h, race)) return false;
   return autoCondOk(h, race, year);
 }
@@ -1806,7 +1821,8 @@ function autoEntryPass(){
     if(isInjured(h)) continue;                                   /* 故障中は絶対に出走しない */
     if(h.fatigue>=70 || h.condition<AUTO_COND_MIN) continue;     /* 故障ゾーン（疲労・状態）に入る馬は登録しない */
     if(h.entries && Object.keys(h.entries).some(a=>+a>=absWeek())) continue; /* 既に先行登録がある馬は触らない */
-    const mid = (h.distMin + h.distMax) / 2;
+    const aRg = autoRangeOf(h); /* 適性±200許容（v2.3）：候補フィルタと採点の中心は実効範囲で見る */
+    const mid = (aRg[0] + aRg[1]) / 2;
     const reserveCache = {};
     const reserveOf = yr => (yr in reserveCache) ? reserveCache[yr] : (reserveCache[yr] = autoG1Reserve(h, yr));
     const cands = [];
@@ -1817,7 +1833,7 @@ function autoEntryPass(){
       for(const race of racesThisWeek(t[0], t[1], t[2])){
         if(race.sector==="overseas") continue;                  /* 海外遠征は自動にしない（遠征費は手動判断） */
         if(race.surface && h.surface!=="両刀" && h.surface!==race.surface) continue;
-        if(race.distance_m==null || race.distance_m<h.distMin || race.distance_m>h.distMax) continue;
+        if(race.distance_m==null || race.distance_m<aRg[0] || race.distance_m>aRg[1]) continue;
         if(autoOverClass(h, race)) continue;                    /* 格上挑戦はしない（自クラス以下だけ。ただし世代限定重賞は1勝以上で例外＝v2.1） */
         if(eligibility(h, race)) continue;                      /* 関門は手動と完全同一 */
         const graded = AUTO_BIG_GRADES.includes(race.grade);
@@ -2061,7 +2077,7 @@ function buildDebugHorse(o){
   const age = o.age != null ? o.age : 3;
   const clampP = v => clamp(Math.round(v != null ? v : 85), 1, 99); /* 新スケール（通常35〜85・上限85）に合わせる。旧スケールの150は廃止し、検証用に上限を少しだけ超えられる範囲にした */
   const spd = clampP(o.spd), sta = clampP(o.sta), gut = clampP(o.gut);
-  /* 適性距離（v2.2：フォームから下限・上限を直接入力可能に）：指定があればそのまま使う。
+  /* 適性距離（v2.3：フォームで下限・上限をプルダウンから選ぶ）：指定があればそのまま使う。
      ただし壊れた範囲（数値でない／下限≥上限／実在距離の目安 1000〜4000m の外）は既定の 1800-2400 に落とす。
      片方だけの指定は、もう片方を既定値で補ってから判定する（従来どおり o.distMin だけ渡す呼び方と互換） */
   const dMinIn = o.distMin != null ? Number(o.distMin) : 1800;
@@ -2109,16 +2125,15 @@ function debugPanel(){
   const stOpts = [["","ランダム"]].concat((typeof S !== "undefined" && S && S.stallions ? S.stallions : []).map(s=>[s.name, s.name])); /* ロスター60頭＋自家製種牡馬（S.stallions に同居） */
   const markOpts = [["","ランダム"],["○","○"],["✕","✕"],["-","−（なし）"]];
   const bulkOpts = [["","ランダム"],["○","すべて○"],["✕","すべて✕"],["-","すべて−（なし）"]];
+  const distOpts = []; for(let d = 1000; d <= 4000; d += 100) distOpts.push([String(d), d + "m"]); /* 適性距離の上下限（v2.3：プリセットと数値入力を廃止し、1000〜4000m・100m刻みのプルダウンに統一。Terai 指定） */
   return "<div class='topic' style='border-color:#c9a227;'><b>🐛 デバッグ馬の作成</b>（数値はそのまま反映されます）<br>"
     + "<div class='flex' style='flex-wrap:wrap;gap:8px;margin-top:6px;'>"
     + "<label>名前 <input id='dbgName' type='text' maxlength='18' placeholder='空欄なら自動' style='width:130px;'></label>"
     + "<label>性別 " + sel("dbgSex", [["牡","牡"],["牝","牝"]], "牡") + "</label>"
     + "<label>年齢 " + sel("dbgAge", [["0","当歳"],["1","1歳"],["2","2歳"],["3","3歳"],["4","4歳"],["5","5歳"],["6","6歳"],["7","7歳"]], "3") + "</label>"
     + "<label>馬場 " + sel("dbgSurf", [["芝","芝"],["ダート","ダート"],["両刀","両刀"]], "芝") + "</label>"
-    + "<label>距離 " + sel("dbgDist", [["1000-4000","万能 1000-4000"],["1000-1600","短距離 1000-1600"],["1400-1800","マイル 1400-1800"],["1800-2400","中距離 1800-2400"],["2200-3600","長距離 2200-3600"]], "1800-2400") + "</label>"
-    + "<label>適性距離の下限 <input id='dbgDistMin' type='number' placeholder='1800' style='width:64px;'>m</label>"
-    + "<label>適性距離の上限 <input id='dbgDistMax' type='number' placeholder='2400' style='width:64px;'>m</label>"
-    + "<span class='sub'>（下限・上限を入力すると距離プリセットより優先）</span>"
+    + "<label>適性距離の下限 " + sel("dbgDistMin", distOpts, "1800") + "</label>"
+    + "<label>適性距離の上限 " + sel("dbgDistMax", distOpts, "2400") + "</label>"
     + "<label>戦績 " + sel("dbgRecord", [["0","未勝利"],["1","1勝（重賞勝ち）"],["3","3勝（重賞勝ち）"]], "0") + "</label>"
     + "<label><input id='dbgMax' type='checkbox'> 成熟度を無視（常に最大）</label>"
     + "</div>"
@@ -2152,18 +2167,15 @@ function debugPanel(){
 function createDebugHorse(){
   const gv = (id, fb) => { const el = document.querySelector(id); return el && el.value !== "" ? el.value : fb; };
   const num = (id, fb) => { const v = parseInt(gv(id, ""), 10); return isNaN(v) ? fb : clamp(v, 1, 99); };
-  const dd = gv("#dbgDist", "1800-2400").split("-").map(Number);
-  /* 適性距離の下限・上限が入力されていればプリセットより優先する（片方だけでも可）。範囲の妥当性は buildDebugHorse 側で担保する */
-  const dMinIn = parseInt(gv("#dbgDistMin", ""), 10), dMaxIn = parseInt(gv("#dbgDistMax", ""), 10);
-  if(!isNaN(dMinIn)) dd[0] = dMinIn;
-  if(!isNaN(dMaxIn)) dd[1] = dMaxIn;
+  /* 適性距離の下限・上限はプルダウン（1000〜4000m・100m刻み）で選ぶ（v2.3）。範囲の妥当性は buildDebugHorse 側で担保する */
+  const dMinIn = parseInt(gv("#dbgDistMin", "1800"), 10), dMaxIn = parseInt(gv("#dbgDistMax", "2400"), 10);
   const wRaw = parseInt(gv("#dbgWeight", ""), 10);
   const yusoSel = gv("#dbgYuso", "");
   const h = buildDebugHorse({
     name: gv("#dbgName", ""), sex: gv("#dbgSex", "牡"), age: parseInt(gv("#dbgAge", "3"), 10),
     sire: gv("#dbgSire", ""), bms: gv("#dbgBms", ""), dam: gv("#dbgDam", ""),
     spd: num("#dbgSpd", 85), sta: num("#dbgSta", 85), gut: num("#dbgGut", 85),
-    surface: gv("#dbgSurf", "芝"), distMin: dd[0], distMax: dd[1],
+    surface: gv("#dbgSurf", "芝"), distMin: dMinIn, distMax: dMaxIn,
     gtype: gv("#dbgGrowth", "普通"),
     temp: parseInt(gv("#dbgTemp", "55"), 10),
     quirk: gv("#dbgQuirk", "none") === "none" ? null : gv("#dbgQuirk", "none"),
@@ -2327,20 +2339,26 @@ function raceMatchesFilters(r){
    一括設定（全馬ON/OFF＋既定の出走間隔＋既定方針）は出走登録タブとカレンダーの両方に置き、同じ部品・同じ保存先を使う。
    馬ごとの設定はカレンダーの自動出走設定欄と各馬のページ（方針の隣）の両方から変更できる。
    方針（積極／慎重）は v2.1 で追加：馬ごと h.autoPolicy（null＝全体の既定 S.autoPolicyDefault に従う）。
+   適性±200（許容する／適性内のみ）は v2.3 で追加：馬ごと h.autoRangePlus（null＝全体の既定 S.autoRangePlusDefault に従う、既定は許容する）。
    v2.2 で用語を整理：中N週の設定は「出走間隔」と呼ぶ（Terai の言う「ローテーション」は出走指定のこと） */
 const AUTO_ROT_PRESETS = [4, 6, 8, 12];
 function autoDefRot(){ return (S.autoRotDefault != null) ? S.autoRotDefault : 8; }
 function autoDefPolicy(){ return S.autoPolicyDefault === "慎重" ? "慎重" : "積極"; }
 function autoPolicyOf(h){ return (h && (h.autoPolicy === "慎重" || h.autoPolicy === "積極")) ? h.autoPolicy : autoDefPolicy(); }
+function autoDefRangePlus(){ return S.autoRangePlusDefault !== false; } /* 適性±200の全体既定（v2.3）：未設定なら許容する */
+function autoRangePlusOf(h){ return (h && typeof h.autoRangePlus === "boolean") ? h.autoRangePlus : autoDefRangePlus(); }
 function setAllAutoEntry(on){ for(const h of S.horses) if(h.status==="racehorse" && !h.retired) h.autoEntry = !!on; }
 function setAllAutoPolicy(p){ for(const h of S.horses) if(h.status==="racehorse" && !h.retired) h.autoPolicy = (p === "慎重" ? "慎重" : "積極"); }
+function setAllAutoRangePlus(on){ for(const h of S.horses) if(h.status==="racehorse" && !h.retired) h.autoRangePlus = !!on; }
 function autoBulkHtml(){
-  return "<div class='topic'>🤖 <b>自動出走（オート出走決定）</b>：ONの馬は毎週、適性・クラス・体調を見て自動でレースに登録されます（年間6戦ペース目標・上限7戦／重賞優先／G1分の枠を確保／国内のみ・海外遠征は手動）。登録は通常の登録と同じで、出走登録タブから取り消せます。方針「積極」の馬は世代限定重賞にも挑戦します（世代G1は実績のある馬だけ）。「慎重」の馬は重賞にはOPになるまで出ません。🎯 ローテーション（出走指定）を設定した馬は自動出走の対象外で、指定レースにだけ自動登録されます（指定は各馬のページから）。<br>"
+  return "<div class='topic'>🤖 <b>自動出走（オート出走決定）</b>：ONの馬は毎週、適性・クラス・体調を見て自動でレースに登録されます（年間6戦ペース目標・上限7戦／重賞優先／G1分の枠を確保／国内のみ・海外遠征は手動）。登録は通常の登録と同じで、出走登録タブから取り消せます。方針「積極」の馬は世代限定重賞にも挑戦します（世代G1は実績のある馬だけ）。「慎重」の馬は重賞にはOPになるまで出ません。適性±200を「許容する」の馬は、適性距離の前後200mまでのレースも候補になります（適性下限の長い馬が2歳でデビューするのに必要です）。🎯 ローテーション（出走指定）を設定した馬は自動出走の対象外で、指定レースにだけ自動登録されます（指定は各馬のページから）。<br>"
     + "<button data-auto-all='on'>全馬ON</button> <button data-auto-all='off' class='ghost'>全馬OFF</button> "
     + "<label>既定の出走間隔：<select data-auto-defrot>" + AUTO_ROT_PRESETS.map(n=>"<option value='"+n+"'"+(autoDefRot()===n?" selected":"")+">中"+n+"週"+(n===8?"（標準）":"")+"</option>").join("") + "</select></label> "
     + "<label>既定方針：<select data-auto-defpolicy>" + ["積極","慎重"].map(p=>"<option value='"+p+"'"+(autoDefPolicy()===p?" selected":"")+">"+p+"</option>").join("") + "</select></label> "
     + "<button data-auto-allpolicy='積極'>全馬 積極</button> <button data-auto-allpolicy='慎重' class='ghost'>全馬 慎重</button> "
-    + "<span class='sub'>馬ごとのON/OFF・出走間隔・方針は下の自動出走設定か、各馬のページで変更できます</span></div>";
+    + "<label>既定の適性±200：<select data-auto-defrangeplus><option value='on'"+(autoDefRangePlus()?" selected":"")+">許容する</option><option value='off'"+(!autoDefRangePlus()?" selected":"")+">適性内のみ</option></select></label> "
+    + "<button data-auto-allrangeplus='on'>全馬 ±200許容</button> <button data-auto-allrangeplus='off' class='ghost'>全馬 適性内のみ</button> "
+    + "<span class='sub'>馬ごとのON/OFF・出走間隔・方針・適性±200は下の自動出走設定か、各馬のページで変更できます</span></div>";
 }
 function autoHorseRowsHtml(){
   const racers = S.horses.filter(h=>h.status==="racehorse" && !h.retired);
@@ -2352,8 +2370,10 @@ function autoHorseRowsHtml(){
     + AUTO_ROT_PRESETS.map(n=>"<option value='"+n+"'"+(h.autoRot===n?" selected":"")+">中"+n+"週</option>").join("") + "</select></td>"
     + "<td><select data-auto-policy='"+h.id+"'><option value=''"+(h.autoPolicy==null?" selected":"")+">既定（"+autoDefPolicy()+"）</option>"
     + ["積極","慎重"].map(p=>"<option value='"+p+"'"+(h.autoPolicy===p?" selected":"")+">"+p+"</option>").join("") + "</select></td>"
+    + "<td><select data-auto-rangeplus='"+h.id+"'><option value=''"+(h.autoRangePlus==null?" selected":"")+">既定（"+(autoDefRangePlus()?"許容する":"適性内のみ")+"）</option>"
+    + "<option value='on'"+(h.autoRangePlus===true?" selected":"")+">許容する</option><option value='off'"+(h.autoRangePlus===false?" selected":"")+">適性内のみ</option></select></td>"
     + "<td>"+autoStartsInYear(h, S.year)+"戦</td></tr>").join("");
-  return "<table><tr><th>馬名</th><th></th><th>自動出走</th><th>出走間隔</th><th>方針</th><th>今年</th></tr>"+rows+"</table>";
+  return "<table><tr><th>馬名</th><th></th><th>自動出走</th><th>出走間隔</th><th>方針</th><th>適性±200</th><th>今年</th></tr>"+rows+"</table>";
 }
 /* ローテーション（出走指定）の馬ページ欄（v2.2）：現在の指定を外せるリストと、
    国内／海外の2グループから選ぶ追加セレクト。対象は国内の重賞・リステッド・OP特別と海外G1〜G3 */
@@ -2381,6 +2401,9 @@ function bindAutoEntryControls(){
   document.querySelectorAll("[data-auto-defpolicy]").forEach(sel=>sel.onchange=()=>{ S.autoPolicyDefault = sel.value==="慎重" ? "慎重" : "積極"; save(); render(); });
   document.querySelectorAll("[data-auto-allpolicy]").forEach(b=>b.onclick=()=>{ setAllAutoPolicy(b.getAttribute("data-auto-allpolicy")); save(); render(); });
   document.querySelectorAll("[data-auto-policy]").forEach(sel=>sel.onchange=()=>{ const h = S.horses.find(x=>x.id===sel.getAttribute("data-auto-policy")); if(h){ h.autoPolicy = sel.value==="" ? null : sel.value; save(); render(); } });
+  document.querySelectorAll("[data-auto-defrangeplus]").forEach(sel=>sel.onchange=()=>{ S.autoRangePlusDefault = sel.value!=="off"; save(); render(); });
+  document.querySelectorAll("[data-auto-allrangeplus]").forEach(b=>b.onclick=()=>{ setAllAutoRangePlus(b.getAttribute("data-auto-allrangeplus")==="on"); save(); render(); });
+  document.querySelectorAll("[data-auto-rangeplus]").forEach(sel=>sel.onchange=()=>{ const h = S.horses.find(x=>x.id===sel.getAttribute("data-auto-rangeplus")); if(h){ h.autoRangePlus = sel.value==="" ? null : sel.value==="on"; save(); render(); } });
   document.querySelectorAll("[data-goto-cal]").forEach(b=>b.onclick=()=>{ calMonth = 0; currentTab = "calendar"; document.querySelectorAll("#tabs button").forEach(x=>x.classList.toggle("active", x.getAttribute("data-tab")==="calendar")); render(); });
 }
 function viewEntry(){
@@ -3158,7 +3181,12 @@ function openHorse(id){
       + "<label>方針：</label><select id='autoPolicySel'>"
       + "<option value=''"+(h.autoPolicy==null?" selected":"")+">既定（"+autoDefPolicy()+"）</option>"
       + ["積極","慎重"].map(p=>"<option value='"+p+"'"+(h.autoPolicy===p?" selected":"")+">"+p+"</option>").join("")
-      + "</select><span class='sub'>ONの馬は毎週自動でレースに登録されます（年間6戦ペース目標・上限7戦、重賞優先、国内のみ）。方針「積極」は世代重賞にも挑戦（世代G1は実績のある馬だけ）、「慎重」はOPになるまで条件戦のみ</span></div>";
+      + "</select>"
+      + "<label>適性±200：</label><select id='autoRangePlusSel'>"
+      + "<option value=''"+(h.autoRangePlus==null?" selected":"")+">既定（"+(autoDefRangePlus()?"許容する":"適性内のみ")+"）</option>"
+      + "<option value='on'"+(h.autoRangePlus===true?" selected":"")+">許容する</option>"
+      + "<option value='off'"+(h.autoRangePlus===false?" selected":"")+">適性内のみ</option>"
+      + "</select><span class='sub'>ONの馬は毎週自動でレースに登録されます（年間6戦ペース目標・上限7戦、重賞優先、国内のみ）。方針「積極」は世代重賞にも挑戦（世代G1は実績のある馬だけ）、「慎重」はOPになるまで条件戦のみ。適性±200「許容する」は適性距離の前後200mまで候補に入ります</span></div>";
     /* ローテーション（v2.2）：出走指定。指定がある馬は自動出走の対象外になり、指定レースだけを走る */
     actions += rotationSectionHtml(h);
     /* 牡馬の引退は3択（v0.57・Terai決定）：種牡馬入り（資格馬のみ）／引退馬として残る／売却して引退。
@@ -3237,6 +3265,7 @@ function openHorse(id){
   const aes = $("#autoEntrySel"); if(aes) aes.onchange = () => { h.autoEntry = aes.value==="on"; save(); };
   const ars = $("#autoRotSel"); if(ars) ars.onchange = () => { h.autoRot = ars.value==="" ? null : parseInt(ars.value, 10); save(); };
   const aps = $("#autoPolicySel"); if(aps) aps.onchange = () => { h.autoPolicy = aps.value==="" ? null : aps.value; save(); };
+  const arps = $("#autoRangePlusSel"); if(arps) arps.onchange = () => { h.autoRangePlus = arps.value==="" ? null : arps.value==="on"; save(); };
   const rab = $("#rotAddBtn"); if(rab) rab.onclick = () => { const sel = $("#rotAddSel"); const k = sel ? sel.value : ""; if(k && !(h.rotation || []).includes(k)){ h.rotation = h.rotation || []; h.rotation.push(k); const r = rotationRaceOf(k); if(r) topic("🎯 " + h.name + " のローテーションに " + r.name + " を指定しました"); save(); openHorse(h.id); } };
   document.querySelectorAll("[data-rot-remove]").forEach(btn => btn.onclick = () => { const k = btn.getAttribute("data-rot-remove"); h.rotation = (h.rotation || []).filter(x => x !== k); save(); openHorse(h.id); });
   const smb = $("#stableMihoBtn"); if(smb) smb.onclick = () => { h.stable = "美浦"; topic("🏠 "+h.name+" の所属は美浦に決まりました"); save(); openHorse(h.id); };
@@ -3364,6 +3393,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>競馬シミュレーター（趣味） v2.2</footer>
+<footer>競馬シミュレーター（趣味） v2.3</footer>
 </body>
 </html>
