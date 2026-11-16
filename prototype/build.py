@@ -9,7 +9,11 @@ v0.28 (2026-11-13): データ監査（data/DATA_AUDIT_2026-11-13.md）対応。�
 ドバイシーマクラシックの追加、馬場反転2件と競馬場表記ゆれの訂正。
 v0.29 (2026-11-13): 地方シリーズのルートラベル追加（グランダム・ジャパン各シーズン／
 未来優駿。出典：NAR公式 keiba.go.jp/raceseries 2026年度）。ゲーム本体の変更は
-template.html 側（重ね登録・成長型の内部細分化・状態回復・若馬売却・斤量区分の見直し）。"""
+template.html 側（重ね登録・成長型の内部細分化・状態回復・若馬売却・斤量区分の見直し）。
+v1.00 (2026-11-14): 週の割り当てを日曜始まり基準に再編（month_wom）。第5週のある月
+（3・5・8・11月）を立て、1年52週にした。ダービーとオークスの同週衝突の解消。
+同 (2026-11-15): 平日レースのバケットを「次の日曜」から「週を始める日曜」に変更
+（オーナー決定）。土曜＝翌日の日曜、日曜＝当日は不変。"""
 import json, re, math, datetime, os
 
 BASE = os.path.dirname(os.path.abspath(__file__))
@@ -18,10 +22,38 @@ DATA = os.path.join(BASE, "..", "data")
 tpl = open(os.path.join(BASE, "template.html")).read()
 dom = json.load(open(os.path.join(DATA, "domestic_races.json")))
 ov = json.load(open(os.path.join(DATA, "overseas_races_2025.json")))
-st = json.load(open(os.path.join(DATA, "stallions_draft.json")))
+st = json.load(open(os.path.join(DATA, "stallions_full.json"))) # v3.0：統合ロスター137頭（年齢・体重込み）
 
-def wom_from_day(d):
-    return min(4, math.ceil(d / 7))
+# ===== 週の割り当て（v1.00・オーナー決定「1/1が日曜スタート」） =====
+# 週は日曜始まり。レースは「その週の日曜」の週に置く：
+#   日曜＝当日、土曜＝翌日の日曜（土日は同じJRA開催週末なので週末の日曜に寄せる）、
+#   平日（月〜金）＝その週（日〜土）を始める日曜＝直近の日曜。
+# 平日の扱いは オーナー の追加決定（2026-11-15）：当初は全レースを「次の日曜」に
+# 寄せていたが、月曜開催のかきつばた記念（2026-02-23）が3月第1週に飛ぶなど
+# 平日レースが月をまたぎすぎたため、平日だけ週の始まりの日曜に改めた。
+# (月, 第何週) = バケット日曜の月と、その月の何番目の日曜か。
+# 年の端の例外：平日レースのバケット日曜が前年に食み出す年初分（1/1〜2）は
+# (1,1) へ、土曜のバケット日曜が翌年に食み出す年末分は (12,4) へ寄せる。
+# 月の週数は2026年の暦どおり（日曜が5回ある 3・5・8・11月だけ第5週）= 1年52週。
+# 旧方式（ceil(日/7) を第4週で頭打ち）は第5週末を第4週に潰し、ダービーが
+# オークスの週に重なる不具合の原因だった（2026-11-14、オーナー がプレイ中に発見）。
+WEEKS_IN_MONTH = [4, 4, 5, 4, 5, 4, 4, 5, 4, 4, 5, 4]
+
+def month_wom(dt):
+    wd = dt.weekday()  # Mon=0 .. Sat=5, Sun=6
+    if wd == 6:        # 日曜：当日
+        sun = dt
+    elif wd == 5:      # 土曜：翌日の日曜（同じ開催週末）
+        sun = dt + datetime.timedelta(days=1)
+    else:              # 平日：その週を始める日曜（直近の日曜）
+        sun = dt - datetime.timedelta(days=wd + 1)
+    if sun.year < dt.year:   # 年初分：バケット日曜が前年の年末にある平日レース
+        return (1, 1)
+    if sun.year > dt.year:   # 年末分：土曜の翌日曜が翌年に食み出す場合
+        return (12, 4)
+    wom = (sun.day - 1) // 7 + 1
+    # 2025年基準の海外日程など、ゲームの月週数を超えたら末週へ寄せる
+    return (sun.month, min(wom, WEEKS_IN_MONTH[sun.month - 1]))
 
 # ===== レースのラベル（SPEC.md「レースのラベル」） =====
 ROUTES_DOM = {
@@ -95,10 +127,11 @@ dom_out = []
 for r in dom:
     dt = datetime.date.fromisoformat(r["date"])
     cond = r["conditions"].replace("3（4）歳以上", "3歳以上")
+    mon, wom = month_wom(dt)
     dom_out.append({
         "name": r["name"], "grade": r["grade"], "sector": r["sector"], "category": r["category"],
         "racecourse": r["racecourse"], "surface": r["surface"], "distance_m": r["distance_m"],
-        "conditions": cond, "month": dt.month, "wom": wom_from_day(dt.day),
+        "conditions": cond, "month": mon, "wom": wom,
         "weight_type": r.get("weight_type") or "定量",
         "labels": dom_labels(r["name"]),
     })
@@ -161,11 +194,19 @@ def parse_cond(r):
     sex = "牝" if hin else ("牡" if bo else "")
     return (age + sex) if (age or sex) else "3歳以上"
 
+def ov_month_wom(r):
+    # 海外も国内と同じ日曜基準（v1.00）。実日付（date_2025）から割り当てる。
+    # 日付が無い行だけ旧来の (month, week_of_month) をゲームの月週数で頭打ちして使う。
+    if r.get("date_2025"):
+        return month_wom(datetime.date.fromisoformat(r["date_2025"]))
+    return (r["month"], min(r["week_of_month"], WEEKS_IN_MONTH[r["month"] - 1]))
+
 ov_out = []
 for r in ov:
     # G1は全件、G2/G3は距離が入っているもの（WP10収録分）だけをゲームに載せる
     if r["grade"] != "G1" and parse_dist(r) is None:
         continue
+    ov_mon, ov_wom = ov_month_wom(r)
     ov_out.append({
         # 海外のグレード表記（G1等）は国内表記（GI等）に統一する。賞金・相手強さ・重賞勝ち判定などが
         # すべて国内表記前提のため、ここで揃えないと海外重賞が全部「格なし」扱いになる。
@@ -176,10 +217,11 @@ for r in ov:
         "prize_first": r.get("prize_first_jpy"),
         "weight_type": r.get("weight_type") or "定量",
         "labels": ov_labels(r),
-        "month": r["month"], "wom": min(4, r["week_of_month"]),
+        "month": ov_mon, "wom": ov_wom,
     })
 
-data = {"domestic": dom_out, "overseas": ov_out, "stallions": st["stallions"]}
+mt = json.load(open(os.path.join(DATA, "mare_templates.json")))
+data = {"domestic": dom_out, "overseas": ov_out, "stallions": st["stallions"], "mareTemplates": mt["mareTemplates"]}
 blob = "const DATA = " + json.dumps(data, ensure_ascii=False) + ";"
 html = tpl.replace("/*__DATA__*/", blob)
 out = os.path.join(BASE, "index.html")
