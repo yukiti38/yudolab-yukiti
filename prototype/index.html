@@ -297,10 +297,11 @@ function prizeTable(race){
 }
 function rivalStrength(race){
   const g = race.grade;
-  if(g==="GI"||g==="JpnI") return race.sector==="overseas" ? [70,85] : [68,84];
-  if(g==="GII"||g==="JpnII") return [65,81];
-  if(g==="GIII"||g==="JpnIII") return [62,78];
-  if(g==="L"||g==="OP") return [60,76];
+  /* v3.3：100点満点化で自家生産馬の上振れ（能力〜94）が生まれるため、重賞級の上限だけを少し引き上げて釣り合いを取る */
+  if(g==="GI"||g==="JpnI") return race.sector==="overseas" ? [70,88] : [68,87];
+  if(g==="GII"||g==="JpnII") return [65,84];
+  if(g==="GIII"||g==="JpnIII") return [62,80];
+  if(g==="L"||g==="OP") return [60,78];
   if(g==="3勝クラス") return [57,73];
   if(g==="2勝クラス") return [53,68];
   if(g==="1勝クラス") return [49,64];
@@ -451,7 +452,15 @@ function maturity(h){ return maturityA(h, ageOf(h) + (S.month-1)/12); }
 function rankOf(v){ return v>=83?"S":v>=78?"A":v>=73?"B":v>=68?"C":v>=63?"D":v>=58?"E":v>=53?"F":"G"; }
 function triSpread(n){ return Math.round((irnd(-n,n)+irnd(-n,n))/2); }
 /* パラメータの絶対上限は 85（調教込み）、下限クランプ 35（v0.50） */
-function clampParam(v){ return clamp(Math.round(v), 35, 85); }
+function clampParam(v){ return clamp(Math.round(v), 1, 100); } /* v3.3：100点満点に戻す（オーナー本来の設計）。85は平均の天井の目安であって壁ではない */
+/* 継承の中心（v3.3・オーナー本来の設計）：父母平均が65以下なら従来どおり0.65で平均65へ回帰。
+   65を超える分は飽和させ、中心は85へ漸近する（どれだけ強い同士を掛けても平均は85くらいで
+   頭打ち）。個々のパラメータはブレで85を超えることがある、という分布の天井にする */
+function inheritCentre(avg){
+  const d = avg - 65;
+  if(d <= 0) return 65 + 0.65 * d;
+  return 65 + 20 * (1 - Math.exp(-0.0325 * d));
+}
 function setParams(h, spd, sta, gut){ const cp = h.superMax ? (v)=>clamp(Math.round(v),1,150) : clampParam; h.spd = cp(spd); h.sta = cp(sta); h.gut = cp(gut); h.ability = Math.round((h.spd+h.sta+h.gut)/3); }
 function paramsFromAbility(h){
   if(h.superMax){ h.spd = 115; h.sta = 115; h.gut = 115; h.ability = 115; return; }
@@ -684,7 +693,7 @@ function monthlyTraining(){
       if(h.status!=="racehorse" || h.retired || h.spd == null || h.trainManual) continue;
       const age = ageOf(h); if(age<2 || age>4) continue;
       h.trained = h.trained || { spd:0, sta:0, gut:0 };
-      const cand = ["spd","sta","gut"].filter(k => h.trained[k] < 4 && h[k] < 85);
+      const cand = ["spd","sta","gut"].filter(k => h.trained[k] < 4 && h[k] < 100);
       if(!cand.length) continue;
       cand.sort((a,b) => h[a] - h[b]);
       h.policy = cand[0]; h.trainAuto = true;
@@ -696,7 +705,7 @@ function monthlyTraining(){
     const age = ageOf(h); if(age<2 || age>4) continue;
     h.trained = h.trained || { spd:0, sta:0, gut:0 };
     const gain = (k) => {
-      if(h.trained[k] >= 4 || h[k] >= 85) return;
+      if(h.trained[k] >= 4 || h[k] >= 100) return;
       const before = rankOf(h[k]);
       h[k]++; h.trained[k]++;
       h.ability = Math.round((h.spd+h.sta+h.gut)/3);
@@ -1910,7 +1919,7 @@ function onNewYear(){
       const gb = G_BIAS[foalGt] || [0, 1];
       /* 継承は「傾向的」（v0.50）：父母平均を平均65へ0.65倍に回帰させたものが中心。ブレは広く、保証なし。
          系統のパラメータ寄せはパラメータごとの中心へ加える（ニックスとは別枠で、相性の数値は変えない） */
-      const fp = (s, d, bias) => 65 + 0.65*((s + d)/2 - 65) + nickShift + gb[0] + bias + Math.round(triSpread(spN) * gb[1]);
+      const fp = (s, d, bias) => inheritCentre((s + d)/2) + nickShift + gb[0] + bias + Math.round(triSpread(spN) * gb[1]);
       let surf;
       if(st.surface===h.surface){
         surf = Math.random()<0.9 ? st.surface : "両刀";
@@ -2484,7 +2493,7 @@ function giftBParams(off){
   const c = irnd(74, 76);
   const p = { spd: c + (off.spd || 0) + irnd(-2, 2), sta: c + (off.sta || 0) + irnd(-2, 2), gut: c + (off.gut || 0) + irnd(-2, 2) };
   for(let i = 0; i < 12; i++){ const a = Math.round((p.spd + p.sta + p.gut) / 3); if(a >= 73 && a <= 77) break; p.gut += (a > 77 ? -1 : 1); }
-  p.spd = clamp(p.spd, 35, 85); p.sta = clamp(p.sta, 35, 85); p.gut = clamp(p.gut, 35, 85);
+  p.spd = clamp(p.spd, 1, 100); p.sta = clamp(p.sta, 1, 100); p.gut = clamp(p.gut, 1, 100); /* v3.3：100点満点 */
   return p;
 }
 const GIFT_SPECS = {
@@ -2551,7 +2560,7 @@ let debugOpen = false;
 function buildDebugHorse(o){
   o = o || {};
   const age = o.age != null ? o.age : 3;
-  const clampP = v => clamp(Math.round(v != null ? v : 85), 1, 99); /* 新スケール（通常35〜85・上限85）に合わせる。旧スケールの150は廃止し、検証用に上限を少しだけ超えられる範囲にした */
+  const clampP = v => clamp(Math.round(v != null ? v : 85), 1, 110); /* v3.3：100点満点に合わせ、検証用に上限を少しだけ超えられる範囲を残す */
   const spd = clampP(o.spd), sta = clampP(o.sta), gut = clampP(o.gut);
   /* 適性距離（v2.3：フォームで下限・上限をプルダウンから選ぶ）：指定があればそのまま使う。
      ただし壊れた範囲（数値でない／下限≥上限／実在距離の目安 1000〜4000m の外）は既定の 1800-2400 に落とす。
@@ -4276,6 +4285,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>競馬シミュレーター（趣味） v3.2</footer>
+<footer>競馬シミュレーター（趣味） v3.3</footer>
 </body>
 </html>
