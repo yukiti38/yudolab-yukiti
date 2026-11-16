@@ -1,232 +1,209 @@
 [
-  {
-    "name": "キズナ",
-    "sire": "ディープインパクト",
-    "dam": "キャットクイル",
-    "bms": "Storm Cat",
-    "grandam": "Pacific Princess",
-    "gbms": "Damascus",
-    "line": [
-      "サンデーサイレンス",
-      "ヘイロー",
-      "ヘイルトゥリーズン"
-    ],
-    "dist": [
-      1800,
-      2400
-    ],
-    "surface": "芝",
-    "growth": "早熟",
-    "fee_tier": "S",
-    "region": "domestic",
-    "weight": 480,
-    "source": "https://www.jbis.or.jp/horse/0001120570/"
-  },
-  {
-    "name": "ジャックドール",
-    "sire": "モーリス",
-    "dam": "ラヴァリーノ",
-    "bms": "Unbridled's Song",
-    "grandam": "スーアンタンデュ",
-    "gbms": "Shadeed",
-    "line": [
-      "スクリーンヒーロー",
-      "グラスワンダー",
-      "シルヴァーホーク"
-    ],
-    "dist": [
-      1600,
-      2000
-    ],
-    "surface": "芝",
-    "growth": "普通",
-    "fee_tier": "C",
-    "region": "domestic",
-    "weight": 512,
-    "source": "https://www.jbis.or.jp/horse/0001265115/"
-  },
-  {
-    "name": "シュネルマイスター",
-    "sire": "Kingman",
-    "dam": "セリエンホルデ",
-    "bms": "Soldier Hollow",
-    "grandam": "ザルデネーレ",
-    "gbms": "Highest Honor",
-    "line": [
-      "Invincible Spirit",
-      "Green Desert",
-      "Danzig"
-    ],
-    "dist": [
-      1500,
-      1800
-    ],
-    "surface": "芝",
-    "growth": "早熟",
-    "fee_tier": "B",
-    "region": "domestic",
-    "weight": 480,
-    "source": "https://www.jbis.or.jp/horse/0001303553/"
-  },
-  {
-    "name": "エイシンヒカリ",
-    "sire": "ディープインパクト",
-    "dam": "キャタリナ",
-    "bms": "Storm Cat",
-    "grandam": "カロライナサガ",
-    "gbms": "Caro",
-    "line": [
-      "サンデーサイレンス",
-      "ヘイロー",
-      "ヘイルトゥリーズン"
-    ],
-    "dist": [
-      1800,
-      2000
-    ],
-    "surface": "芝",
-    "growth": "普通",
-    "fee_tier": "C",
-    "region": "domestic",
-    "weight": 504,
-    "source": "https://www.jbis.or.jp/horse/0001137511/"
-  },
-  {
-    "name": "ミッキーロケット",
-    "sire": "キングカメハメハ",
-    "dam": "マネーキャントバイミーラヴ",
-    "bms": "Pivotal",
-    "grandam": "サブリアン",
-    "gbms": "Caerleon",
-    "line": [
-      "キングマンボ",
-      "ミスタープロスペクター",
-      "レイズアネイティヴ"
-    ],
-    "dist": [
-      2200,
-      2400
-    ],
-    "surface": "芝",
-    "growth": "普通",
-    "fee_tier": "C",
-    "region": "domestic",
-    "weight": 476,
-    "source": "https://www.jbis.or.jp/horse/0001175196/"
-  },
-  {
-    "name": "フェノーメノ",
-    "sire": "ステイゴールド",
-    "dam": "ディラローシェ",
-    "bms": "Danehill",
-    "grandam": "Sea Port",
-    "gbms": "Averof",
-    "line": [
-      "ステイゴールド",
-      "サンデーサイレンス",
-      "ヘイロー"
-    ],
-    "dist": [
-      2200,
-      3200
-    ],
-    "surface": "芝",
-    "growth": "普通",
-    "fee_tier": "C",
-    "region": "domestic",
-    "weight": 496,
-    "source": "https://www.jbis.or.jp/horse/0001110458/"
-  },
-  {
-    "name": "シルバーステート",
-    "sire": "ディープインパクト",
-    "dam": "シルヴァースカヤ",
-    "bms": "Silver Hawk",
-    "grandam": "Boubskaia",
-    "gbms": "Niniski",
-    "line": [
-      "サンデーサイレンス",
-      "ヘイロー",
-      "ヘイルトゥリーズン"
-    ],
-    "dist": [
-      1600,
-      2000
-    ],
-    "surface": "芝",
-    "growth": "普通",
-    "fee_tier": "B",
-    "region": "domestic",
-    "weight": 496,
-    "source": "https://www.jbis.or.jp/horse/0001171845/"
-  },
-  {
-    "name": "ルクセンブルク",
-    "sire": "Camelot",
-    "dam": "Attire",
-    "bms": "Danehill Dancer",
-    "grandam": "Asnieres",
-    "gbms": "Spend a Buck",
-    "line": [
-      "Montjeu",
-      "Sadler's Wells",
-      "Northern Dancer"
-    ],
-    "dist": [
-      1600,
-      2400
-    ],
-    "surface": "芝",
-    "growth": "早熟",
-    "fee_tier": "C",
-    "region": "overseas",
-    "weight": "不明",
-    "source": "https://www.jbis.or.jp/horse/0001350896/"
-  },
-  {
-    "name": "アップトゥザマーク",
-    "sire": "Not This Time",
-    "dam": "Belle's Finale",
-    "bms": "Ghostzapper",
-    "grandam": "Capote Belle",
-    "gbms": "Capote",
-    "line": [
-      "Giant's Causeway",
-      "Storm Cat",
-      "Northern Dancer"
-    ],
-    "dist": [
-      1600,
-      2000
-    ],
-    "surface": "芝",
-    "growth": "普通",
-    "fee_tier": "B",
-    "region": "overseas",
-    "weight": "不明",
-    "source": "https://www.jbis.or.jp/horse/0001383647/"
-  },
-  {
-    "name": "コーディーズウィッシュ",
-    "sire": "Curlin",
-    "dam": "Dance Card",
-    "bms": "Tapit",
-    "grandam": "Tempting Note",
-    "gbms": "Editor's Note",
-    "line": [
-      "Smart Strike",
-      "Mr. Prospector",
-      "Raise a Native"
-    ],
-    "dist": [
-      1400,
-      1600
-    ],
-    "surface": "ダート",
-    "growth": "普通",
-    "fee_tier": "B",
-    "region": "overseas",
-    "weight": "不明",
-    "source": "https://www.bloodhorse.com/horse-racing/horses/card/10457503"
-  }
+ {
+  "name": "キズナ",
+  "sire": "ディープインパクト",
+  "dam": "キャットクイル",
+  "bms": "Storm Cat",
+  "grandam": "Pacific Princess",
+  "gbms": "Damascus",
+  "line": [
+   "サンデーサイレンス",
+   "ヘイロー",
+   "ヘイルトゥリーズン"
+  ],
+  "dist": [
+   1800,
+   2400
+  ],
+  "surface": "芝",
+  "growth": "早熟",
+  "fee_tier": "S",
+  "region": "domestic",
+  "weight": 480,
+  "source": "https://www.jbis.or.jp/horse/0001120570/"
+ },
+ {
+  "name": "ジャックドール",
+  "sire": "モーリス",
+  "dam": "ラヴァリーノ",
+  "bms": "Unbridled's Song",
+  "grandam": "スーアンタンデュ",
+  "gbms": "Shadeed",
+  "line": [
+   "スクリーンヒーロー",
+   "グラスワンダー",
+   "シルヴァーホーク"
+  ],
+  "dist": [
+   1600,
+   2000
+  ],
+  "surface": "芝",
+  "growth": "普通",
+  "fee_tier": "C",
+  "region": "domestic",
+  "weight": 512,
+  "source": "https://www.jbis.or.jp/horse/0001265115/"
+ },
+ {
+  "name": "シュネルマイスター",
+  "sire": "Kingman",
+  "dam": "セリエンホルデ",
+  "bms": "Soldier Hollow",
+  "grandam": "ザルデネーレ",
+  "gbms": "Highest Honor",
+  "line": [
+   "Invincible Spirit",
+   "Green Desert",
+   "Danzig"
+  ],
+  "dist": [
+   1500,
+   1800
+  ],
+  "surface": "芝",
+  "growth": "早熟",
+  "fee_tier": "B",
+  "region": "domestic",
+  "weight": 480,
+  "source": "https://www.jbis.or.jp/horse/0001303553/"
+ },
+ {
+  "name": "エイシンヒカリ",
+  "sire": "ディープインパクト",
+  "dam": "キャタリナ",
+  "bms": "Storm Cat",
+  "grandam": "カロライナサガ",
+  "gbms": "Caro",
+  "line": [
+   "サンデーサイレンス",
+   "ヘイロー",
+   "ヘイルトゥリーズン"
+  ],
+  "dist": [
+   1800,
+   2000
+  ],
+  "surface": "芝",
+  "growth": "普通",
+  "fee_tier": "C",
+  "region": "domestic",
+  "weight": 504,
+  "source": "https://www.jbis.or.jp/horse/0001137511/"
+ },
+ {
+  "name": "ミッキーロケット",
+  "sire": "キングカメハメハ",
+  "dam": "マネーキャントバイミーラヴ",
+  "bms": "Pivotal",
+  "grandam": "サブリアン",
+  "gbms": "Caerleon",
+  "line": [
+   "キングマンボ",
+   "ミスタープロスペクター",
+   "レイズアネイティヴ"
+  ],
+  "dist": [
+   2200,
+   2400
+  ],
+  "surface": "芝",
+  "growth": "普通",
+  "fee_tier": "C",
+  "region": "domestic",
+  "weight": 476,
+  "source": "https://www.jbis.or.jp/horse/0001175196/"
+ },
+ {
+  "name": "シルバーステート",
+  "sire": "ディープインパクト",
+  "dam": "シルヴァースカヤ",
+  "bms": "Silver Hawk",
+  "grandam": "Boubskaia",
+  "gbms": "Niniski",
+  "line": [
+   "サンデーサイレンス",
+   "ヘイロー",
+   "ヘイルトゥリーズン"
+  ],
+  "dist": [
+   1600,
+   2000
+  ],
+  "surface": "芝",
+  "growth": "普通",
+  "fee_tier": "B",
+  "region": "domestic",
+  "weight": 496,
+  "source": "https://www.jbis.or.jp/horse/0001171845/"
+ },
+ {
+  "name": "ルクセンブルク",
+  "sire": "Camelot",
+  "dam": "Attire",
+  "bms": "Danehill Dancer",
+  "grandam": "Asnieres",
+  "gbms": "Spend a Buck",
+  "line": [
+   "Montjeu",
+   "Sadler's Wells",
+   "Northern Dancer"
+  ],
+  "dist": [
+   1600,
+   2400
+  ],
+  "surface": "芝",
+  "growth": "早熟",
+  "fee_tier": "C",
+  "region": "overseas",
+  "weight": "不明",
+  "source": "https://www.jbis.or.jp/horse/0001350896/"
+ },
+ {
+  "name": "アップトゥザマーク",
+  "sire": "Not This Time",
+  "dam": "Belle's Finale",
+  "bms": "Ghostzapper",
+  "grandam": "Capote Belle",
+  "gbms": "Capote",
+  "line": [
+   "Giant's Causeway",
+   "Storm Cat",
+   "Northern Dancer"
+  ],
+  "dist": [
+   1600,
+   2000
+  ],
+  "surface": "芝",
+  "growth": "普通",
+  "fee_tier": "B",
+  "region": "overseas",
+  "weight": "不明",
+  "source": "https://www.jbis.or.jp/horse/0001383647/"
+ },
+ {
+  "name": "コーディーズウィッシュ",
+  "sire": "Curlin",
+  "dam": "Dance Card",
+  "bms": "Tapit",
+  "grandam": "Tempting Note",
+  "gbms": "Editor's Note",
+  "line": [
+   "Smart Strike",
+   "Mr. Prospector",
+   "Raise a Native"
+  ],
+  "dist": [
+   1400,
+   1600
+  ],
+  "surface": "ダート",
+  "growth": "普通",
+  "fee_tier": "B",
+  "region": "overseas",
+  "weight": "不明",
+  "source": "https://www.bloodhorse.com/horse-racing/horses/card/10457503"
+ }
 ]
