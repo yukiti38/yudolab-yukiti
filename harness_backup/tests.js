@@ -933,7 +933,7 @@ function buildFamily(P, dauCount, grandPer){
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
   T('v57 filly retirement flow untouched in build', src.includes("id='retireSellBtn'") && src.includes("id='retireBroodBtn'") && src.includes('繁殖入りしない場合は、そのまま'));
   T('v57 old colt label removed', !src.includes('種牡馬にせず引退する'));
-  T('v57 footer bumped', src.includes('競馬シミュレーター（趣味） v1.1')); /* フッターは現行版に追随（v1.01） */
+  T('v57 footer bumped', src.includes('競馬シミュレーター（趣味） v1.2')); /* フッターは現行版に追随（v1.01） */
 }
 
 // ---- v0.58: kanmuri applies to gift / debug auto-names (regression: suite had NO kanmuri coverage) ----
@@ -1000,7 +1000,7 @@ function buildFamily(P, dauCount, grandPer){
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
   T('v58 build: makeGift uses farmFoalName', src.includes('name:farmFoalName()'));
   T('v58 build: debug fallback uses farmFoalName', src.includes(': farmFoalName()')); /* v0.59 で buildDebugHorse に分離されても自動名は farmFoalName のまま */
-  T('v58 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.1')); /* フッターは現行版に追随（v1.01） */
+  T('v58 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.2')); /* フッターは現行版に追随（v1.01） */
 }
 
 // ---- v0.59: debug creator brought up to current spec + gift affinities initialised at creation ----
@@ -1092,7 +1092,7 @@ function buildFamily(P, dauCount, grandPer){
   T('v59 build: affinity controls present', src.includes('"dbgRootAff"') && src.includes('"dbgYuso"') && src.includes('"dbgCourseBulk"'));
   T('v11 build: rootDist debug control removed', !src.includes('dbgRootDist'));
   T('v59 build: param range note present', src.includes('パラメータ通常 35〜85'));
-  T('v59 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.1'));
+  T('v59 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.2'));
 }
 
 
@@ -1177,32 +1177,32 @@ function buildFamily(P, dauCount, grandPer){
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
   T('v100 build: SAVE_KEY bumped to v8', src.includes('nkc_whc_keiba_proto_v8'));
   T('v100 build: import refuses pre-rework saves', src.includes('data.calVer !== 2') && src.includes('カレンダー再編（v1.00）より前の形式のため読み込めません'));
-  T('v100 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.1'));
+  T('v100 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.2'));
   T('v100 build: skip week 5 option exists', src.includes('<option>5</option>'));
 }
 
 // ---- v1.01: first-year gifts replaced with fixed model horses ----
 {
-  // April 2026 trigger: exactly two 2yo gifts queued together (colt first, then filly)
-  freshS({ year: 2026, month: 4, week: 1 });
+  // April 2026 trigger: exactly two 2yo gifts queued together (colt first, then filly).
+  // v1.2: the pair is one of two sets — here the set is pinned to A (turf colt + dirt filly).
+  // Set B and the roll itself are covered in the v1.2 block below.
+  freshS({ year: 2026, month: 4, week: 1, giftSet: 'A' });
   S.giftQueue = [];
   weeklyEvents();
   T('v101 April queues exactly 2 gifts', S.giftQueue.length === 2 && S.giftAprDone === true);
   const c = S.giftQueue[0], f = S.giftQueue[1];
   T('v101 April colt is the Efforia model', c.sex === '牡' && c.sire === 'エピファネイア' && c.dam === 'ケイティーズハート' && c.bms === 'ハーツクライ' && c.grandam === 'ケイティーズファースト' && c.gbms === 'クリス');
   T('v101 April colt aptitude + growth subtype', c.surface === '芝' && c.distMin === 1800 && c.distMax === 2500 && c.gtype === '普通早' && c.growth === '普通' && c.status === 'racehorse');
-  T('v101 April filly is the Soul Stirring model', f.sex === '牝' && f.sire === 'Frankel' && f.dam === 'スタセリタ' && f.bms === 'モンズーン' && f.grandam === 'ソワニエ' && f.gbms === 'ダッシングブレイド');
-  T('v101 April filly aptitude + growth subtype', f.surface === '芝' && f.distMin === 1600 && f.distMax === 2400 && f.gtype === '早熟' && f.growth === '早熟' && f.status === 'racehorse');
+  T('v101 set A filly is the Marche Lorraine model', f.sex === '牝' && f.sire === 'オルフェーヴル' && f.dam === 'ヴィートマルシェ' && f.bms === 'フレンチデピュティ' && f.grandam === 'キョウエイマーチ' && f.gbms === 'ダンシングブレーヴ');
   T('v101 April filly has no explicit jizoku spec (trait is not forced)', GIFT_SPECS.aprFilly.jizoku == null);
-  T('v101 April filly sire line resolves to Northern Dancer via the roster (Frankel)', majorLineOfName(f.sire) === 'ノーザンダンサー系');
   T('v101 Monsun chain supplemented like a template bmsLine (real sire Koenigsstuhl)', sireChainOf('モンズーン').includes('ケーニヒスシュトゥール'));
   T('v101 Monsun stays a side line (Blandford branch reaches no major-line marker)', majorLineOfName('モンズーン') === null);
   T('v101 April gifts are B-rank overall', rankOf(Math.round((c.spd + c.sta + c.gut) / 3)) === 'B' && rankOf(Math.round((f.spd + f.sta + f.gut) / 3)) === 'B');
   // each April horse is independently acceptable / refusable through the existing panel flow
   acceptGift('');
-  T('v101 April colt accepted, filly still queued', S.horses.some(h => h.sire === 'エピファネイア') && S.giftQueue.length === 1 && S.giftQueue[0].sire === 'Frankel');
+  T('v101 April colt accepted, filly still queued', S.horses.some(h => h.sire === 'エピファネイア') && S.giftQueue.length === 1 && S.giftQueue[0].sire === 'オルフェーヴル');
   refuseGift();
-  T('v101 April filly refused independently', S.giftQueue.length === 0 && !S.horses.some(h => h.sire === 'Frankel'));
+  T('v101 April filly refused independently', S.giftQueue.length === 0 && !S.horses.some(h => h.sire === 'オルフェーヴル'));
 }
 {
   // December 2026 trigger: exactly one 1yo filly with the fixed pedigree
@@ -1241,17 +1241,20 @@ function buildFamily(P, dauCount, grandPer){
   T('v101 no December gifts in 2027', S.giftQueue.length === 0 && !S.giftDecDone);
 }
 {
-  // B-rank guarantee across repeated generations of all three gifts
+  // B-rank guarantee across repeated generations of all five gifts (v1.2: two dirt models added)
   freshS({ year: 2026 });
-  let allB = true, allInBand = true;
+  let allB = true, allInBand = true, allAvg = true;
   for(let i = 0; i < 60; i++){
-    for(const k of ['aprColt', 'aprFilly', 'decFilly']){
+    for(const k of ['aprColt', 'aprFilly', 'decFilly', 'aprColtDirt', 'aprFillyDirt']){
       const g = makeGift(k);
-      if(rankOf(Math.round((g.spd + g.sta + g.gut) / 3)) !== 'B') allB = false;
+      const avg = Math.round((g.spd + g.sta + g.gut) / 3);
+      if(rankOf(avg) !== 'B') allB = false;
+      if(avg < 73 || avg > 77) allAvg = false;
       if([g.spd, g.sta, g.gut].some(v => v < 35 || v > 85)) allInBand = false;
     }
   }
-  T('v101 all three gifts always land on B overall (180 generations)', allB);
+  T('v101 all five gifts always land on B overall (300 generations)', allB);
+  T('v101 gift averages stay inside the 73-77 B band', allAvg);
   T('v101 gift params stay inside the 35-85 scale', allInBand);
   let fillyJizokuCount = 0;
   for(let i = 0; i < 60; i++){ if(makeGift('aprFilly').jizoku === true) fillyJizokuCount++; }
@@ -1260,7 +1263,7 @@ function buildFamily(P, dauCount, grandPer){
 {
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
   T('v101 build: fixed gift models present', src.includes('ケイティーズハート') && src.includes('スタセリタ') && src.includes('エンドスウィープ'));
-  T('v101 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.1'));
+  T('v101 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.2'));
 }
 
 // ---- v1.01: roster expansion 54 -> 60 (オーナー, 2026-11-15) ----
@@ -1450,7 +1453,7 @@ function buildFamily(P, dauCount, grandPer){
 // ---- v1.02: スマホ横画面・小画面対応（表示のみ。構造の確認） ----
 {
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
-  T('v102 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.1'));
+  T('v102 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.2'));
   T('v102 build: compact media queries present', src.includes('@media (max-width:640px), (max-height:500px)'));
   T('v102 build: tscroll wrapper css', src.includes('.tscroll { overflow-x:auto'));
   T('v102 build: wrapTables defined', src.includes('function wrapTables(root)'));
@@ -1470,7 +1473,7 @@ function buildFamily(P, dauCount, grandPer){
 // ---- v1.03: compact 表示をもう一段締める（表示のみ。構造の確認） ----
 {
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
-  T('v103 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.1'));
+  T('v103 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.2'));
   T('v103 build: compact base font 13.5px', src.includes('body { font-size:13.5px; line-height:1.5; }'));
   T('v103 build: modal h2 17px', src.includes('.modal h2 { font-size:17px; }'));
   T('v103 build: h3 14.5px', src.includes('h3 { font-size:14.5px; margin:12px 0 6px; }'));
@@ -1494,7 +1497,7 @@ function buildFamily(P, dauCount, grandPer){
 // ---- v1.04: プルダウン均一化／ツールバーの列揃え／スキップ並び（表示のみ。構造の確認） ----
 {
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
-  T('v104 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.1'));
+  T('v104 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.2'));
   T('v104 build: select height pinned base 32px', src.includes('select { height:32px; padding:0 8px; }'));
   T('v104 build: select height pinned compact 36px', src.includes('select { height:36px; padding:0 8px; }'));
   T('v104 build: horse toolbar uses listtools', src.includes("class='flex listtools'"));
@@ -1518,7 +1521,7 @@ function buildFamily(P, dauCount, grandPer){
 // ---- v1.05: コントロール群の文字サイズ統一（表示のみ。構造の確認） ----
 {
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
-  T('v105 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.1'));
+  T('v105 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.2'));
   T('v105 build: skip group font unified 13.5px', src.includes('.skipctl .sub, .skipctl button, .skipctl select, .skipctl input[type=text] { font-size:13.5px; }'));
   T('v105 build: toolbar select font matches label base 13.5px', src.includes('.listtools select { font-size:13.5px; }') && src.includes('body { font-size:13.5px; line-height:1.5; }'));
   T('v105 build: typing-input 16px guard kept', src.includes('select, input[type=text], textarea { font-size:16px; }'));
@@ -1571,8 +1574,102 @@ function buildFamily(P, dauCount, grandPer){
   const h = buildDebugHorse({ age: 3, rootAff: '✕' });
   T('v11 debug builds with rootAff only (no rootDist needed)', h.aff.rootAff === '✕' && !('rootDist' in h.aff));
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
-  T('v11 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.1'));
+  T('v11 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.2'));
   T('v11 build: no rootDist anywhere in build', !src.includes('rootDist') && !src.includes('snapBand'));
+}
+
+// ---- v1.2: April gifts become a two-set lottery (A: turf colt + dirt filly / B: dirt colt + turf filly) ----
+{
+  // set B pinned: dirt colt (Mick Fire model) first, turf filly (Soul Stirring model) second
+  freshS({ year: 2026, month: 4, week: 1, giftSet: 'B' });
+  S.giftQueue = [];
+  weeklyEvents();
+  T('v12 set B queues exactly 2 gifts and keeps the pinned set', S.giftQueue.length === 2 && S.giftSet === 'B' && S.giftAprDone === true);
+  const c = S.giftQueue[0], f = S.giftQueue[1];
+  T('v12 Mick Fire model pedigree', c.sex === '牡' && c.sire === 'シニスターミニスター' && c.dam === 'マリアージュ' && c.bms === 'ブライアンズタイム' && c.grandam === 'アーミールージュ' && c.gbms === 'ミスワキ');
+  T('v12 Mick Fire model aptitude + growth + coat', c.surface === 'ダート' && c.distMin === 1600 && c.distMax === 2000 && c.gtype === '普通早' && c.growth === '普通' && c.status === 'racehorse' && c.coat === '鹿毛');
+  T('v12 set B filly is the Soul Stirring model', f.sex === '牝' && f.sire === 'Frankel' && f.dam === 'スタセリタ' && f.bms === 'モンズーン' && f.grandam === 'ソワニエ' && f.gbms === 'ダッシングブレイド');
+  T('v12 set B filly aptitude + growth subtype', f.surface === '芝' && f.distMin === 1600 && f.distMax === 2400 && f.gtype === '早熟' && f.growth === '早熟' && f.status === 'racehorse');
+  T('v12 April filly sire line resolves to Northern Dancer via the roster (Frankel)', majorLineOfName(f.sire) === 'ノーザンダンサー系');
+  T('v12 set B gifts are B-rank overall', rankOf(Math.round((c.spd + c.sta + c.gut) / 3)) === 'B' && rankOf(Math.round((f.spd + f.sta + f.gut) / 3)) === 'B');
+}
+{
+  // set A pinned: full Marche Lorraine assertions (the Efforia colt side is covered by the v101 block)
+  freshS({ year: 2026, month: 4, week: 1, giftSet: 'A' });
+  S.giftQueue = [];
+  weeklyEvents();
+  const f = S.giftQueue[1];
+  T('v12 Marche Lorraine model pedigree', f.sex === '牝' && f.sire === 'オルフェーヴル' && f.dam === 'ヴィートマルシェ' && f.bms === 'フレンチデピュティ' && f.grandam === 'キョウエイマーチ' && f.gbms === 'ダンシングブレーヴ');
+  T('v12 Marche Lorraine model aptitude + growth + coat', f.surface === 'ダート' && f.distMin === 1700 && f.distMax === 2100 && f.gtype === '普通遅' && f.growth === '普通' && f.status === 'racehorse' && f.coat === '鹿毛');
+}
+{
+  // the roll itself: unpinned April triggers produce both sets over repeated new games,
+  // and the queue only ever holds the chosen set's pair (the other set never appears)
+  let sawA = 0, sawB = 0, rollOk = true;
+  for(let i = 0; i < 40; i++){
+    freshS({ year: 2026, month: 4, week: 1 });
+    S.giftQueue = [];
+    weeklyEvents();
+    const sires = S.giftQueue.map(h => h.sire);
+    if(S.giftSet === 'A'){ sawA++; if(!(sires.length === 2 && sires[0] === 'エピファネイア' && sires[1] === 'オルフェーヴル')) rollOk = false; }
+    else if(S.giftSet === 'B'){ sawB++; if(!(sires.length === 2 && sires[0] === 'シニスターミニスター' && sires[1] === 'Frankel')) rollOk = false; }
+    else rollOk = false;
+  }
+  T('v12 roll yields both sets over 40 new games', sawA > 0 && sawB > 0);
+  T('v12 queue always matches the rolled set (the other set never appears)', rollOk);
+}
+{
+  // persistence: the rolled set and the pending queue survive a save/load round-trip mid-April
+  freshS({ year: 2026, month: 4, week: 1, giftSet: 'B' });
+  S.giftQueue = [];
+  weeklyEvents();
+  save();
+  const keptSires = S.giftQueue.map(h => h.sire).join('/');
+  S.giftSet = 'A'; S.giftQueue = [];
+  T('v12 set choice + pending gifts survive save/load', load() === true && S.giftSet === 'B' && S.giftQueue.map(h => h.sire).join('/') === keptSires);
+  // refusing one gift does not re-roll the other
+  refuseGift();
+  T('v12 refusing the colt keeps the set and the filly', S.giftSet === 'B' && S.giftQueue.length === 1 && S.giftQueue[0].sire === 'Frankel');
+}
+{
+  // pedigree plumbing for both new models (holder lookup through the gift horse itself, like the v101 models)
+  freshS({ year: 2026 });
+  const mc = makeGift('aprColtDirt');
+  S.horses.push(mc);
+  const mcDam = personRec(mc.dam), mcGdam = personRec(mc.grandam);
+  T('v12 Mick Fire pedigree plumbing (dam -> Brians Time, grandam -> Miswaki)', !!mcDam && mcDam.sire === 'ブライアンズタイム' && !!mcGdam && mcGdam.sire === 'ミスワキ');
+  T('v12 Miswaki katakana chain supplemented to Mr. Prospector', sireChainOf('ミスワキ').includes('ミスタープロスペクター') && majorLineOfName('ミスワキ') === 'ミスタープロスペクター系');
+  T('v12 Mick Fire sire line is Seattle Slew, BMS line is Roberto', majorLineOfName('シニスターミニスター') === 'シアトルスルー系' && majorLineOfName('ブライアンズタイム') === 'ロベルト系');
+  const ml = makeGift('aprFillyDirt');
+  S.horses.push(ml);
+  const mlDam = personRec(ml.dam), mlGdam = personRec(ml.grandam);
+  T('v12 Marche Lorraine pedigree plumbing (dam -> French Deputy, grandam -> Dancing Brave)', !!mlDam && mlDam.sire === 'フレンチデピュティ' && !!mlGdam && mlGdam.sire === 'ダンシングブレーヴ');
+  T('v12 Marche Lorraine sire line is Sunday Silence, GBMS line is Northern Dancer', majorLineOfName('オルフェーヴル') === 'サンデーサイレンス系' && majorLineOfName('ダンシングブレーヴ') === 'ノーザンダンサー系');
+}
+{
+  // B-band guarantee for the two new models: 60 generations each, rounded 3-param average always inside 73-77
+  freshS({ year: 2026 });
+  let avgOk = true, bandOk = true;
+  for(let i = 0; i < 60; i++){
+    for(const k of ['aprColtDirt', 'aprFillyDirt']){
+      const g = makeGift(k);
+      const avg = Math.round((g.spd + g.sta + g.gut) / 3);
+      if(avg < 73 || avg > 77) avgOk = false;
+      if([g.spd, g.sta, g.gut].some(v => v < 35 || v > 85)) bandOk = false;
+    }
+  }
+  T('v12 new gift models always average inside the 73-77 B band (120 generations)', avgOk);
+  T('v12 new gift model params stay inside the 35-85 scale', bandOk);
+}
+{
+  // December gift is untouched by the set system
+  freshS({ year: 2026, month: 12, week: 1, giftSet: 'B' });
+  S.giftQueue = [];
+  weeklyEvents();
+  T('v12 December still queues only the fixed filly', S.giftQueue.length === 1 && S.giftQueue[0].sire === 'キタサンブラック' && S.giftDecDone === true);
+  const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
+  T('v12 build: new gift models + set table present', src.includes('マリアージュ') && src.includes('ヴィートマルシェ') && src.includes('ミスワキ') && src.includes('GIFT_SETS'));
+  T('v12 build: footer bumped', src.includes('競馬シミュレーター（趣味） v1.2'));
 }
 
 console.log('\nRESULT: ' + pass + ' passed, ' + fail + ' failed');
