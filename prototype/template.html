@@ -51,6 +51,11 @@
   .hdrmenu summary { cursor:pointer; list-style:none; background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:6px 10px; font-size:14px; }
   .hdrmenu summary::-webkit-details-marker { display:none; }
   .hdrmenu-body { position:absolute; right:0; top:calc(100% + 6px); background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px; z-index:30; min-width:220px; box-shadow:0 8px 24px rgba(0,0,0,.5); }
+  /* 自動出走の一括設定パネル（v2.4）：畳める details にし、パネル内の文字サイズを
+     コントロール標準の 14px に統一する（説明文は body 既定の 16px、注記 .sub は 12.5px と
+     バラバラだったための対処。compact 側の統一は下の media query 内） */
+  .autobulk summary { cursor:pointer; font-weight:700; padding:4px 0; }
+  .autobulk, .autobulk button, .autobulk select, .autobulk .sub { font-size:14px; }
   footer { margin:26px 4px 10px; padding-top:10px; border-top:1px solid var(--line); color:var(--sub); font-size:12.5px; text-align:right; }
   .sellmenu { margin:10px 0; border:1px solid var(--line); border-radius:10px; padding:8px 10px; background:var(--panel2); }
   .sellmenu summary { cursor:pointer; font-size:14px; }
@@ -95,6 +100,20 @@
     .tabs button { flex:0 0 auto; }
     button { min-height:36px; font-size:13px; padding:6px 9px; }
     .hdrmenu summary { font-size:13px; padding:6px 9px; }
+    /* v2.4：その他メニューのドロップダウン（.hdrmenu-body）が画面左端からはみ出す問題への対処。
+       従来は summary の右端を基点に right:0 で開くため、ヘッダーのボタン列が折り返して
+       summary が画面の左寄りに来ると、パネル幅（min-width 220px に加え、compact では
+       16px 表示になる冠名入力行ぶんまで広がる）の分だけ左端がビューポート外に出て
+       文字が切れた。compact では基点をヘッダー全体に変え、パネルをヘッダー幅の
+       左右10px内側いっぱいに広げてヘッダーの下に開くようにし、summary の位置に
+       かかわらず画面内に収まるようにする。通常（PC）表示は従来どおり */
+    header { position:relative; }
+    .hdrmenu { position:static; }
+    .hdrmenu-body { left:10px; right:10px; top:calc(100% + 6px); min-width:0; }
+    /* v2.4：一括設定パネル内の文字サイズを compact の基準 13.5px に統一する（通常表示は上の 14px）。
+       プルダウンは選択時にネイティブピッカーが開くため、v1.05 の指定週スキップ等と同じく
+       この群に限って 16px のズーム回避より統一を優先する（自由入力のテキスト欄は対象外で 16px のまま） */
+    .autobulk, .autobulk button, .autobulk select, .autobulk .sub { font-size:13.5px; }
     .sellmenu summary { font-size:13px; }
     .ltoggle { min-height:28px; }
     select, input[type=text] { min-height:36px; }
@@ -175,7 +194,7 @@
   <div class="sub">目標なし・週刻み・過程を見つめるゲーム。開始時に繁殖牝馬を1頭選ぶところから始まります。初年度は4月に2歳馬が2頭、12月に1歳牝馬の贈呈があります（1頭ずつ辞退も可）。能力は設計用の仮数値、海外レースの1着賞金は2025年の実額（racedb調べ・固定レート換算）です。スキップは「かんたんスキップ」のボタンでも進められます。「🐛 デバッグ馬を作成」ではステータスを指定して馬を作れます（動作確認用）。</div>
 </header>
 <main>
-  <section class="panel" id="topicPanel"><h2>今週のトピック</h2><div id="topics"></div></section>
+  <section class="panel" id="topicPanel"><div id="topics"></div></section>
   <section class="panel">
     <div class="tabs" id="tabs">
       <button data-tab="horses" class="active">所有馬</button>
@@ -816,7 +835,7 @@ function refreshSale(){
 function initState(){
   S = { year:2026, month:1, week:1, calVer:2, funds:30000, horses:[], stallions: JSON.parse(JSON.stringify(DATA.stallions)),
         chronicle:[], statsBirths:{}, topics:[], yearEndDone:false, phase:"choose", candidates:[], salePool:[], saleYear:2026, usedTemplates:[], firstMatingDone:false,
-        giftQueue:[], giftAprDone:false, giftDecDone:false, giftSet:null, favs:[], mile:null, farmWins:0, farmPrize:0, kanmuri:"", soldHorses:[], autoRotDefault:8, autoPolicyDefault:"積極", autoRangePlusDefault:true };
+        giftQueue:[], giftAprDone:false, giftDecDone:false, giftSet:null, favs:[], mile:null, farmWins:0, farmPrize:0, kanmuri:"", soldHorses:[], autoRotDefault:8, autoPolicyDefault:"積極", autoRangePlusDefault:true, autoBulkOpen:false, retiredOpen:false, hofOpen:false, topicsOpen:false };
   const sts = S.stallions;
   // 種牡馬ロスターは固定（約50頭・引退／世代交代なし。WS4b・2026-11-13）。
   // 自家生産の牡馬が引退時に種牡馬入りすることはある（そちらは従来どおり）。
@@ -876,6 +895,13 @@ function migrateV029(){
   for(const h of S.horses){ if(h.autoPolicy !== "慎重" && h.autoPolicy !== "積極") h.autoPolicy = null; }
   /* v2.2 移行：ローテーション（出走指定）。旧セーブには無いので空リストで補う */
   for(const h of S.horses){ if(!Array.isArray(h.rotation)) h.rotation = []; if(!h.rotMemo || typeof h.rotMemo !== "object") h.rotMemo = {}; }
+  /* v2.4 移行：自動出走の一括設定パネルの開閉状態。既定は閉じた状態（false） */
+  if(typeof S.autoBulkOpen !== "boolean") S.autoBulkOpen = false;
+  /* v2.4 移行：引退馬リスト・殿堂リストの開閉状態。既定は閉じた状態（false） */
+  if(typeof S.retiredOpen !== "boolean") S.retiredOpen = false;
+  if(typeof S.hofOpen !== "boolean") S.hofOpen = false;
+  /* v2.4 移行：今週のトピックの開閉状態。既定は閉じた状態（false） */
+  if(typeof S.topicsOpen !== "boolean") S.topicsOpen = false;
   /* v2.3 移行：適性±200許容。全体の既定は許容する（true）、馬ごとは null＝既定に従う */
   if(typeof S.autoRangePlusDefault !== "boolean") S.autoRangePlusDefault = true;
   for(const h of S.horses){ if(typeof h.autoRangePlus !== "boolean") h.autoRangePlus = null; }
@@ -2242,11 +2268,21 @@ function wrapTables(root){
     d.appendChild(t);
   });
 }
+/* 今週のトピック欄（v2.4）：一括設定パネル・引退馬・殿堂と同じく details で畳めるようにした。
+   開閉状態は S.topicsOpen に保存し（既定は閉）、見出しに件数を出す。デバッグパネルは
+   畳みの外（従来どおり #topics の先頭）に出す */
+function topicsHtml(){
+  const list = S.topics.length ? S.topics.map(t=>'<div class="topic">'+t+"</div>").join("") : '<div class="sub">今週は特にありません。眺めるだけでも大丈夫です。</div>';
+  return (debugOpen ? debugPanel() : "")
+    + "<details data-topics-fold" + (S.topicsOpen ? " open" : "") + "><summary style='cursor:pointer;font-size:16px;font-weight:bold;'>今週のトピック（" + S.topics.length + "件）</summary>" + list + "</details>";
+}
 function render(){
   const kn = $("#kanmuriNow"); if(kn) kn.textContent = S.kanmuri ? "「"+S.kanmuri+"」" : "（なし）";
   $("#dateLabel").textContent = S.year+"年 "+S.month+"月 第"+S.week+"週";
   $("#fundsLabel").textContent = "資金 "+man(S.funds);
-  $("#topics").innerHTML = (debugOpen ? debugPanel() : "") + (S.topics.length ? S.topics.map(t=>'<div class="topic">'+t+"</div>").join("") : '<div class="sub">今週は特にありません。眺めるだけでも大丈夫です。</div>');
+  $("#topics").innerHTML = topicsHtml();
+  /* トピック欄の開閉状態を保存する（v2.4）。開閉そのものは details の標準動作なので再描画はしない */
+  document.querySelectorAll("[data-topics-fold]").forEach(d=>d.addEventListener("toggle",()=>{ S.topicsOpen = !!d.open; save(); }));
   if(debugOpen){
     const dc = document.querySelector("[data-debug-create]"), dx = document.querySelector("[data-debug-cancel]");
     if(dc) dc.onclick = () => createDebugHorse();
@@ -2340,6 +2376,8 @@ function raceMatchesFilters(r){
    馬ごとの設定はカレンダーの自動出走設定欄と各馬のページ（方針の隣）の両方から変更できる。
    方針（積極／慎重）は v2.1 で追加：馬ごと h.autoPolicy（null＝全体の既定 S.autoPolicyDefault に従う）。
    適性±200（許容する／適性内のみ）は v2.3 で追加：馬ごと h.autoRangePlus（null＝全体の既定 S.autoRangePlusDefault に従う、既定は許容する）。
+   v2.4：一括設定パネルを details で畳めるようにし（開閉状態は S.autoBulkOpen、既定は閉）、
+   パネル内の文字サイズを統一した（.autobulk。通常14px／compact 13.5px）。
    v2.2 で用語を整理：中N週の設定は「出走間隔」と呼ぶ（Terai の言う「ローテーション」は出走指定のこと） */
 const AUTO_ROT_PRESETS = [4, 6, 8, 12];
 function autoDefRot(){ return (S.autoRotDefault != null) ? S.autoRotDefault : 8; }
@@ -2351,14 +2389,17 @@ function setAllAutoEntry(on){ for(const h of S.horses) if(h.status==="racehorse"
 function setAllAutoPolicy(p){ for(const h of S.horses) if(h.status==="racehorse" && !h.retired) h.autoPolicy = (p === "慎重" ? "慎重" : "積極"); }
 function setAllAutoRangePlus(on){ for(const h of S.horses) if(h.status==="racehorse" && !h.retired) h.autoRangePlus = !!on; }
 function autoBulkHtml(){
-  return "<div class='topic'>🤖 <b>自動出走（オート出走決定）</b>：ONの馬は毎週、適性・クラス・体調を見て自動でレースに登録されます（年間6戦ペース目標・上限7戦／重賞優先／G1分の枠を確保／国内のみ・海外遠征は手動）。登録は通常の登録と同じで、出走登録タブから取り消せます。方針「積極」の馬は世代限定重賞にも挑戦します（世代G1は実績のある馬だけ）。「慎重」の馬は重賞にはOPになるまで出ません。適性±200を「許容する」の馬は、適性距離の前後200mまでのレースも候補になります（適性下限の長い馬が2歳でデビューするのに必要です）。🎯 ローテーション（出走指定）を設定した馬は自動出走の対象外で、指定レースにだけ自動登録されます（指定は各馬のページから）。<br>"
+  /* v2.4：パネルが縦に長くタブを占有するため、年ごとのまとめと同じ details で畳めるようにした。
+     開閉状態は S.autoBulkOpen に保存し（既定は閉）、出走登録タブとカレンダーの両方で共有する */
+  return "<details class='autobulk' data-autobulk-fold" + (S.autoBulkOpen ? " open" : "") + "><summary>🤖 自動出走の一括設定</summary>"
+    + "<div class='topic'>🤖 <b>自動出走（オート出走決定）</b>：ONの馬は毎週、適性・クラス・体調を見て自動でレースに登録されます（年間6戦ペース目標・上限7戦／重賞優先／G1分の枠を確保／国内のみ・海外遠征は手動）。登録は通常の登録と同じで、出走登録タブから取り消せます。方針「積極」の馬は世代限定重賞にも挑戦します（世代G1は実績のある馬だけ）。「慎重」の馬は重賞にはOPになるまで出ません。適性±200を「許容する」の馬は、適性距離の前後200mまでのレースも候補になります（適性下限の長い馬が2歳でデビューするのに必要です）。🎯 ローテーション（出走指定）を設定した馬は自動出走の対象外で、指定レースにだけ自動登録されます（指定は各馬のページから）。<br>"
     + "<button data-auto-all='on'>全馬ON</button> <button data-auto-all='off' class='ghost'>全馬OFF</button> "
     + "<label>既定の出走間隔：<select data-auto-defrot>" + AUTO_ROT_PRESETS.map(n=>"<option value='"+n+"'"+(autoDefRot()===n?" selected":"")+">中"+n+"週"+(n===8?"（標準）":"")+"</option>").join("") + "</select></label> "
     + "<label>既定方針：<select data-auto-defpolicy>" + ["積極","慎重"].map(p=>"<option value='"+p+"'"+(autoDefPolicy()===p?" selected":"")+">"+p+"</option>").join("") + "</select></label> "
     + "<button data-auto-allpolicy='積極'>全馬 積極</button> <button data-auto-allpolicy='慎重' class='ghost'>全馬 慎重</button> "
     + "<label>既定の適性±200：<select data-auto-defrangeplus><option value='on'"+(autoDefRangePlus()?" selected":"")+">許容する</option><option value='off'"+(!autoDefRangePlus()?" selected":"")+">適性内のみ</option></select></label> "
     + "<button data-auto-allrangeplus='on'>全馬 ±200許容</button> <button data-auto-allrangeplus='off' class='ghost'>全馬 適性内のみ</button> "
-    + "<span class='sub'>馬ごとのON/OFF・出走間隔・方針・適性±200は下の自動出走設定か、各馬のページで変更できます</span></div>";
+    + "<span class='sub'>馬ごとのON/OFF・出走間隔・方針・適性±200は下の自動出走設定か、各馬のページで変更できます</span></div></details>";
 }
 function autoHorseRowsHtml(){
   const racers = S.horses.filter(h=>h.status==="racehorse" && !h.retired);
@@ -2394,6 +2435,8 @@ function rotationSectionHtml(h){
     + "<span class='sub'>指定したレースには、登録できる期間（3週前〜当日）になると手動登録と同じ条件で自動登録されます。条件を満たさない・故障・疲労のときは見送り、週のトピックで理由を知らせます。指定は毎年繰り返し効きます。<b>指定がある馬は自動出走（オート）の対象外になり、指定レースだけを走ります</b></span></div>";
 }
 function bindAutoEntryControls(){
+  /* 一括設定パネルの開閉状態を保存する（v2.4）。開閉そのものは details の標準動作なので再描画はしない */
+  document.querySelectorAll("[data-autobulk-fold]").forEach(d=>d.addEventListener("toggle",()=>{ S.autoBulkOpen = !!d.open; save(); }));
   document.querySelectorAll("[data-auto-all]").forEach(b=>b.onclick=()=>{ setAllAutoEntry(b.getAttribute("data-auto-all")==="on"); save(); render(); });
   document.querySelectorAll("[data-auto-defrot]").forEach(sel=>sel.onchange=()=>{ S.autoRotDefault = parseInt(sel.value, 10) || 8; save(); render(); });
   document.querySelectorAll("[data-auto-on]").forEach(sel=>sel.onchange=()=>{ const h = S.horses.find(x=>x.id===sel.getAttribute("data-auto-on")); if(h){ h.autoEntry = sel.value==="on"; save(); render(); } });
@@ -2752,8 +2795,10 @@ function viewCalendar(){
    リンクなし。購入した繁殖牝馬には「購入馬」、繁殖引退した牝馬にはランクも出す */
 function retiredListHtml(){
   const entries = retiredListEntries();
-  let html = "<h3 style='margin-top:16px;'>🐴 引退馬</h3>";
-  if(!entries.length) return html + "<div class='sub'>まだ引退馬はいません。引退して残した馬、繁殖を引退した牝馬、売却した馬がここに残ります。</div>";
+  /* v2.4：一括設定パネル（S.autoBulkOpen）と同じく details で畳めるようにした。開閉状態は
+     S.retiredOpen に保存し（既定は閉）、売却の記録も同じリストの一部として一緒に畳む */
+  let html = "<details data-retired-fold style='margin-top:16px;'" + (S.retiredOpen ? " open" : "") + "><summary style='cursor:pointer;font-size:16px;font-weight:bold;'>🐴 引退馬（" + entries.length + "頭）</summary>";
+  if(!entries.length) return html + "<div class='sub'>まだ引退馬はいません。引退して残した馬、繁殖を引退した牝馬、売却した馬がここに残ります。</div></details>";
   const career = (starts, wins, earnings) => starts ? starts+"戦"+wins+"勝／"+man(earnings) : "出走なし";
   const live = entries.filter(e=>e.horse).map(e=>e.horse).sort((a,b)=>(a.birthYear-b.birthYear) || (a.id<b.id?-1:1));
   const sold = entries.filter(e=>e.sold).map(e=>e.sold).sort((a,b)=>(a.year-b.year) || (a.birthYear-b.birthYear));
@@ -2770,7 +2815,7 @@ function retiredListHtml(){
     if(r.wasBroodmare && r.rank) notes.push("ランク"+r.rank);
     rows.push("<tr><td>"+r.name+"</td><td>"+r.sex+"</td><td>"+r.birthYear+"年生</td><td>"+career(r.starts||0, r.wins||0, r.earnings||0)+"</td><td>"+notes.join("・")+"</td></tr>");
   }
-  return html + "<table><tr><th>馬名</th><th>性</th><th>世代</th><th>成績</th><th>備考</th></tr>"+rows.join("")+"</table>";
+  return html + "<table><tr><th>馬名</th><th>性</th><th>世代</th><th>成績</th><th>備考</th></tr>"+rows.join("")+"</table></details>";
 }
 function viewChron(){
   let html = "";
@@ -2780,7 +2825,8 @@ function viewChron(){
   const hof = S.horses.filter(h => careerDone(h) && h.results.length>0
     && (h.results.some(r=>r.finish===1 && ["GI","JpnI"].includes(r.grade)) || h.earnings>=50000))
     .sort((a,b)=>b.earnings-a.earnings);
-  html += "<h3>🏆 殿堂</h3>";
+  /* v2.4：殿堂リストも引退馬リストと同じく details で畳めるようにした（開閉状態は S.hofOpen、既定は閉） */
+  html += "<details data-hof-fold" + (S.hofOpen ? " open" : "") + "><summary style='cursor:pointer;font-size:16px;font-weight:bold;'>🏆 殿堂（" + hof.length + "頭）</summary>";
   if(hof.length){
     const rows = hof.map(h => {
       const wins = h.results.filter(r=>r.finish===1);
@@ -2795,6 +2841,7 @@ function viewChron(){
   } else {
     html += "<div class='sub'>まだ殿堂入りした馬はいません。GI・JpnI・海外G1を勝つか、生涯5億円以上を稼いだ馬が現役を終えると、ここに残ります。</div>";
   }
+  html += "</details>";
   html += retiredListHtml();
   /* ===== 年ごとのまとめ ===== */
   const byYear = {};
@@ -2825,6 +2872,9 @@ function bindHorses(){
 }
 function bindTab(){
   bindHorses();
+  /* 引退馬・殿堂リストの開閉状態を保存する（v2.4）。開閉そのものは details の標準動作なので再描画はしない */
+  document.querySelectorAll("[data-retired-fold]").forEach(d=>d.addEventListener("toggle",()=>{ S.retiredOpen = !!d.open; save(); }));
+  document.querySelectorAll("[data-hof-fold]").forEach(d=>d.addEventListener("toggle",()=>{ S.hofOpen = !!d.open; save(); }));
   document.querySelectorAll("[data-ltoggle]").forEach(el => el.onclick = () => {
     const id = el.getAttribute("data-ltoggle");
     if(lineCollapsed.has(id)) lineCollapsed.delete(id); else lineCollapsed.add(id);
@@ -3393,6 +3443,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>競馬シミュレーター（趣味） v2.3</footer>
+<footer>競馬シミュレーター（趣味） v2.4</footer>
 </body>
 </html>

@@ -933,7 +933,7 @@ function buildFamily(P, dauCount, grandPer){
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
   T('v57 filly retirement flow untouched in build', src.includes("id='retireSellBtn'") && src.includes("id='retireBroodBtn'") && src.includes('繁殖入りしない場合は、そのまま'));
   T('v57 old colt label removed', !src.includes('種牡馬にせず引退する'));
-  T('v57 footer bumped', src.includes('競馬シミュレーター（趣味） v2.3')); /* フッターは現行版に追随（v1.01） */
+  T('v57 footer bumped', src.includes('競馬シミュレーター（趣味） v2.4')); /* フッターは現行版に追随（v1.01） */
 }
 
 // ---- v0.58: kanmuri applies to gift / debug auto-names (regression: suite had NO kanmuri coverage) ----
@@ -1000,7 +1000,7 @@ function buildFamily(P, dauCount, grandPer){
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
   T('v58 build: makeGift uses farmFoalName', src.includes('name:farmFoalName()'));
   T('v58 build: debug fallback uses farmFoalName', src.includes(': farmFoalName()')); /* v0.59 で buildDebugHorse に分離されても自動名は farmFoalName のまま */
-  T('v58 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.3')); /* フッターは現行版に追随（v1.01） */
+  T('v58 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.4')); /* フッターは現行版に追随（v1.01） */
 }
 
 // ---- v0.59: debug creator brought up to current spec + gift affinities initialised at creation ----
@@ -1092,7 +1092,7 @@ function buildFamily(P, dauCount, grandPer){
   T('v59 build: affinity controls present', src.includes('"dbgRootAff"') && src.includes('"dbgYuso"') && src.includes('"dbgCourseBulk"'));
   T('v11 build: rootDist debug control removed', !src.includes('dbgRootDist'));
   T('v59 build: param range note present', src.includes('パラメータ通常 35〜85'));
-  T('v59 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.3'));
+  T('v59 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.4'));
 }
 
 
@@ -1177,7 +1177,7 @@ function buildFamily(P, dauCount, grandPer){
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
   T('v100 build: SAVE_KEY bumped to v8', src.includes('nkc_whc_keiba_proto_v8'));
   T('v100 build: import refuses pre-rework saves', src.includes('data.calVer !== 2') && src.includes('カレンダー再編（v1.00）より前の形式のため読み込めません'));
-  T('v100 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.3'));
+  T('v100 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.4'));
   T('v100 build: skip week 5 option exists', src.includes('<option>5</option>'));
 }
 
@@ -1263,7 +1263,7 @@ function buildFamily(P, dauCount, grandPer){
 {
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
   T('v101 build: fixed gift models present', src.includes('ケイティーズハート') && src.includes('スタセリタ') && src.includes('エンドスウィープ'));
-  T('v101 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.3'));
+  T('v101 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.4'));
 }
 
 // ---- v1.01: roster expansion 54 -> 60 (Terai, 2026-11-15) ----
@@ -1453,7 +1453,7 @@ function buildFamily(P, dauCount, grandPer){
 // ---- v1.02: スマホ横画面・小画面対応（表示のみ。構造の確認） ----
 {
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
-  T('v102 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.3'));
+  T('v102 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.4'));
   T('v102 build: compact media queries present', src.includes('@media (max-width:640px), (max-height:500px)'));
   T('v102 build: tscroll wrapper css', src.includes('.tscroll { overflow-x:auto'));
   T('v102 build: wrapTables defined', src.includes('function wrapTables(root)'));
@@ -1473,7 +1473,7 @@ function buildFamily(P, dauCount, grandPer){
 // ---- v1.03: compact 表示をもう一段締める（表示のみ。構造の確認） ----
 {
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
-  T('v103 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.3'));
+  T('v103 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.4'));
   T('v103 build: compact base font 13.5px', src.includes('body { font-size:13.5px; line-height:1.5; }'));
   T('v103 build: modal h2 17px', src.includes('.modal h2 { font-size:17px; }'));
   T('v103 build: h3 14.5px', src.includes('h3 { font-size:14.5px; margin:12px 0 6px; }'));
@@ -1497,7 +1497,7 @@ function buildFamily(P, dauCount, grandPer){
 // ---- v1.04: プルダウン均一化／ツールバーの列揃え／スキップ並び（表示のみ。構造の確認） ----
 {
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
-  T('v104 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.3'));
+  T('v104 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.4'));
   T('v104 build: select height pinned base 32px', src.includes('select { height:32px; padding:0 8px; }'));
   T('v104 build: select height pinned compact 36px', src.includes('select { height:36px; padding:0 8px; }'));
   T('v104 build: horse toolbar uses listtools', src.includes("class='flex listtools'"));
@@ -1521,7 +1521,7 @@ function buildFamily(P, dauCount, grandPer){
 // ---- v1.05: コントロール群の文字サイズ統一（表示のみ。構造の確認） ----
 {
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
-  T('v105 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.3'));
+  T('v105 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.4'));
   T('v105 build: skip group font unified 13.5px', src.includes('.skipctl .sub, .skipctl button, .skipctl select, .skipctl input[type=text] { font-size:13.5px; }'));
   T('v105 build: toolbar select font matches label base 13.5px', src.includes('.listtools select { font-size:13.5px; }') && src.includes('body { font-size:13.5px; line-height:1.5; }'));
   T('v105 build: typing-input 16px guard kept', src.includes('select, input[type=text], textarea { font-size:16px; }'));
@@ -1574,7 +1574,7 @@ function buildFamily(P, dauCount, grandPer){
   const h = buildDebugHorse({ age: 3, rootAff: '✕' });
   T('v11 debug builds with rootAff only (no rootDist needed)', h.aff.rootAff === '✕' && !('rootDist' in h.aff));
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
-  T('v11 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.3'));
+  T('v11 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.4'));
   T('v11 build: no rootDist anywhere in build', !src.includes('rootDist') && !src.includes('snapBand'));
 }
 
@@ -1669,7 +1669,7 @@ function buildFamily(P, dauCount, grandPer){
   T('v12 December still queues only the fixed filly', S.giftQueue.length === 1 && S.giftQueue[0].sire === 'キタサンブラック' && S.giftDecDone === true);
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
   T('v12 build: new gift models + set table present', src.includes('マリアージュ') && src.includes('ヴィートマルシェ') && src.includes('ミスワキ') && src.includes('GIFT_SETS'));
-  T('v12 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.3'));
+  T('v12 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.4'));
 }
 
 // ---- v2.0: 自動出走（オート出走決定） ----
@@ -1926,7 +1926,7 @@ function raceOfEntry(h){
   T('v20 calendar view hosts the auto settings (per-horse on/off + interval; renamed in v2.2)', cal.includes('🤖 自動出走設定') && cal.includes('data-auto-on') && cal.includes('data-auto-rot') && cal.includes('UI検証'));
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
   T('v20 build: horse page carries the auto controls next to the policy select', src.includes('autoEntrySel') && src.includes('autoRotSel'));
-  T('v20 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.3'));
+  T('v20 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.4'));
 }
 
 // ---- v2.1: 世代限定重賞の例外（1勝以上の若馬が2歳重賞・3歳クラシックに出られる） ----
@@ -2113,7 +2113,7 @@ function raceOfEntry(h){
 }
 {
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
-  T('v21 build: generation-graded exception present, footer bumped', src.includes('autoGenGradedOk') && src.includes('競馬シミュレーター（趣味） v2.3'));
+  T('v21 build: generation-graded exception present, footer bumped', src.includes('autoGenGradedOk') && src.includes('競馬シミュレーター（趣味） v2.4'));
   T('v21 build: G1 ladder gate, policy toggle and age safety net present', src.includes('autoGenG1LadderOk') && src.includes('autoPolicySel') && src.includes('data-auto-defpolicy') && src.includes('ageRestrictionViolation'));
 }
 
@@ -2307,7 +2307,7 @@ function raceOfEntry(h){
 {
   freshS({});
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
-  T('v22 build: rotation pass and horse-page section present, footer bumped', src.includes('rotationPass') && src.includes('🎯 ローテーション（出走指定）') && src.includes('競馬シミュレーター（趣味） v2.3'));
+  T('v22 build: rotation pass and horse-page section present, footer bumped', src.includes('rotationPass') && src.includes('🎯 ローテーション（出走指定）') && src.includes('競馬シミュレーター（趣味） v2.4'));
   T('v22 rename: interval controls no longer wear the rotation name', src.includes('📅 自動出走設定（カレンダーで確認）') && src.includes('🤖 自動出走設定') && !src.includes('📅 ローテ設定') && !src.includes('🤖 ローテ設定'));
   T('v22 interval settings themselves are untouched by the rename', S.autoRotDefault === 8 && autoRotOf(mk({})) === 8 && autoRotOf(mk({ autoRot: 4 })) === 4);
 }
@@ -2482,6 +2482,126 @@ function raceOfEntry(h){
   T('v23 calendar auto table has the per-horse rangeplus select', cal.includes('data-auto-rangeplus') && cal.includes('適性±200'));
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
   T('v23 build: horse page carries the rangeplus select and the resolver is present', src.includes('autoRangePlusSel') && src.includes('autoRangePlusOf') && src.includes('autoRangeOf'));
+}
+
+// ---- v2.4: その他メニューの画面外はみ出し修正／一括設定パネルの文字統一＋折りたたみ ----
+{
+  const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
+  const mq = src.slice(src.indexOf('@media (max-width:640px)'));
+  T('v24 build: compact hdrmenu is re-anchored to the header so the panel stays in the viewport', mq.includes('header { position:relative; }') && mq.includes('.hdrmenu { position:static; }') && mq.includes('.hdrmenu-body { left:10px; right:10px;'));
+  T('v24 build: desktop hdrmenu dropdown is unchanged (right-anchored to the summary)', src.includes('.hdrmenu-body { position:absolute; right:0;'));
+  T('v24 build: bulk panel font size unified (14px normal / 13.5px compact, selects included)', src.includes('.autobulk, .autobulk button, .autobulk select, .autobulk .sub { font-size:14px; }') && mq.includes('.autobulk, .autobulk button, .autobulk select, .autobulk .sub { font-size:13.5px; }'));
+  T('v24 build: fold toggle binding persists the state', src.includes('S.autoBulkOpen = !!d.open'));
+}
+{
+  freshS({});
+  T('v24 bulk fold defaults to closed in a new game', S.autoBulkOpen === false);
+  const closed = autoBulkHtml();
+  T('v24 bulk panel is a details fold with a header row, closed by default', closed.includes("<details class='autobulk' data-autobulk-fold><summary>") && closed.includes('自動出走の一括設定') && closed.includes('</details>'));
+  S.autoBulkOpen = true;
+  T('v24 bulk fold renders open when the saved state is open', autoBulkHtml().includes('data-autobulk-fold open>'));
+}
+{
+  freshS({});
+  S.autoBulkOpen = true; save();
+  T('v24 bulk fold state survives save/load (open)', load() === true && S.autoBulkOpen === true);
+  S.autoBulkOpen = false; save();
+  T('v24 bulk fold state survives save/load (closed)', load() === true && S.autoBulkOpen === false);
+  delete S.autoBulkOpen; save();
+  T('v24 migration fills a missing fold state with closed', load() === true && S.autoBulkOpen === false);
+}
+{
+  freshS({});
+  const ev = viewEntry();
+  const d0 = ev.indexOf("<details class='autobulk'"), d1 = ev.indexOf('</details>');
+  T('v24 entry view: every bulk control lives inside the fold', d0 >= 0 && d1 > d0
+    && ev.indexOf('data-auto-all') > d0 && ev.indexOf('data-auto-all') < d1
+    && ev.indexOf('data-auto-defrot') < d1 && ev.indexOf('data-auto-defpolicy') < d1
+    && ev.indexOf('data-auto-allpolicy') < d1 && ev.indexOf('data-auto-defrangeplus') < d1 && ev.indexOf('data-auto-allrangeplus') < d1);
+  S.horses = [mk({ name: 'UI検証・折' })];
+  const cal = viewCalendar();
+  T('v24 calendar view hosts the same fold (shared component)', cal.includes('data-autobulk-fold') && cal.includes('data-auto-on'));
+}
+
+// ---- v2.4: 引退馬・殿堂リストの折りたたみ（S.retiredOpen / S.hofOpen、既定は閉） ----
+{
+  const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
+  T('v24 build: retired/hof fold toggle bindings persist the states', src.includes('S.retiredOpen = !!d.open') && src.includes('S.hofOpen = !!d.open'));
+}
+{
+  freshS({});
+  T('v24 retired/hof folds default to closed in a new game', S.retiredOpen === false && S.hofOpen === false);
+  const rClosed = retiredListHtml();
+  T('v24 retired list is a details fold, closed by default, header shows the count', rClosed.includes("<details data-retired-fold") && !rClosed.includes("data-retired-fold style='margin-top:16px;' open>") && rClosed.includes('🐴 引退馬（0頭）') && rClosed.includes('</details>'));
+  S.retiredOpen = true;
+  T('v24 retired fold renders open when the saved state is open', retiredListHtml().includes("data-retired-fold style='margin-top:16px;' open>"));
+  S.retiredOpen = false;
+  const cClosed = viewChron();
+  T('v24 hof list is a details fold, closed by default, header shows the count', cClosed.includes('<details data-hof-fold>') && !cClosed.includes('data-hof-fold open>') && cClosed.includes('🏆 殿堂（0頭）'));
+  S.hofOpen = true;
+  T('v24 hof fold renders open when the saved state is open', viewChron().includes('data-hof-fold open>'));
+}
+{
+  freshS({});
+  S.retiredOpen = true; S.hofOpen = true; save();
+  T('v24 retired/hof fold states survive save/load (open)', load() === true && S.retiredOpen === true && S.hofOpen === true);
+  S.retiredOpen = false; S.hofOpen = false; save();
+  T('v24 retired/hof fold states survive save/load (closed)', load() === true && S.retiredOpen === false && S.hofOpen === false);
+  delete S.retiredOpen; delete S.hofOpen; save();
+  T('v24 migration fills missing retired/hof fold states with closed', load() === true && S.retiredOpen === false && S.hofOpen === false);
+}
+{
+  // 引退馬リストの中身（牧場に残る引退馬＋売却記録）が畳みの中にそのまま入る
+  freshS({ year: 2033 });
+  const colt = mk({ name: '折引退牡', sex: '牡', status: 'racehorse', birthYear: 2027 }); colt.retired = true;
+  S.horses = [colt];
+  recordSale(mk({ name: '折売却牝', sex: '牝', status: 'broodmare', birthYear: 2025, dam: '外の母' }), 900);
+  const html = retiredListHtml();
+  const d0 = html.indexOf('<details data-retired-fold'), d1 = html.indexOf('</details>');
+  T('v24 retired fold header counts live alumni + sold records', html.includes('🐴 引退馬（2頭）'));
+  T('v24 retired fold contains both the alumnus and the sold record (売却)', d0 >= 0 && d1 > d0 && html.indexOf('折引退牡') > d0 && html.indexOf('折引退牡') < d1 && html.indexOf('折売却牝') > d0 && html.indexOf('折売却牝') < d1 && html.includes('売却'));
+}
+{
+  // 年表タブ全体：殿堂馬と引退馬がそれぞれの畳みの中に出て、年表の残りも描画される
+  freshS({ year: 2036 });
+  const hofHorse = mk({ name: '折殿堂馬', sex: '牡', status: 'stallion', birthYear: 2028, wins: 5, earnings: 60000, results: [g1win()] });
+  const colt = mk({ name: '折引退牡2', sex: '牡', status: 'racehorse', birthYear: 2029 }); colt.retired = true;
+  S.horses = [hofHorse, colt];
+  const html = viewChron();
+  const h0 = html.indexOf('<details data-hof-fold'), h1 = html.indexOf('</details>', h0);
+  const r0 = html.indexOf('<details data-retired-fold'), r1 = html.indexOf('</details>', r0);
+  T('v24 chronicle: hof fold header shows the hof count', html.includes('🏆 殿堂（1頭）'));
+  T('v24 chronicle: hof horse renders inside the hof fold', h0 >= 0 && h1 > h0 && html.indexOf('折殿堂馬') > h0 && html.indexOf('折殿堂馬') < h1);
+  T('v24 chronicle: retired horse renders inside the retired fold', r0 >= 0 && r1 > r0 && html.indexOf('折引退牡2') > r0 && html.indexOf('折引退牡2') < r1);
+  T('v24 chronicle: rest of the tab still renders (yearly summary fold + 年表)', html.includes('牧場の歩み') && html.includes('<h3') && html.includes('年表'));
+}
+
+// ---- v2.4: 今週のトピックの折りたたみ（S.topicsOpen、既定は閉） ----
+{
+  const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
+  T('v24 build: topics fold toggle binding persists the state', src.includes('S.topicsOpen = !!d.open'));
+  T('v24 build: topic panel no longer hardcodes the h2 (the fold summary is the header)', !src.includes('<h2>今週のトピック</h2>'));
+}
+{
+  freshS({});
+  T('v24 topics fold defaults to closed in a new game', S.topicsOpen === false);
+  const closed = topicsHtml();
+  T('v24 topics panel is a details fold, closed by default, header shows the count', closed.includes('<details data-topics-fold>') && !closed.includes('data-topics-fold open>') && closed.includes('今週のトピック（1件）') && closed.includes('</details>'));
+  T('v24 topics still render inside the fold', closed.indexOf('最初に、繁殖牝馬を1頭選んでください') > closed.indexOf('<details data-topics-fold') && closed.indexOf('最初に、繁殖牝馬を1頭選んでください') < closed.indexOf('</details>'));
+  S.topicsOpen = true;
+  T('v24 topics fold renders open when the saved state is open', topicsHtml().includes('data-topics-fold open>'));
+  S.topicsOpen = false;
+  S.topics = [];
+  T('v24 topics fold shows the empty message and a zero count', topicsHtml().includes('今週のトピック（0件）') && topicsHtml().includes('今週は特にありません'));
+}
+{
+  freshS({});
+  S.topicsOpen = true; save();
+  T('v24 topics fold state survives save/load (open)', load() === true && S.topicsOpen === true);
+  S.topicsOpen = false; save();
+  T('v24 topics fold state survives save/load (closed)', load() === true && S.topicsOpen === false);
+  delete S.topicsOpen; save();
+  T('v24 migration fills a missing topics fold state with closed', load() === true && S.topicsOpen === false);
 }
 
 console.log('\nRESULT: ' + pass + ' passed, ' + fail + ' failed');
