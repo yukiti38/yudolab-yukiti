@@ -1,0 +1,232 @@
+[
+  {
+    "name": "サトノダイヤモンド",
+    "sire": "ディープインパクト",
+    "dam": "マルペンサ",
+    "bms": "Orpen",
+    "grandam": "マルセラ",
+    "gbms": "サザンヘイロー",
+    "line": [
+      "サンデーサイレンス",
+      "ヘイロー",
+      "ヘイルトゥリーズン"
+    ],
+    "dist": [
+      1800,
+      3000
+    ],
+    "surface": "芝",
+    "growth": "早熟",
+    "fee_tier": "C",
+    "region": "domestic",
+    "weight": 506,
+    "source": "https://www.jbis.or.jp/horse/0001175221/"
+  },
+  {
+    "name": "リアルスティール",
+    "sire": "ディープインパクト",
+    "dam": "ラヴズオンリーミー",
+    "bms": "Storm Cat",
+    "grandam": "モネヴァッシア",
+    "gbms": "Mr. Prospector",
+    "line": [
+      "サンデーサイレンス",
+      "ヘイロー",
+      "ヘイルトゥリーズン"
+    ],
+    "dist": [
+      1800,
+      2400
+    ],
+    "surface": "芝",
+    "growth": "普通",
+    "fee_tier": "A",
+    "region": "domestic",
+    "weight": 506,
+    "source": "https://www.jbis.or.jp/horse/0001157711/"
+  },
+  {
+    "name": "ジャスタウェイ",
+    "sire": "ハーツクライ",
+    "dam": "シビル",
+    "bms": "Wild Again",
+    "grandam": "シャロン",
+    "gbms": "Mo Exception",
+    "line": [
+      "サンデーサイレンス",
+      "ヘイロー",
+      "ヘイルトゥリーズン"
+    ],
+    "dist": [
+      1600,
+      2000
+    ],
+    "surface": "芝",
+    "growth": "普通",
+    "fee_tier": "B",
+    "region": "domestic",
+    "weight": 498,
+    "source": "https://www.jbis.or.jp/horse/0001106251/"
+  },
+  {
+    "name": "ラブリーデイ",
+    "sire": "キングカメハメハ",
+    "dam": "ポップコーンジャズ",
+    "bms": "ダンスインザダーク",
+    "grandam": "グレイスルーマー",
+    "gbms": "トニービン",
+    "line": [
+      "キングマンボ",
+      "ミスタープロスペクター",
+      "レイズアネイティヴ"
+    ],
+    "dist": [
+      1800,
+      2400
+    ],
+    "surface": "芝",
+    "growth": "普通",
+    "fee_tier": "C",
+    "region": "domestic",
+    "weight": 486,
+    "source": "https://www.jbis.or.jp/horse/0001122040/"
+  },
+  {
+    "name": "キセキ",
+    "sire": "ルーラーシップ",
+    "dam": "ブリッツフィナーレ",
+    "bms": "ディープインパクト",
+    "grandam": "ロンドンブリッジ",
+    "gbms": "ドクターデヴィアス",
+    "line": [
+      "キングカメハメハ",
+      "キングマンボ",
+      "ミスタープロスペクター"
+    ],
+    "dist": [
+      2000,
+      3000
+    ],
+    "surface": "芝",
+    "growth": "普通",
+    "fee_tier": "C",
+    "region": "domestic",
+    "weight": 508,
+    "source": "https://www.jbis.or.jp/horse/0001190850/"
+  },
+  {
+    "name": "レモンポップ",
+    "sire": "Lemon Drop Kid",
+    "dam": "Unreachable",
+    "bms": "Giant's Causeway",
+    "grandam": "Harpia",
+    "gbms": "Danzig",
+    "line": [
+      "キングマンボ",
+      "ミスタープロスペクター",
+      "レイズアネイティヴ"
+    ],
+    "dist": [
+      1400,
+      1800
+    ],
+    "surface": "ダート",
+    "growth": "普通",
+    "fee_tier": "A",
+    "region": "domestic",
+    "weight": 518,
+    "source": "https://www.jbis.or.jp/horse/0001314074/"
+  },
+  {
+    "name": "パンサラッサ",
+    "sire": "ロードカナロア",
+    "dam": "ミスペンバリー",
+    "bms": "Montjeu",
+    "grandam": "スティッチング",
+    "gbms": "ハイエステイト",
+    "line": [
+      "キングカメハメハ",
+      "キングマンボ",
+      "ミスタープロスペクター"
+    ],
+    "dist": [
+      1800,
+      2000
+    ],
+    "surface": "芝",
+    "growth": "普通",
+    "fee_tier": "B",
+    "region": "domestic",
+    "weight": 480,
+    "source": "https://www.jbis.or.jp/horse/0001237701/"
+  },
+  {
+    "name": "ウシュバテソーロ",
+    "sire": "オルフェーヴル",
+    "dam": "ミルフィアタッチ",
+    "bms": "キングカメハメハ",
+    "grandam": "シジェームサン",
+    "gbms": "Septieme Ciel",
+    "line": [
+      "ステイゴールド",
+      "サンデーサイレンス",
+      "ヘイロー"
+    ],
+    "dist": [
+      1800,
+      2100
+    ],
+    "surface": "ダート",
+    "growth": "晩成",
+    "fee_tier": "B",
+    "region": "domestic",
+    "weight": 524,
+    "source": "https://www.jbis.or.jp/horse/0001232861/"
+  },
+  {
+    "name": "オーギュストロダン",
+    "sire": "ディープインパクト",
+    "dam": "ロードデンドロン",
+    "bms": "Galileo",
+    "grandam": "Halfway To Heaven",
+    "gbms": "Pivotal",
+    "line": [
+      "サンデーサイレンス",
+      "ヘイロー",
+      "ヘイルトゥリーズン"
+    ],
+    "dist": [
+      1600,
+      2400
+    ],
+    "surface": "芝",
+    "growth": "早熟",
+    "fee_tier": "A",
+    "region": "overseas",
+    "weight": 454,
+    "source": "https://www.jbis.or.jp/horse/0001326532/"
+  },
+  {
+    "name": "フライトライン",
+    "sire": "Tapit",
+    "dam": "Feathered",
+    "bms": "Indian Charlie",
+    "grandam": "Receipt",
+    "gbms": "Dynaformer",
+    "line": [
+      "Pulpit",
+      "A.P. Indy",
+      "Seattle Slew"
+    ],
+    "dist": [
+      1400,
+      2000
+    ],
+    "surface": "ダート",
+    "growth": "普通",
+    "fee_tier": "S",
+    "region": "overseas",
+    "weight": "不明",
+    "source": "https://www.jbis.or.jp/horse/0001362205/"
+  }
+]
