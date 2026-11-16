@@ -1,0 +1,232 @@
+[
+  {
+    "name": "シティオブトロイ",
+    "sire": "Justify",
+    "dam": "Together Forever",
+    "bms": "Galileo",
+    "grandam": "Green Room",
+    "gbms": "Theatrical",
+    "line": [
+      "Scat Daddy",
+      "Johannesburg",
+      "Hennessy"
+    ],
+    "dist": [
+      1400,
+      2400
+    ],
+    "surface": "芝",
+    "growth": "早熟",
+    "fee_tier": "A",
+    "region": "overseas",
+    "weight": "不明",
+    "source": "https://www.jbis.or.jp/horse/0001384533/"
+  },
+  {
+    "name": "パディントン",
+    "sire": "Siyouni",
+    "dam": "Modern Eagle",
+    "bms": "Montjeu",
+    "grandam": "Millionaia",
+    "gbms": "Peintre Celebre",
+    "line": [
+      "Pivotal",
+      "Polar Falcon",
+      "Nureyev"
+    ],
+    "dist": [
+      1400,
+      2000
+    ],
+    "surface": "芝",
+    "growth": "早熟",
+    "fee_tier": "B",
+    "region": "overseas",
+    "weight": "不明",
+    "source": "https://www.jbis.or.jp/horse/0001384339/"
+  },
+  {
+    "name": "エースインパクト",
+    "sire": "Cracksman",
+    "dam": "Absolutly Me",
+    "bms": "Anabaa Blue",
+    "grandam": "Tadawul",
+    "gbms": "Diesis",
+    "line": [
+      "Frankel",
+      "Galileo",
+      "Sadler's Wells"
+    ],
+    "dist": [
+      2000,
+      2400
+    ],
+    "surface": "芝",
+    "growth": "早熟",
+    "fee_tier": "A",
+    "region": "overseas",
+    "weight": "不明",
+    "source": "https://www.jbis.or.jp/horse/0001383923/"
+  },
+  {
+    "name": "ブルーポイント",
+    "sire": "Shamardal",
+    "dam": "Scarlett Rose",
+    "bms": "Royal Applause",
+    "grandam": "Billie Blue",
+    "gbms": "Ballad Rock",
+    "line": [
+      "Giant's Causeway",
+      "Storm Cat",
+      "Northern Dancer"
+    ],
+    "dist": [
+      1000,
+      1200
+    ],
+    "surface": "芝",
+    "growth": "普通",
+    "fee_tier": "A",
+    "region": "overseas",
+    "weight": "不明",
+    "source": "https://www.jbis.or.jp/horse/0001351610/"
+  },
+  {
+    "name": "トゥーダーンホット",
+    "sire": "Dubawi",
+    "dam": "Dar Re Mi",
+    "bms": "Singspiel",
+    "grandam": "Darara",
+    "gbms": "Top Ville",
+    "line": [
+      "Dubai Millennium",
+      "Seeking the Gold",
+      "Mr. Prospector"
+    ],
+    "dist": [
+      1400,
+      1600
+    ],
+    "surface": "芝",
+    "growth": "早熟",
+    "fee_tier": "A",
+    "region": "overseas",
+    "weight": "不明",
+    "source": "https://www.jbis.or.jp/horse/0001313862/"
+  },
+  {
+    "name": "ピナトゥボ",
+    "sire": "Shamardal",
+    "dam": "Lava Flow",
+    "bms": "Dalakhani",
+    "grandam": "Mount Elbrus",
+    "gbms": "Barathea",
+    "line": [
+      "Giant's Causeway",
+      "Storm Cat",
+      "Northern Dancer"
+    ],
+    "dist": [
+      1200,
+      1600
+    ],
+    "surface": "芝",
+    "growth": "早熟",
+    "fee_tier": "B",
+    "region": "overseas",
+    "weight": "不明",
+    "source": "https://www.jbis.or.jp/horse/0001364140/"
+  },
+  {
+    "name": "ガイヤース",
+    "sire": "Dubawi",
+    "dam": "Nightime",
+    "bms": "Galileo",
+    "grandam": "Caumshinaun",
+    "gbms": "Indian Ridge",
+    "line": [
+      "Dubai Millennium",
+      "Seeking the Gold",
+      "Mr. Prospector"
+    ],
+    "dist": [
+      2000,
+      2400
+    ],
+    "surface": "芝",
+    "growth": "普通",
+    "fee_tier": "B",
+    "region": "overseas",
+    "weight": "不明",
+    "source": "https://www.jbis.or.jp/horse/0001295560/"
+  },
+  {
+    "name": "セントマークスバシリカ",
+    "sire": "Siyouni",
+    "dam": "Cabaret",
+    "bms": "Galileo",
+    "grandam": "Witch of Fife",
+    "gbms": "Lear Fan",
+    "line": [
+      "Pivotal",
+      "Polar Falcon",
+      "Nureyev"
+    ],
+    "dist": [
+      1400,
+      2100
+    ],
+    "surface": "芝",
+    "growth": "早熟",
+    "fee_tier": "B",
+    "region": "overseas",
+    "weight": "不明",
+    "source": "https://www.jbis.or.jp/horse/0001349309/"
+  },
+  {
+    "name": "キャメロット",
+    "sire": "Montjeu",
+    "dam": "Tarfah",
+    "bms": "Kingmambo",
+    "grandam": "Fickle",
+    "gbms": "Danehill",
+    "line": [
+      "Sadler's Wells",
+      "Northern Dancer",
+      "Nearctic"
+    ],
+    "dist": [
+      1600,
+      2400
+    ],
+    "surface": "芝",
+    "growth": "早熟",
+    "fee_tier": "B",
+    "region": "overseas",
+    "weight": "不明",
+    "source": "https://www.jbis.or.jp/horse/0001228789/"
+  },
+  {
+    "name": "ノーネイネヴァー",
+    "sire": "Scat Daddy",
+    "dam": "Cat's Eye Witness",
+    "bms": "Elusive Quality",
+    "grandam": "Comical Cat",
+    "gbms": "Exceller",
+    "line": [
+      "Johannesburg",
+      "Hennessy",
+      "Storm Cat"
+    ],
+    "dist": [
+      1000,
+      1200
+    ],
+    "surface": "芝",
+    "growth": "早熟",
+    "fee_tier": "A",
+    "region": "overseas",
+    "weight": "不明",
+    "source": "https://www.jbis.or.jp/horse/0001196731/"
+  }
+]
