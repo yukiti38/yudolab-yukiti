@@ -69,27 +69,28 @@
     "source": "https://www.jbis.or.jp/horse/0001171707/"
   },
   {
-    "name": "ロジャーバローズ",
-    "sire": "ディープインパクト",
-    "dam": "リトルブック",
-    "bms": "Librettist",
-    "grandam": "Cal Norma's Lady",
-    "gbms": "Lyphard's Special",
+    "name": "ジャスティンミラノ",
+    "sire": "キズナ",
+    "dam": "マーゴットディド",
+    "bms": "Exceed And Excel",
+    "grandam": "Special Dancer",
+    "gbms": "Shareef Dancer",
     "line": [
+      "ディープインパクト",
       "サンデーサイレンス",
-      "ヘイロー",
-      "ヘイルトゥリーズン"
+      "ヘイロー"
     ],
     "dist": [
-      2000,
+      1800,
       2400
     ],
     "surface": "芝",
     "growth": "早熟",
-    "fee_tier": "C",
+    "fee_tier": "A",
     "region": "domestic",
-    "weight": 486,
-    "source": "https://www.jbis.or.jp/horse/0001221464/"
+    "weight": 512,
+    "source": "https://www.jbis.or.jp/horse/0001340173/",
+    "age2026": 5
   },
   {
     "name": "グローリーヴェイズ",
@@ -138,12 +139,12 @@
     "source": "https://www.jbis.or.jp/horse/0001141375/"
   },
   {
-    "name": "ワールドエース",
-    "sire": "ディープインパクト",
-    "dam": "マンデラ",
-    "bms": "Acatenango",
-    "grandam": "Mandellicht",
-    "gbms": "Be My Guest",
+    "name": "セリフォス",
+    "sire": "ダイワメジャー",
+    "dam": "シーフロント",
+    "bms": "Le Havre",
+    "grandam": "Freedom Herself",
+    "gbms": "Freedom Cry",
     "line": [
       "サンデーサイレンス",
       "ヘイロー",
@@ -151,37 +152,39 @@
     ],
     "dist": [
       1600,
-      2000
+      1600
     ],
     "surface": "芝",
-    "growth": "普通",
-    "fee_tier": "C",
+    "growth": "早熟",
+    "fee_tier": "B",
     "region": "domestic",
-    "weight": 466,
-    "source": "https://www.jbis.or.jp/horse/0001111008/"
+    "weight": 486,
+    "source": "https://www.jbis.or.jp/horse/0001312254/",
+    "age2026": 7
   },
   {
-    "name": "ディーマジェスティ",
-    "sire": "ディープインパクト",
-    "dam": "エルメスティアラ",
-    "bms": "ブライアンズタイム",
-    "grandam": "シンコウエルメス",
-    "gbms": "Sadler's Wells",
+    "name": "ヴェロックス",
+    "sire": "ジャスタウェイ",
+    "dam": "セルキス",
+    "bms": "Monsun",
+    "grandam": "Schwarzach",
+    "gbms": "Grand Lodge",
     "line": [
+      "ハーツクライ",
       "サンデーサイレンス",
-      "ヘイロー",
-      "ヘイルトゥリーズン"
+      "ヘイロー"
     ],
     "dist": [
-      1800,
-      2400
+      2000,
+      3000
     ],
     "surface": "芝",
     "growth": "早熟",
     "fee_tier": "C",
     "region": "domestic",
-    "weight": 476,
-    "source": "https://www.jbis.or.jp/horse/0001167517/"
+    "weight": 486,
+    "source": "https://www.jbis.or.jp/horse/0001221719/",
+    "age2026": 10
   },
   {
     "name": "ダノンキングリー",
