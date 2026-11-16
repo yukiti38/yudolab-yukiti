@@ -933,7 +933,7 @@ function buildFamily(P, dauCount, grandPer){
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
   T('v57 filly retirement flow untouched in build', src.includes("id='retireSellBtn'") && src.includes("id='retireBroodBtn'") && src.includes('繁殖入りしない場合は、そのまま'));
   T('v57 old colt label removed', !src.includes('種牡馬にせず引退する'));
-  T('v57 footer bumped', src.includes('競馬シミュレーター（趣味） v2.2')); /* フッターは現行版に追随（v1.01） */
+  T('v57 footer bumped', src.includes('競馬シミュレーター（趣味） v2.3')); /* フッターは現行版に追随（v1.01） */
 }
 
 // ---- v0.58: kanmuri applies to gift / debug auto-names (regression: suite had NO kanmuri coverage) ----
@@ -1000,7 +1000,7 @@ function buildFamily(P, dauCount, grandPer){
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
   T('v58 build: makeGift uses farmFoalName', src.includes('name:farmFoalName()'));
   T('v58 build: debug fallback uses farmFoalName', src.includes(': farmFoalName()')); /* v0.59 で buildDebugHorse に分離されても自動名は farmFoalName のまま */
-  T('v58 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.2')); /* フッターは現行版に追随（v1.01） */
+  T('v58 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.3')); /* フッターは現行版に追随（v1.01） */
 }
 
 // ---- v0.59: debug creator brought up to current spec + gift affinities initialised at creation ----
@@ -1092,7 +1092,7 @@ function buildFamily(P, dauCount, grandPer){
   T('v59 build: affinity controls present', src.includes('"dbgRootAff"') && src.includes('"dbgYuso"') && src.includes('"dbgCourseBulk"'));
   T('v11 build: rootDist debug control removed', !src.includes('dbgRootDist'));
   T('v59 build: param range note present', src.includes('パラメータ通常 35〜85'));
-  T('v59 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.2'));
+  T('v59 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.3'));
 }
 
 
@@ -1177,7 +1177,7 @@ function buildFamily(P, dauCount, grandPer){
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
   T('v100 build: SAVE_KEY bumped to v8', src.includes('nkc_whc_keiba_proto_v8'));
   T('v100 build: import refuses pre-rework saves', src.includes('data.calVer !== 2') && src.includes('カレンダー再編（v1.00）より前の形式のため読み込めません'));
-  T('v100 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.2'));
+  T('v100 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.3'));
   T('v100 build: skip week 5 option exists', src.includes('<option>5</option>'));
 }
 
@@ -1263,7 +1263,7 @@ function buildFamily(P, dauCount, grandPer){
 {
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
   T('v101 build: fixed gift models present', src.includes('ケイティーズハート') && src.includes('スタセリタ') && src.includes('エンドスウィープ'));
-  T('v101 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.2'));
+  T('v101 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.3'));
 }
 
 // ---- v1.01: roster expansion 54 -> 60 (Terai, 2026-11-15) ----
@@ -1453,7 +1453,7 @@ function buildFamily(P, dauCount, grandPer){
 // ---- v1.02: スマホ横画面・小画面対応（表示のみ。構造の確認） ----
 {
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
-  T('v102 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.2'));
+  T('v102 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.3'));
   T('v102 build: compact media queries present', src.includes('@media (max-width:640px), (max-height:500px)'));
   T('v102 build: tscroll wrapper css', src.includes('.tscroll { overflow-x:auto'));
   T('v102 build: wrapTables defined', src.includes('function wrapTables(root)'));
@@ -1473,7 +1473,7 @@ function buildFamily(P, dauCount, grandPer){
 // ---- v1.03: compact 表示をもう一段締める（表示のみ。構造の確認） ----
 {
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
-  T('v103 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.2'));
+  T('v103 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.3'));
   T('v103 build: compact base font 13.5px', src.includes('body { font-size:13.5px; line-height:1.5; }'));
   T('v103 build: modal h2 17px', src.includes('.modal h2 { font-size:17px; }'));
   T('v103 build: h3 14.5px', src.includes('h3 { font-size:14.5px; margin:12px 0 6px; }'));
@@ -1497,7 +1497,7 @@ function buildFamily(P, dauCount, grandPer){
 // ---- v1.04: プルダウン均一化／ツールバーの列揃え／スキップ並び（表示のみ。構造の確認） ----
 {
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
-  T('v104 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.2'));
+  T('v104 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.3'));
   T('v104 build: select height pinned base 32px', src.includes('select { height:32px; padding:0 8px; }'));
   T('v104 build: select height pinned compact 36px', src.includes('select { height:36px; padding:0 8px; }'));
   T('v104 build: horse toolbar uses listtools', src.includes("class='flex listtools'"));
@@ -1521,7 +1521,7 @@ function buildFamily(P, dauCount, grandPer){
 // ---- v1.05: コントロール群の文字サイズ統一（表示のみ。構造の確認） ----
 {
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
-  T('v105 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.2'));
+  T('v105 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.3'));
   T('v105 build: skip group font unified 13.5px', src.includes('.skipctl .sub, .skipctl button, .skipctl select, .skipctl input[type=text] { font-size:13.5px; }'));
   T('v105 build: toolbar select font matches label base 13.5px', src.includes('.listtools select { font-size:13.5px; }') && src.includes('body { font-size:13.5px; line-height:1.5; }'));
   T('v105 build: typing-input 16px guard kept', src.includes('select, input[type=text], textarea { font-size:16px; }'));
@@ -1574,7 +1574,7 @@ function buildFamily(P, dauCount, grandPer){
   const h = buildDebugHorse({ age: 3, rootAff: '✕' });
   T('v11 debug builds with rootAff only (no rootDist needed)', h.aff.rootAff === '✕' && !('rootDist' in h.aff));
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
-  T('v11 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.2'));
+  T('v11 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.3'));
   T('v11 build: no rootDist anywhere in build', !src.includes('rootDist') && !src.includes('snapBand'));
 }
 
@@ -1669,7 +1669,7 @@ function buildFamily(P, dauCount, grandPer){
   T('v12 December still queues only the fixed filly', S.giftQueue.length === 1 && S.giftQueue[0].sire === 'キタサンブラック' && S.giftDecDone === true);
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
   T('v12 build: new gift models + set table present', src.includes('マリアージュ') && src.includes('ヴィートマルシェ') && src.includes('ミスワキ') && src.includes('GIFT_SETS'));
-  T('v12 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.2'));
+  T('v12 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.3'));
 }
 
 // ---- v2.0: 自動出走（オート出走決定） ----
@@ -1830,7 +1830,8 @@ function raceOfEntry(h){
   // G1 reserve: summer starvation guard
   const julyHorse = (used) => {
     freshS({ year: 2032, month: 7, week: 1, phase: 'play' });
-    const h = mk({ name: 'リザーブ検証', wins: 4, birthYear: 2027, distMin: 2000, distMax: 2400, autoEntry: true });
+    /* v2.3調整：適性±200が既定ONだと有馬記念2500もフィットしてリザーブが3になるため、この検証の馬は適性内のみに固定 */
+    const h = mk({ name: 'リザーブ検証', wins: 4, birthYear: 2027, distMin: 2000, distMax: 2400, autoEntry: true, autoRangePlus: false });
     h.results = Array.from({ length: used }, () => ({ when: '2032年4月第1週', race: 'テスト', grade: 'OP', finish: 2 }));
     h.lastRaceAbs = absWeek() - 20;
     S.horses = [h];
@@ -1858,8 +1859,9 @@ function raceOfEntry(h){
 }
 {
   // a G1 entered on the hard-guard interval (pace-soft), reserve counting itself; then pacing re-spreads
+  // （v2.3調整：適性±200が既定ONだと有馬記念2500もフィットしてリザーブが3になり前提が変わるため、この検証の馬は適性内のみに固定）
   freshS({ year: 2032, month: 11, week: 1, phase: 'play' });
-  const h = mk({ name: '秋G1', wins: 4, birthYear: 2027, distMin: 2000, distMax: 2400, autoEntry: true });
+  const h = mk({ name: '秋G1', wins: 4, birthYear: 2027, distMin: 2000, distMax: 2400, autoEntry: true, autoRangePlus: false });
   h.results = [1, 2, 3, 4, 5].map(() => ({ when: '2032年6月第1週', race: 'テスト', grade: 'OP', finish: 2 }));
   h.lastRaceAbs = absWeek() - 9; /* rotation minimum exactly met; the pace interval for a 6th ordinary start points at year-end */
   S.horses = [h];
@@ -1924,7 +1926,7 @@ function raceOfEntry(h){
   T('v20 calendar view hosts the auto settings (per-horse on/off + interval; renamed in v2.2)', cal.includes('🤖 自動出走設定') && cal.includes('data-auto-on') && cal.includes('data-auto-rot') && cal.includes('UI検証'));
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
   T('v20 build: horse page carries the auto controls next to the policy select', src.includes('autoEntrySel') && src.includes('autoRotSel'));
-  T('v20 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.2'));
+  T('v20 build: footer bumped', src.includes('競馬シミュレーター（趣味） v2.3'));
 }
 
 // ---- v2.1: 世代限定重賞の例外（1勝以上の若馬が2歳重賞・3歳クラシックに出られる） ----
@@ -1983,7 +1985,8 @@ function raceOfEntry(h){
 {
   // the G1 reserve now protects the spring classics for a gate-qualified 3yo winner
   freshS({ year: 2033, month: 2, week: 1, phase: 'play' });
-  const h = mk({ name: 'リザーブ世代', wins: 1, birthYear: 2030, distMin: 1800, distMax: 2400,
+  /* v2.3調整：適性±200が既定ONだとNHKマイルC1600もフィットしてリザーブが3になるため、この検証の馬は適性内のみに固定 */
+  const h = mk({ name: 'リザーブ世代', wins: 1, birthYear: 2030, distMin: 1800, distMax: 2400, autoRangePlus: false,
     results: [{ when: '2032年11月第2週', race: 'デイリー杯2歳S', grade: 'GII', finish: 2 }] });
   T('v21 reserve counts the fitting spring classics for a gate-qualified 1-win 3yo (Satsuki + Derby)', autoG1Reserve(h, 2033) === 2);
   const p = mk({ name: 'リザーブ無資格', wins: 1, birthYear: 2030, distMin: 1800, distMax: 2400 });
@@ -2110,7 +2113,7 @@ function raceOfEntry(h){
 }
 {
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
-  T('v21 build: generation-graded exception present, footer bumped', src.includes('autoGenGradedOk') && src.includes('競馬シミュレーター（趣味） v2.2'));
+  T('v21 build: generation-graded exception present, footer bumped', src.includes('autoGenGradedOk') && src.includes('競馬シミュレーター（趣味） v2.3'));
   T('v21 build: G1 ladder gate, policy toggle and age safety net present', src.includes('autoGenG1LadderOk') && src.includes('autoPolicySel') && src.includes('data-auto-defpolicy') && src.includes('ageRestrictionViolation'));
 }
 
@@ -2304,7 +2307,7 @@ function raceOfEntry(h){
 {
   freshS({});
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
-  T('v22 build: rotation pass and horse-page section present, footer bumped', src.includes('rotationPass') && src.includes('🎯 ローテーション（出走指定）') && src.includes('競馬シミュレーター（趣味） v2.2'));
+  T('v22 build: rotation pass and horse-page section present, footer bumped', src.includes('rotationPass') && src.includes('🎯 ローテーション（出走指定）') && src.includes('競馬シミュレーター（趣味） v2.3'));
   T('v22 rename: interval controls no longer wear the rotation name', src.includes('📅 自動出走設定（カレンダーで確認）') && src.includes('🤖 自動出走設定') && !src.includes('📅 ローテ設定') && !src.includes('🤖 ローテ設定'));
   T('v22 interval settings themselves are untouched by the rename', S.autoRotDefault === 8 && autoRotOf(mk({})) === 8 && autoRotOf(mk({ autoRot: 4 })) === 4);
 }
@@ -2332,6 +2335,7 @@ function raceOfEntry(h){
   freshS({ year: 2026 });
   /* downstream consumers read the range generically: race aptitude factor, auto-entry distance fit, distance-band affinities */
   const h = buildDebugHorse({ age: 4, distMin: 1800, distMax: 2400, record: 3 });
+  h.autoRangePlus = false; /* v2.3調整：適性±200（既定ON）を切り、生の適性範囲そのものが効くことを見る */
   T('v22 debug manual range drives aptitudeFactor (in-range = 1, out-of-range < 1)',
     aptitudeFactor(h, { surface: '芝', distance_m: 2400 }) === 1 && aptitudeFactor(h, { surface: '芝', distance_m: 2600 }) < 1 && aptitudeFactor(h, { surface: '芝', distance_m: 1600 }) < 1);
   T('v22 debug manual range drives autoFitsLite distance fit',
@@ -2340,9 +2344,144 @@ function raceOfEntry(h){
   const a = buildDebugHorse({ age: 3, distMin: 1800, distMax: 2400, distBulk: '○' });
   T('v22 debug manual range scopes distance-band affinities', [1800, 2000, 2200, 2400].every(b => a.aff.distAff[b] === '○') && a.aff.distAff[1600] === undefined && a.aff.distAff[2600] === undefined);
 }
+// ---- v2.3: debug creator — aptitude distance bounds chosen from pulldowns (preset select + numeric inputs removed) ----
+{
+  freshS({ year: 2026 });
+  const panel = debugPanel();
+  const minSel = (panel.match(/<select id='dbgDistMin'>[\s\S]*?<\/select>/) || [''])[0];
+  const maxSel = (panel.match(/<select id='dbgDistMax'>[\s\S]*?<\/select>/) || [''])[0];
+  T('v23 build: debug form dist bounds are pulldown selects', minSel.length > 0 && maxSel.length > 0);
+  T('v23 build: dist pulldowns offer 1000-4000 in 100m steps (31 options each)',
+    (minSel.match(/<option /g) || []).length === 31 && (maxSel.match(/<option /g) || []).length === 31
+    && minSel.includes("<option value='1000'>") && minSel.includes("<option value='4000'>")
+    && maxSel.includes("<option value='1000'>") && maxSel.includes("<option value='4000'>"));
+  T('v23 build: dist pulldown defaults selected are 1800 (lower) and 2400 (upper)',
+    minSel.includes("<option value='1800' selected>") && maxSel.includes("<option value='2400' selected>"));
+}
 {
   const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
-  T('v22 build: debug form has manual dist bound inputs wired through createDebugHorse', src.includes("id='dbgDistMin'") && src.includes("id='dbgDistMax'") && src.includes('gv("#dbgDistMin"') && src.includes('gv("#dbgDistMax"'));
+  T('v23 build: preset select and numeric dist inputs are gone from the debug form',
+    !src.includes('"dbgDist"') && !src.includes("placeholder='1800'") && !src.includes("placeholder='2400'"));
+  T('v23 build: createDebugHorse reads the two dist pulldowns', src.includes('gv("#dbgDistMin"') && src.includes('gv("#dbgDistMax"'));
+}
+{
+  /* end-to-end through the form wiring: fake the two selects' values, leave everything else to the DOM stub */
+  const viaForm = (min, max) => {
+    freshS({ year: 2026 });
+    const origQS = document.querySelector;
+    const vals = { '#dbgDistMin': String(min), '#dbgDistMax': String(max) };
+    document.querySelector = (sel) => (sel in vals ? { value: vals[sel] } : origQS(sel));
+    let err = null, h = null;
+    try { createDebugHorse(); h = S.horses[S.horses.length - 1]; } catch(e) { err = e; } finally { document.querySelector = origQS; }
+    return { err, h };
+  };
+  const a = viaForm(1700, 2600);
+  T('v23 debug dist pulldown choice honoured exactly (1700-2600, not a preset)', !a.err && !!a.h && a.h.distMin === 1700 && a.h.distMax === 2600);
+  const b = viaForm(1000, 4000);
+  T('v23 debug dist pulldown edges honoured (1000-4000)', !b.err && !!b.h && b.h.distMin === 1000 && b.h.distMax === 4000);
+  const c = viaForm(2600, 1700);
+  T('v23 debug dist pulldown min >= max falls back to 1800-2400', !c.err && !!c.h && c.h.distMin === 1800 && c.h.distMax === 2400);
+}
+{
+  freshS({ year: 2026 });
+  let err = null, h = null;
+  try { createDebugHorse(); h = S.horses[S.horses.length - 1]; } catch(e) { err = e; }
+  T('v23 debug dist defaults to 1800-2400 when the pulldowns are untouched', !err && !!h && h.distMin === 1800 && h.distMax === 2400);
+}
+
+// ---- v2.3: 自動出走の適性±200許容（長距離馬が2歳でデビューできない問題への対処・Terai決定） ----
+{
+  // resolver / defaults / bulk / migration / save-load
+  freshS({ year: 2032, month: 6, week: 1, phase: 'play' });
+  T('v23 rangeplus defaults: global default is ON and a new horse follows it', S.autoRangePlusDefault === true && autoRangePlusOf(mk({})) === true && mk({}).autoRangePlus === null);
+  T('v23 autoRangeOf widens by ±200 only when ON', JSON.stringify(autoRangeOf(mk({ distMin: 2200, distMax: 3600 }))) === '[2000,3800]' && JSON.stringify(autoRangeOf(mk({ distMin: 2200, distMax: 3600, autoRangePlus: false }))) === '[2200,3600]');
+  S.autoRangePlusDefault = false;
+  T('v23 per-horse ON overrides global OFF', autoRangePlusOf(mk({ autoRangePlus: true })) === true && autoRangePlusOf(mk({})) === false);
+  S.autoRangePlusDefault = true;
+  T('v23 per-horse OFF overrides global ON', autoRangePlusOf(mk({ autoRangePlus: false })) === false);
+  const a = mk({ name: '一括±1' }); const b = mk({ name: '一括±2', status: 'foal' });
+  S.horses = [a, b];
+  setAllAutoRangePlus(false);
+  T('v23 bulk rangeplus applies to racehorses only', a.autoRangePlus === false && b.autoRangePlus == null);
+  setAllAutoRangePlus(true);
+  T('v23 bulk rangeplus can set all racehorses back ON', a.autoRangePlus === true);
+  const mig = mk({ name: '移行±馬' }); delete mig.autoRangePlus; S.horses = [mig]; S.autoRangePlusDefault = undefined;
+  migrateV029();
+  T('v23 migration fills rangeplus defaults (global ON, per-horse null)', S.autoRangePlusDefault === true && mig.autoRangePlus === null);
+  const keep = mk({ name: '保存±馬', autoRangePlus: false }); S.horses = [keep]; S.autoRangePlusDefault = false;
+  save();
+  T('v23 rangeplus settings survive save/load', load() === true && S.autoRangePlusDefault === false && S.horses[0].autoRangePlus === false && autoRangePlusOf(S.horses[0]) === false);
+}
+{
+  // lite fit: both bounds, the exact ±200 boundary, and the reserve path that reads it
+  freshS({ year: 2032, month: 6, week: 1, phase: 'play' });
+  const stayer = mk({ name: 'ライト長距離', wins: 0, birthYear: 2030, distMin: 2200, distMax: 3600 });
+  const sprinter = mk({ name: 'ライト短距離', wins: 1, birthYear: 2028, distMin: 1000, distMax: 1600 });
+  const r2000 = { sector: 'central', surface: '芝', distance_m: 2000, grade: '未勝利', conditions: '2歳' };
+  const r1800c = { sector: 'central', surface: '芝', distance_m: 1800, grade: '1勝クラス', conditions: '' };
+  const r2000c = { sector: 'central', surface: '芝', distance_m: 2000, grade: '1勝クラス', conditions: '' };
+  T('v23 lite: stayer fits a 2000 race with tolerance ON (default)', autoFitsLite(stayer, r2000) === true);
+  stayer.autoRangePlus = false;
+  T('v23 lite: stayer does NOT fit 2000 with tolerance OFF', autoFitsLite(stayer, r2000) === false);
+  T('v23 lite: sprinter fits 1800 (+200) but not 2000 (+400) with tolerance ON', autoFitsLite(sprinter, r1800c) === true && autoFitsLite(sprinter, r2000c) === false);
+  sprinter.autoRangePlus = false;
+  T('v23 lite: sprinter does NOT fit 1800 with tolerance OFF', autoFitsLite(sprinter, r1800c) === false);
+  freshS({ year: 2028, month: 1, week: 1, phase: 'play' });
+  const point = mk({ name: 'リザーブ±', wins: 4, birthYear: 2023, distMin: 2300, distMax: 2300 });
+  T('v23 reserve counts G1s reachable only within ±200 (宝塚・ジャパンC・有馬)', autoG1Reserve(point, 2028) === 3);
+  point.autoRangePlus = false;
+  T('v23 reserve counts nothing for the same horse with tolerance OFF', autoG1Reserve(point, 2028) === 0);
+}
+{
+  // hold path (autoUpcomingBig) reads the same widened lite fit
+  freshS({ year: 2028, month: 5, week: 3, phase: 'play' });
+  const h = mk({ name: '温存±', wins: 4, birthYear: 2023, distMin: 2400, distMax: 2400 });
+  const big = autoUpcomingBig(h);
+  T('v23 hold sees the Takarazuka Kinen (2200, within -200) for a 2400 horse', !!big && big.race.name === '宝塚記念');
+  h.autoRangePlus = false;
+  T('v23 hold sees no big race for the same horse with tolerance OFF', autoUpcomingBig(h) === null);
+}
+{
+  // Terai's case, end-to-end: a 2200-3600 stayer has no in-range 2yo debut race
+  // (新馬は最長1800m、未勝利は最長2000m) — tolerance ON lets it debut at 2000m
+  freshS({ year: 2028, month: 6, week: 1, phase: 'play' });
+  const on = mk({ name: '長距離デビュー可', wins: 0, birthYear: 2026, distMin: 2200, distMax: 3600, autoEntry: true });
+  S.horses = [on];
+  autoEntryPass();
+  const g = raceOfEntry(on);
+  T('v23 a 2200-3600 stayer debuts at 2000m with tolerance ON (default)', !!g && g.race.distance_m === 2000 && (g.race.grade === '未勝利' || g.race.grade === '新馬'));
+}
+{
+  freshS({ year: 2028, month: 6, week: 1, phase: 'play' });
+  const off = mk({ name: '長距離デビュー不可', wins: 0, birthYear: 2026, distMin: 2200, distMax: 3600, autoEntry: true, autoRangePlus: false });
+  S.horses = [off];
+  autoEntryPass();
+  S.month = 9; S.week = 1; autoEntryPass();
+  S.month = 12; S.week = 1; autoEntryPass();
+  T('v23 the same stayer with tolerance OFF is never entered in its 2yo season (v2.2 behaviour)', Object.keys(off.entries).length === 0);
+}
+{
+  // in-range still beats ±200 at the same tier (centre-distance scoring is unchanged)
+  freshS({ year: 2028, month: 10, week: 3, phase: 'play' });
+  const h = mk({ name: '適性内優先', wins: 1, birthYear: 2024, distMin: 1800, distMax: 2400, autoEntry: true });
+  S.horses = [h];
+  let tol = null;
+  for(let k = 0; k <= 3 && !tol; k++){ const t = shiftWeek(2028, 10, 3, k); tol = racesThisWeek(t[0], t[1], t[2]).find(x => x.grade === '1勝クラス' && x.surface === '芝' && x.distance_m === 1600 && (x.conditions || '').includes('3歳以上')) || null; }
+  T('v23 setup: a tolerated 1600 race is genuinely available in the window', !!tol && autoFitsLite(h, tol) === true);
+  autoEntryPass();
+  const g = raceOfEntry(h);
+  T('v23 in-range race is chosen over a ±200 race at the same tier', !!g && g.race.distance_m >= 1800 && g.race.distance_m <= 2400);
+}
+{
+  freshS({ year: 2032, month: 6, week: 1, phase: 'play' });
+  const h = mk({ name: 'UI検証±', wins: 1, birthYear: 2028, autoEntry: true });
+  S.horses = [h];
+  const ev = viewEntry();
+  T('v23 entry view bulk has the rangeplus default select and set-all buttons', ev.includes('data-auto-defrangeplus') && ev.includes('data-auto-allrangeplus') && ev.includes('適性±200'));
+  const cal = viewCalendar();
+  T('v23 calendar auto table has the per-horse rangeplus select', cal.includes('data-auto-rangeplus') && cal.includes('適性±200'));
+  const src = fs.readFileSync('/home/hatch/workspace/keiba-game/prototype/index.html', 'utf8');
+  T('v23 build: horse page carries the rangeplus select and the resolver is present', src.includes('autoRangePlusSel') && src.includes('autoRangePlusOf') && src.includes('autoRangeOf'));
 }
 
 console.log('\nRESULT: ' + pass + ' passed, ' + fail + ' failed');
