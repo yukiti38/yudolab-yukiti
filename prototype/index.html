@@ -328,7 +328,7 @@ function foalName(){
 function stallionPower(st){ return st.fee_tier==="S"?79 : st.fee_tier==="A"?74 : st.fee_tier==="B"?69 : 64; } /* v0.50 新スケール */
 function newHorse(o){
   return Object.assign({ id: Math.random().toString(36).slice(2,10), wins:0, earnings:0, results:[], fatigue:0,
-    condition:80, policy:"train", pregnant:null, entries:{}, lastRaceAbs:-9, retired:false }, o);
+    condition:80, policy:"train", pregnant:null, entries:{}, lastRaceAbs:-9, retired:false, autoEntry:false, autoRot:null }, o);
 }
 function absWeek(){ return absOf(S.year, S.month, S.week); }
 function ageOf(h){ return S.year - h.birthYear; }
@@ -816,7 +816,7 @@ function refreshSale(){
 function initState(){
   S = { year:2026, month:1, week:1, calVer:2, funds:30000, horses:[], stallions: JSON.parse(JSON.stringify(DATA.stallions)),
         chronicle:[], statsBirths:{}, topics:[], yearEndDone:false, phase:"choose", candidates:[], salePool:[], saleYear:2026, usedTemplates:[], firstMatingDone:false,
-        giftQueue:[], giftAprDone:false, giftDecDone:false, giftSet:null, favs:[], mile:null, farmWins:0, farmPrize:0, kanmuri:"", soldHorses:[] };
+        giftQueue:[], giftAprDone:false, giftDecDone:false, giftSet:null, favs:[], mile:null, farmWins:0, farmPrize:0, kanmuri:"", soldHorses:[], autoRotDefault:8 };
   const sts = S.stallions;
   // 種牡馬ロスターは固定（約50頭・引退／世代交代なし。WS4b・2026-11-13）。
   // 自家生産の牡馬が引退時に種牡馬入りすることはある（そちらは従来どおり）。
@@ -868,6 +868,9 @@ function migrateV029(){
     }
   }
   if(S.saleYear==null) S.saleYear = S.year>2026 ? S.year-1 : 2026;
+  /* v2.0 移行：自動出走の既定ローテ（旧セーブには無いので標準の中8週で補う）。馬ごとの自動出走は既定OFF */
+  if(S.autoRotDefault == null) S.autoRotDefault = 8;
+  for(const h of S.horses){ if(h.autoEntry == null) h.autoEntry = false; }
   if(!S.usedTemplates) S.usedTemplates = [];
   ensureMile();
   if(S.kanmuri == null) S.kanmuri = "";
@@ -1414,6 +1417,7 @@ function advanceWeek(){
   if(S.month !== prevMonth){ monthlyCosts(prevMonth); monthlyTraining(); } /* v0.56：月替わりで前月分の経費を精算 */
   // 4) 新しい週のイベント
   weeklyEvents();
+  autoEntryPass(); /* v2.0：自動出走。skipTo／nextEvent も advanceWeek を経由するので、ここに置けばスキップ中も毎週必ず走る */
   if(!S.silent){ save(); render(); }
 }
 /* 成長型の継承：内部7段階チェーンで、父母どちらか＋15％で隣の型へ1段階ずれる */
@@ -1590,6 +1594,164 @@ function weeklyEvents(){
     }
   }
   /* 成長メモは年表に残さない（v0.33：年表はビッグイベントのみ）。成長の様子は各馬のページの成長段階で見られる */
+}
+/* ================= 自動出走（v2.0・オーナー設計） =================
+   ONにした現役馬は毎週の週送り（advanceWeek の最後、weeklyEvents の直後）で自動的にレースへ登録される。
+   skipTo／nextEvent は advanceWeek を回すだけなので、スキップ中も同じ判定が毎週走る。
+   適否の関門は手動登録と完全に同じ eligibility() を再利用する（対象週ぶん entryWeekAhead を合わせて呼ぶ）。
+   海外（WHC）は遠征費がかかるため自動登録の対象外。登録は通常の entries と同じ形で作るので、
+   出走登録タブから手動で取り消し・差し替えができる。
+   ペース配分（オーナー指摘で改修）：単なる最小間隔＋上限だと年初に使い切って後半に走れなくなるため、
+   目標6戦／年へのペース由来の間隔（残り週数÷残り戦数）を前走（無ければ年始）から測り、
+   実効間隔＝max（ローテ最小間隔, ペース間隔）とする。出遅れた馬はペース間隔が圧縮されるが、
+   ローテ最小間隔と体調ガードは下回らない。年間のハード上限は7戦。
+   大レース優先：候補の採点は格（グレード）を最優先にする。登録ウィンドウの少し先（6週以内）に
+   格上位の重賞・リステッドが控えている場合は、格下のレースに使わず温存する。重賞・リステッドは
+   ペース間隔を待たず、ハードガード（ローテ最小間隔・疲労・状態・適否）が通れば登録できる。
+   G1リザーブ：年内に残っている「フィットする国内G1」の数（上限3）だけ出走枠を確保する。
+   夏のG1空白期に下位レースで枠を使い切って秋のG1に出られなくなるのを防ぐためで、
+   候補を1戦使うたびに「使用後の残り枠 >= リザーブ（そのG1自体を取る場合は自分を差し引く）」を満たす時だけ登録する */
+const AUTO_TARGET = 6;          /* 年間の目標戦数（5〜7戦の中間） */
+const AUTO_CAP = 7;             /* 年間のハード上限 */
+const AUTO_COND_MIN = 50;       /* 自動登録する状態の下限（故障ゾーンは疲労70以上×状態40以下。疲労は eligibility が70以上を弾き、状態50以上で二重に安全側） */
+const AUTO_BIG_GRADES = ["GI","GII","GIII","G1","G2","G3","JpnI","JpnII","JpnIII","J-GI","J-GII","J-GIII","L"]; /* 重賞・リステッド（大レース扱い） */
+const AUTO_TIER = {"GI":0,"JpnI":0,"J-GI":0,"GII":1,"JpnII":1,"J-GII":1,"GIII":2,"JpnIII":2,"J-GIII":2,"L":3,"OP":3}; /* 格の序列：小さいほど格上。クラス戦・その他特別は4 */
+function autoGradeTier(race){ const t = AUTO_TIER[race.grade]; return t != null ? t : 4; }
+function autoClassRank(h){ const c = horseClass(h); return c==="OP" ? 4 : c==="3勝クラス" ? 3 : c==="2勝クラス" ? 2 : c==="1勝クラス" ? 1 : 0; }
+function autoRaceRank(race){ const g = race.grade; if(g==="新馬" || g==="未勝利") return 0; if(g==="1勝クラス") return 1; if(g==="2勝クラス") return 2; if(g==="3勝クラス") return 3; return 4; }
+function autoRotOf(h){ return (h.autoRot != null) ? h.autoRot : (S.autoRotDefault != null ? S.autoRotDefault : 8); }
+function autoStartsInYear(h, year){ return h.results.filter(r=>parseInt(r.when, 10)===year).length; }
+/* 年齢・性別の条件だけを見る軽量チェック。将来のレースの「フィット」数え上げ専用
+   （疲労や登録状況は時点が違うので見ない）。実際の登録可否は常に対象週で eligibility() が判定する */
+function autoCondOk(h, race){
+  const age = ageOf(h);
+  const c = race.conditions || "";
+  if(c.includes("2歳") && !c.includes("2歳以上") && age!==2) return false;
+  if(/(^|[^0-9])3歳以上/.test(c) && age<3) return false;
+  if(c.includes("4歳以上") && age<4) return false;
+  if(/(^|[^0-9])4歳/.test(c) && !c.includes("4歳以上") && age!==4) return false;
+  if(/(^|[^0-9])3歳/.test(c) && !c.includes("3歳以上") && age!==3) return false;
+  if(c.includes("牝") && !c.includes("牡") && h.sex!=="牝") return false;
+  if(c.includes("牡") && !c.includes("牝") && h.sex!=="牡") return false;
+  return true;
+}
+/* 軽量フィット判定（数え上げ・先読み専用）：国内・馬場・距離・クラス・年齢性別条件 */
+function autoFitsLite(h, race){
+  if(!race || race.sector==="overseas") return false;
+  if(race.surface && h.surface!=="両刀" && h.surface!==race.surface) return false;
+  if(race.distance_m == null || race.distance_m < h.distMin || race.distance_m > h.distMax) return false;
+  if(autoRaceRank(race) > autoClassRank(h)) return false;
+  return autoCondOk(h, race);
+}
+/* ペース由来の間隔：その年の残り週数を「目標まであと何戦か」で割り、前走（今年まだ走っていなければ年始の前週）を起点に測る */
+function autoPaceGap(h, year){
+  const used = autoStartsInYear(h, year);
+  const left = AUTO_TARGET - used;
+  if(left <= 0) return Infinity; /* 目標戦数に到達したら通常レースは打ち止め（重賞はハードガードのみで可） */
+  const yStart = absOf(year, 1, 1), yEnd = yStart + 52;
+  const anchor = (h.lastRaceAbs != null && h.lastRaceAbs >= yStart) ? h.lastRaceAbs : yStart - 1;
+  return Math.max(1, Math.floor((yEnd - anchor) / left));
+}
+/* 次に出走できる週（絶対週）。graded=true の重賞・リステッドはペース間隔を待たない（ハードガードのみ） */
+function autoDueAbs(h, year, graded){
+  if(autoStartsInYear(h, year) >= AUTO_CAP) return Infinity;
+  const last = (h.lastRaceAbs != null) ? h.lastRaceAbs : -9;
+  let due = last + autoRotOf(h) + 1; /* ローテ最小間隔（中N週＝レース間隔 N+1 週）。これがハードな下限 */
+  if(!graded){
+    const pg = autoPaceGap(h, year);
+    if(pg===Infinity) return Infinity;
+    const yStart = absOf(year, 1, 1);
+    const anchor = (h.lastRaceAbs != null && h.lastRaceAbs >= yStart) ? h.lastRaceAbs : yStart - 1;
+    due = Math.max(due, anchor + pg);
+  }
+  return due;
+}
+/* 年内に残っているフィットする国内G1の数（リザーブ用、上限3）。今週以降・対象年内だけを数える */
+function autoG1Reserve(h, year){
+  const yStart = absOf(year, 1, 1), yEnd = yStart + 52;
+  let n = 0;
+  for(let a = Math.max(absWeek(), yStart); a < yEnd; a++){
+    const t = fromAbs(a); if(t[0]!==year) break;
+    for(const race of racesThisWeek(t[0], t[1], t[2])){
+      if(race.sector==="overseas" || !G1_GRADES.includes(race.grade)) continue;
+      if(autoFitsLite(h, race)) n++;
+    }
+  }
+  return Math.min(n, 3);
+}
+/* 今週から6週以内に控えた最上位の大レース（重賞・リステッド）。温存判定に使う。
+   ローテ最小間隔より前に来るものはどうせ出られないので数えない */
+function autoUpcomingBig(h){
+  const last = (h.lastRaceAbs != null) ? h.lastRaceAbs : -9;
+  const rotDue = last + autoRotOf(h) + 1;
+  let best = null;
+  for(let k=0;k<=6;k++){
+    const a = absWeek() + k;
+    if(a < rotDue) continue;
+    const t = shiftWeek(S.year, S.month, S.week, k);
+    for(const race of racesThisWeek(t[0], t[1], t[2])){
+      if(!AUTO_BIG_GRADES.includes(race.grade)) continue;
+      if(ageOf(h)===2 && S.month<6) continue; /* 2歳の重賞は6月以降（eligibility と同じ試作ルール） */
+      if(!autoFitsLite(h, race)) continue;
+      const tier = autoGradeTier(race);
+      if(!best || tier < best.tier) best = { tier, abs:a, race };
+    }
+  }
+  return best;
+}
+function autoEntryPass(){
+  if(!S || S.phase==="choose") return;
+  const savedAhead = entryWeekAhead;
+  const windowEnd = absWeek() + 3;
+  for(const h of S.horses){
+    if(h.status!=="racehorse" || h.retired || !h.autoEntry) continue;
+    if(isInjured(h)) continue;                                   /* 故障中は絶対に出走しない */
+    if(h.fatigue>=70 || h.condition<AUTO_COND_MIN) continue;     /* 故障ゾーン（疲労・状態）に入る馬は登録しない */
+    if(h.entries && Object.keys(h.entries).some(a=>+a>=absWeek())) continue; /* 既に先行登録がある馬は触らない */
+    const mid = (h.distMin + h.distMax) / 2;
+    const reserveCache = {};
+    const reserveOf = yr => (yr in reserveCache) ? reserveCache[yr] : (reserveCache[yr] = autoG1Reserve(h, yr));
+    const cands = [];
+    for(let k=0;k<=3;k++){
+      const t = shiftWeek(S.year, S.month, S.week, k);
+      const a = absWeek() + k, yr = t[0];
+      entryWeekAhead = k; /* eligibility の対象週を候補週に合わせる（手動登録と同一判定にするため） */
+      for(const race of racesThisWeek(t[0], t[1], t[2])){
+        if(race.sector==="overseas") continue;                  /* 海外遠征は自動にしない（遠征費は手動判断） */
+        if(race.surface && h.surface!=="両刀" && h.surface!==race.surface) continue;
+        if(race.distance_m==null || race.distance_m<h.distMin || race.distance_m>h.distMax) continue;
+        if(autoRaceRank(race) > autoClassRank(h)) continue;     /* 格上挑戦はしない（自クラス以下だけ） */
+        if(eligibility(h, race)) continue;                      /* 関門は手動と完全同一 */
+        const graded = AUTO_BIG_GRADES.includes(race.grade);
+        if(a < autoDueAbs(h, yr, graded)) continue;             /* ローテ／ペースの間隔（重賞はハード側のみ） */
+        /* G1リザーブ：この1戦を使った後の残り枠が、残りフィットG1分の確保を割らないこと */
+        const used = autoStartsInYear(h, yr);
+        const reserveAfter = Math.max(reserveOf(yr) - (G1_GRADES.includes(race.grade) ? 1 : 0), 0);
+        if(AUTO_CAP - (used + 1) < reserveAfter) continue;
+        cands.push({ race, abs:a, tier:autoGradeTier(race), graded, distDiff: Math.abs(race.distance_m - mid), prize: prizeTable(race)[0] });
+      }
+    }
+    if(!cands.length) continue;
+    const byScore = (x, y) => (x.tier - y.tier) || (x.distDiff - y.distDiff) || (x.abs - y.abs) || (y.prize - x.prize); /* 格→適距離→早い週→賞金 */
+    const gradedCands = cands.filter(c=>c.graded).sort(byScore);
+    const ordCands = cands.filter(c=>!c.graded).sort(byScore);
+    const big = autoUpcomingBig(h);
+    let pick = null;
+    if(gradedCands.length){
+      pick = gradedCands[0];
+      if(big && big.abs > windowEnd && big.tier < pick.tier) pick = null; /* 窓の先に格上の大レースがあるなら温存 */
+    } else if(ordCands.length){
+      if(!big) pick = ordCands[0]; /* 6週以内に大レースが控えている週は通常レースに使わない */
+    }
+    if(!pick) continue;
+    const race = pick.race, a = pick.abs;
+    const key = a + "@" + race.name + "|" + (race.racecourse||"") + "|" + (race.grade||"");
+    if(!h.entries) h.entries = {};
+    h.entries[a] = { key, style: h.stylePref || bestStyle(h), sector: race.sector, course: race.racecourse||"", dist: race.distance_m||null, name: race.name }; /* 手動登録と同形（取消・差し替え可） */
+    const t = fromAbs(a);
+    topic("🤖 自動出走：" + h.name + " を " + t[1] + "月第" + t[2] + "週 の " + race.name + "（" + (race.grade||"") + "・" + (race.racecourse||"") + " " + (race.surface||"") + (race.distance_m||"") + "m）に登録しました");
+  }
+  entryWeekAhead = savedAhead;
 }
 function nextEvent(){
   // イベント（トピック発生 or 登録済みレース or 出産年替わり）が来る週まで進める（最大60週）
@@ -1967,11 +2129,43 @@ function raceMatchesFilters(r){
   }
   return true;
 }
+/* ================= 自動出走の設定UI（v2.0） =================
+   一括設定（全馬ON/OFF＋既定ローテ）は出走登録タブとカレンダーの両方に置き、同じ部品・同じ保存先を使う。
+   馬ごとの設定はカレンダーのローテ設定欄と各馬のページ（方針の隣）の両方から変更できる */
+const AUTO_ROT_PRESETS = [4, 6, 8, 12];
+function autoDefRot(){ return (S.autoRotDefault != null) ? S.autoRotDefault : 8; }
+function setAllAutoEntry(on){ for(const h of S.horses) if(h.status==="racehorse" && !h.retired) h.autoEntry = !!on; }
+function autoBulkHtml(){
+  return "<div class='topic'>🤖 <b>自動出走（オート出走決定）</b>：ONの馬は毎週、適性・クラス・体調を見て自動でレースに登録されます（年間6戦ペース目標・上限7戦／重賞優先／G1分の枠を確保／国内のみ・海外遠征は手動）。登録は通常の登録と同じで、出走登録タブから取り消せます。<br>"
+    + "<button data-auto-all='on'>全馬ON</button> <button data-auto-all='off' class='ghost'>全馬OFF</button> "
+    + "<label>既定ローテ：<select data-auto-defrot>" + AUTO_ROT_PRESETS.map(n=>"<option value='"+n+"'"+(autoDefRot()===n?" selected":"")+">中"+n+"週"+(n===8?"（標準）":"")+"</option>").join("") + "</select></label> "
+    + "<span class='sub'>馬ごとのON/OFFとローテは下のローテ設定か、各馬のページで変更できます</span></div>";
+}
+function autoHorseRowsHtml(){
+  const racers = S.horses.filter(h=>h.status==="racehorse" && !h.retired);
+  if(!racers.length) return "<div class='sub'>現役馬がいません</div>";
+  const rows = racers.map(h =>
+    "<tr><td><span class='horse-link' data-horse='"+h.id+"'>"+h.name+"</span></td><td>"+ageOf(h)+"歳"+h.sex+"・"+horseClass(h)+"・"+h.surface+" "+h.distMin+"-"+h.distMax+"m</td>"
+    + "<td><select data-auto-on='"+h.id+"'><option value='off'"+(!h.autoEntry?" selected":"")+">OFF</option><option value='on'"+(h.autoEntry?" selected":"")+">ON</option></select></td>"
+    + "<td><select data-auto-rot='"+h.id+"'><option value=''"+(h.autoRot==null?" selected":"")+">既定（中"+autoDefRot()+"週）</option>"
+    + AUTO_ROT_PRESETS.map(n=>"<option value='"+n+"'"+(h.autoRot===n?" selected":"")+">中"+n+"週</option>").join("") + "</select></td>"
+    + "<td>"+autoStartsInYear(h, S.year)+"戦</td></tr>").join("");
+  return "<table><tr><th>馬名</th><th></th><th>自動出走</th><th>ローテ</th><th>今年</th></tr>"+rows+"</table>";
+}
+function bindAutoEntryControls(){
+  document.querySelectorAll("[data-auto-all]").forEach(b=>b.onclick=()=>{ setAllAutoEntry(b.getAttribute("data-auto-all")==="on"); save(); render(); });
+  document.querySelectorAll("[data-auto-defrot]").forEach(sel=>sel.onchange=()=>{ S.autoRotDefault = parseInt(sel.value, 10) || 8; save(); render(); });
+  document.querySelectorAll("[data-auto-on]").forEach(sel=>sel.onchange=()=>{ const h = S.horses.find(x=>x.id===sel.getAttribute("data-auto-on")); if(h){ h.autoEntry = sel.value==="on"; save(); render(); } });
+  document.querySelectorAll("[data-auto-rot]").forEach(sel=>sel.onchange=()=>{ const h = S.horses.find(x=>x.id===sel.getAttribute("data-auto-rot")); if(h){ h.autoRot = sel.value==="" ? null : parseInt(sel.value, 10); save(); render(); } });
+  document.querySelectorAll("[data-goto-cal]").forEach(b=>b.onclick=()=>{ calMonth = 0; currentTab = "calendar"; document.querySelectorAll("#tabs button").forEach(x=>x.classList.toggle("active", x.getAttribute("data-tab")==="calendar")); render(); });
+}
 function viewEntry(){
   const racers = S.horses.filter(h=>h.status==="racehorse" && !h.retired);
-  if(!racers.length) return "<div class='sub'>出走できる現役馬がまだいません。若馬のデビュー（2歳の6月以降）をお待ちください。</div>";
+  const autoPanel = autoBulkHtml()
+    + "<div style='margin:6px 0;'><button data-goto-cal='1'>📅 ローテ設定（カレンダーで確認）</button> <span class='sub'>今後のレース日程を見ながら、馬ごとの自動出走とローテを設定できます</span></div>";
+  if(!racers.length) return autoPanel + "<div class='sub'>出走できる現役馬がまだいません。若馬のデビュー（2歳の6月以降）をお待ちください。</div>";
   if(!entryHorseId || !racers.some(h=>h.id===entryHorseId)) entryHorseId = (racers.find(h=>h.entries && Object.keys(h.entries).length) || racers[0]).id;
-  let html = "<div class='sub' style='margin-bottom:6px;'>まず馬を選びます：</div><div class='flex' style='flex-wrap:wrap;gap:8px;'>";
+  let html = autoPanel + "<div class='sub' style='margin-bottom:6px;'>まず馬を選びます：</div><div class='flex' style='flex-wrap:wrap;gap:8px;'>";
   for(const h of racers){
     const sel = h.id===entryHorseId;
     html += "<button data-entry-horse='"+h.id+"' style='"+(sel?"border-color:var(--acc);background:#22331a;":"")+"text-align:left;'>"+h.name+"<br><span class='sub'>"+ageOf(h)+"歳"+h.sex+"・"+horseClass(h)+"・"+h.wins+"勝／状態"+Math.round(h.condition)+" 疲労"+Math.round(h.fatigue)+"／"+(h.stable ? h.stable+"所属" : "所属未定")+(entryListText(h) ? "／登録済（"+entryListText(h)+"）" : "")+"</span></button>";
@@ -2002,6 +2196,7 @@ function viewEntry(){
     + "</div>";
   html += "<div id='entryList' style='margin-top:10px;'></div>";
   setTimeout(()=>{
+    bindAutoEntryControls();
     document.querySelectorAll("[data-entry-horse]").forEach(btn => btn.onclick = () => { entryHorseId = btn.getAttribute("data-entry-horse"); render(); });
     document.querySelectorAll("[data-ahead]").forEach(btn => btn.onclick = () => { entryWeekAhead = parseInt(btn.getAttribute("data-ahead"), 10); render(); });
     document.querySelectorAll("[data-style]").forEach(btn => btn.onclick = () => { const hh = S.horses.find(x=>x.id===entryHorseId); if(hh){ hh.stylePref = btn.getAttribute("data-style"); save(); render(); } });
@@ -2265,7 +2460,7 @@ function viewStallions(){
 let calMonth = 0; // 0 = 現在の月
 function viewCalendar(){
   const m = calMonth || S.month;
-  setTimeout(()=>{ document.querySelectorAll("[data-calmonth]").forEach(b=>b.onclick=()=>{ calMonth = +b.getAttribute("data-calmonth"); render(); }); }, 0);
+  setTimeout(()=>{ document.querySelectorAll("[data-calmonth]").forEach(b=>b.onclick=()=>{ calMonth = +b.getAttribute("data-calmonth"); render(); }); bindAutoEntryControls(); }, 0);
   /* 今月分は登録中の馬を印付けする（登録キーは週番号を含むので当月分だけ照合できる） */
   const entered = {};
   if(m===S.month){
@@ -2282,6 +2477,9 @@ function viewCalendar(){
   let html = "<div class='flex' style='margin-bottom:6px;'><label>月：</label>"
     + Array.from({length:12},(_,i)=>i+1).map(mm=>"<button data-calmonth='"+mm+"'"+(mm===m?"":" class='ghost'")+">"+mm+"月</button>").join("")
     + "<span class='sub'>特別戦〜重賞の年間カレンダーです（一般戦は除く）。表示中の月が今月の場合、登録中の馬も表示します</span></div>";
+  /* ローテ設定（v2.0）：出走登録タブの「ローテ設定」ボタンからここへ来る。今後の日程を見ながら
+     馬ごとの自動出走ON/OFFとローテ（出走間隔）をその場で変更できる。一括設定も同じ部品を使う */
+  html += "<h3 style='margin-top:14px;'>🤖 ローテ設定（自動出走）</h3>" + autoBulkHtml() + autoHorseRowsHtml();
   for(const [sec, label] of [["central","中央・NKC"],["regional","地方・TKC"],["overseas","海外・WHC"]]){
     const list = (sec==="overseas" ? DATA.overseas : DATA.domestic.filter(r=>r.sector===sec))
       .filter(r=>r.month===m)
@@ -2721,6 +2919,13 @@ function openHorse(id){
     actions = "<div class='flex' style='margin:10px 0;'><label>方針：</label><select id='policySel'>"
       + ["train","spd","sta","gut","pasture","rest"].map(p=>"<option value='"+p+"'"+(h.policy===p?" selected":"")+">"+({train:"調教（バランス）",spd:"スピード調教",sta:"スタミナ調教",gut:"根性調教",pasture:"放牧",rest:"休養"})[p]+"</option>").join("")
       + "</select></div>";
+    /* 自動出走（v2.0）：方針の隣にON/OFFとローテ（空欄＝全体の既定ローテ）。カレンダーのローテ設定と同じ保存先 */
+    actions += "<div class='flex' style='margin:6px 0;'><label>自動出走：</label><select id='autoEntrySel'>"
+      + "<option value='off'"+(!h.autoEntry?" selected":"")+">OFF</option><option value='on'"+(h.autoEntry?" selected":"")+">ON</option></select>"
+      + "<label>ローテ：</label><select id='autoRotSel'>"
+      + "<option value=''"+(h.autoRot==null?" selected":"")+">既定（中"+autoDefRot()+"週）</option>"
+      + AUTO_ROT_PRESETS.map(n=>"<option value='"+n+"'"+(h.autoRot===n?" selected":"")+">中"+n+"週</option>").join("")
+      + "</select><span class='sub'>ONの馬は毎週自動でレースに登録されます（年間6戦ペース目標・上限7戦、重賞優先、国内のみ）</span></div>";
     /* 牡馬の引退は3択（v0.57・オーナー決定）：種牡馬入り（資格馬のみ）／引退馬として残る／売却して引退。
        メニュー生成は coltRetireMenuHtml、売却額は開いた時点で youngPrice で確定し retireSalePrice に凍結（牝馬と同じ方式） */
     if(h.sex==="牡"){
@@ -2794,6 +2999,8 @@ function openHorse(id){
   $("#horseModal").style.display = "block";
   bindHorses();
   const ps = $("#policySel"); if(ps) ps.onchange = () => { h.policy = ps.value; save(); };
+  const aes = $("#autoEntrySel"); if(aes) aes.onchange = () => { h.autoEntry = aes.value==="on"; save(); };
+  const ars = $("#autoRotSel"); if(ars) ars.onchange = () => { h.autoRot = ars.value==="" ? null : parseInt(ars.value, 10); save(); };
   const smb = $("#stableMihoBtn"); if(smb) smb.onclick = () => { h.stable = "美浦"; topic("🏠 "+h.name+" の所属は美浦に決まりました"); save(); openHorse(h.id); };
   const srb = $("#stableRittoBtn"); if(srb) srb.onclick = () => { h.stable = "栗東"; topic("🏠 "+h.name+" の所属は栗東に決まりました"); save(); openHorse(h.id); };
   const nsb = $("#nameSuggestBtn"); if(nsb) nsb.onclick = () => { const ni = $("#nameInput"); if(ni) ni.value = nameSuggest; };
@@ -2919,6 +3126,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>競馬シミュレーター（趣味） v1.2</footer>
+<footer>競馬シミュレーター（趣味） v2.0</footer>
 </body>
 </html>
