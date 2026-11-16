@@ -1,232 +1,211 @@
 [
-  {
-    "name": "ヴィクトワールピサ",
-    "sire": "ネオユニヴァース",
-    "dam": "ホワイトウォーターアフェア",
-    "bms": "Machiavellian",
-    "grandam": "Much Too Risky",
-    "gbms": "Bustino",
-    "line": [
-      "サンデーサイレンス",
-      "ヘイロー",
-      "ヘイルトゥリーズン"
-    ],
-    "dist": [
-      1800,
-      2500
-    ],
-    "surface": "芝",
-    "growth": "早熟",
-    "fee_tier": "B",
-    "region": "overseas",
-    "weight": 512,
-    "source": "https://www.jbis.or.jp/horse/0001046333/"
-  },
-  {
-    "name": "スノードラゴン",
-    "sire": "アドマイヤコジーン",
-    "dam": "マイネカプリース",
-    "bms": "タヤスツヨシ",
-    "grandam": "ダイナカプリ",
-    "gbms": "サウスアトランティック",
-    "line": [
-      "Cozzene",
-      "Caro",
-      "Fortino"
-    ],
-    "dist": [
-      1200,
-      1400
-    ],
-    "surface": "芝",
-    "growth": "晩成",
-    "fee_tier": "C",
-    "region": "domestic",
-    "weight": 512,
-    "source": "https://www.jbis.or.jp/horse/0001091384/"
-  },
-  {
-    "name": "アジアエクスプレス",
-    "sire": "ヘニーヒューズ",
-    "dam": "ランニングボブキャッツ",
-    "bms": "Running Stag",
-    "grandam": "Backatem",
-    "gbms": "Notebook",
-    "line": [
-      "Hennessy",
-      "Storm Cat",
-      "Storm Bird"
-    ],
-    "dist": [
-      1400,
-      1800
-    ],
-    "surface": "ダート",
-    "growth": "早熟",
-    "fee_tier": "C",
-    "region": "domestic",
-    "weight": 534,
-    "source": "https://www.jbis.or.jp/horse/0001177896/"
-  },
-  {
-    "name": "モズアスコット",
-    "sire": "Frankel",
-    "dam": "India",
-    "bms": "ヘネシー",
-    "grandam": "Misty Hour",
-    "gbms": "Miswaki",
-    "line": [
-      "Galileo",
-      "Sadler's Wells",
-      "Northern Dancer"
-    ],
-    "dist": [
-      1400,
-      1600
-    ],
-    "surface": "芝",
-    "growth": "普通",
-    "fee_tier": "A",
-    "region": "domestic",
-    "weight": 488,
-    "source": "https://www.jbis.or.jp/horse/0001213491/"
-  },
-  {
-    "name": "トランセンド",
-    "sire": "ワイルドラッシュ",
-    "dam": "シネマスコープ",
-    "bms": "トニービン",
-    "grandam": "ブルーハワイ",
-    "gbms": "スリルショー",
-    "line": [
-      "Wild Again",
-      "Icecapade",
-      "Nearctic"
-    ],
-    "dist": [
-      1600,
-      1800
-    ],
-    "surface": "ダート",
-    "growth": "普通",
-    "fee_tier": "C",
-    "region": "domestic",
-    "weight": 518,
-    "source": "https://www.jbis.or.jp/horse/0000989072/"
-  },
-  {
-    "name": "スマートファルコン",
-    "sire": "ゴールドアリュール",
-    "dam": "ケイシュウハーブ",
-    "bms": "ミシシッピアン",
-    "grandam": "キョウエイシラユキ",
-    "gbms": "クラウンドプリンス",
-    "line": [
-      "サンデーサイレンス",
-      "ヘイロー",
-      "ヘイルトゥリーズン"
-    ],
-    "dist": [
-      1800,
-      2400
-    ],
-    "surface": "ダート",
-    "growth": "晩成",
-    "fee_tier": "C",
-    "region": "domestic",
-    "weight": 513,
-    "source": "https://www.jbis.or.jp/horse/0000881793/"
-  },
-  {
-    "name": "ルヴァンスレーヴ",
-    "sire": "シンボリクリスエス",
-    "dam": "マエストラーレ",
-    "bms": "ネオユニヴァース",
-    "grandam": "オータムブリーズ",
-    "gbms": "ティンバーカントリー",
-    "line": [
-      "クリスエス",
-      "ロベルト",
-      "ヘイルトゥリーズン"
-    ],
-    "dist": [
-      1600,
-      2000
-    ],
-    "surface": "ダート",
-    "growth": "早熟",
-    "fee_tier": "B",
-    "region": "domestic",
-    "weight": 490,
-    "source": "https://www.jbis.or.jp/horse/0001205475/"
-  },
-  {
-    "name": "ダノンレジェンド",
-    "sire": "Macho Uno",
-    "dam": "マイグッドネス",
-    "bms": "Storm Cat",
-    "grandam": "カレシング",
-    "gbms": "Honour and Glory",
-    "line": [
-      "Holy Bull",
-      "Great Above",
-      "Minnesota Mac"
-    ],
-    "dist": [
-      1200,
-      1400
-    ],
-    "surface": "ダート",
-    "growth": "晩成",
-    "fee_tier": "B",
-    "region": "domestic",
-    "weight": 445,
-    "source": "https://www.jbis.or.jp/horse/0001162685/"
-  },
-  {
-    "name": "ベストウォーリア",
-    "sire": "マジェスティックウォリアー",
-    "dam": "Flirtatious Miss",
-    "bms": "Mr. Greeley",
-    "grandam": "Seductive Smile",
-    "gbms": "Silver Hawk",
-    "line": [
-      "A.P. Indy",
-      "Seattle Slew",
-      "Bold Reasoning"
-    ],
-    "dist": [
-      1400,
-      1600
-    ],
-    "surface": "ダート",
-    "growth": "普通",
-    "fee_tier": "C",
-    "region": "domestic",
-    "weight": 506,
-    "source": "https://www.jbis.or.jp/horse/0001163175/"
-  },
-  {
-    "name": "ウインブライト",
-    "sire": "ステイゴールド",
-    "dam": "サマーエタニティ",
-    "bms": "アドマイヤコジーン",
-    "grandam": "オールフォーゲラン",
-    "gbms": "ジェイドロバリー",
-    "line": [
-      "ステイゴールド",
-      "サンデーサイレンス",
-      "ヘイロー"
-    ],
-    "dist": [
-      1800,
-      2000
-    ],
-    "surface": "芝",
-    "growth": "普通",
-    "fee_tier": "C",
-    "region": "domestic",
-    "weight": 486,
-    "source": "https://www.jbis.or.jp/horse/0001188466/"
-  }
+ {
+  "name": "ヴィクトワールピサ",
+  "sire": "ネオユニヴァース",
+  "dam": "ホワイトウォーターアフェア",
+  "bms": "Machiavellian",
+  "grandam": "Much Too Risky",
+  "gbms": "Bustino",
+  "line": [
+   "サンデーサイレンス",
+   "ヘイロー",
+   "ヘイルトゥリーズン"
+  ],
+  "dist": [
+   1800,
+   2500
+  ],
+  "surface": "芝",
+  "growth": "早熟",
+  "fee_tier": "B",
+  "region": "overseas",
+  "weight": 512,
+  "source": "https://www.jbis.or.jp/horse/0001046333/"
+ },
+ {
+  "name": "ダノンスマッシュ",
+  "sire": "ロードカナロア",
+  "dam": "スピニングワイルドキャット",
+  "bms": "ハードスパン",
+  "grandam": "Hollywood Wildcat",
+  "gbms": "Kris S.",
+  "line": [
+   "キングカメハメハ",
+   "キングマンボ",
+   "ミスタープロスペクター"
+  ],
+  "dist": [
+   1200,
+   1200
+  ],
+  "surface": "芝",
+  "growth": "晩成",
+  "fee_tier": "B",
+  "region": "domestic",
+  "weight": 472,
+  "source": "https://www.jbis.or.jp/horse/0001208468/",
+  "age2026": 11
+ },
+ {
+  "name": "アジアエクスプレス",
+  "sire": "ヘニーヒューズ",
+  "dam": "ランニングボブキャッツ",
+  "bms": "Running Stag",
+  "grandam": "Backatem",
+  "gbms": "Notebook",
+  "line": [
+   "Hennessy",
+   "Storm Cat",
+   "Storm Bird"
+  ],
+  "dist": [
+   1400,
+   1800
+  ],
+  "surface": "ダート",
+  "growth": "早熟",
+  "fee_tier": "C",
+  "region": "domestic",
+  "weight": 534,
+  "source": "https://www.jbis.or.jp/horse/0001177896/"
+ },
+ {
+  "name": "モズアスコット",
+  "sire": "Frankel",
+  "dam": "India",
+  "bms": "ヘネシー",
+  "grandam": "Misty Hour",
+  "gbms": "Miswaki",
+  "line": [
+   "Galileo",
+   "Sadler's Wells",
+   "Northern Dancer"
+  ],
+  "dist": [
+   1400,
+   1600
+  ],
+  "surface": "芝",
+  "growth": "普通",
+  "fee_tier": "A",
+  "region": "domestic",
+  "weight": 488,
+  "source": "https://www.jbis.or.jp/horse/0001213491/"
+ },
+ {
+  "name": "アラビアンナイト",
+  "sire": "Uncle Mo",
+  "dam": "Borealis Night",
+  "bms": "Astrology",
+  "grandam": "Winter Forest",
+  "gbms": "Forestry",
+  "line": [
+   "Indian Charlie",
+   "In Excess",
+   "Siberian Express"
+  ],
+  "dist": [
+   1400,
+   2000
+  ],
+  "surface": "ダート",
+  "growth": "早熟",
+  "fee_tier": "B",
+  "region": "overseas",
+  "weight": "不明",
+  "source": "https://www.bloodhorse.com/stallion-register/stallions/172918/arabian-knight",
+  "age2026": 6
+ },
+ {
+  "name": "スマートファルコン",
+  "sire": "ゴールドアリュール",
+  "dam": "ケイシュウハーブ",
+  "bms": "ミシシッピアン",
+  "grandam": "キョウエイシラユキ",
+  "gbms": "クラウンドプリンス",
+  "line": [
+   "サンデーサイレンス",
+   "ヘイロー",
+   "ヘイルトゥリーズン"
+  ],
+  "dist": [
+   1800,
+   2400
+  ],
+  "surface": "ダート",
+  "growth": "晩成",
+  "fee_tier": "C",
+  "region": "domestic",
+  "weight": 513,
+  "source": "https://www.jbis.or.jp/horse/0000881793/"
+ },
+ {
+  "name": "ルヴァンスレーヴ",
+  "sire": "シンボリクリスエス",
+  "dam": "マエストラーレ",
+  "bms": "ネオユニヴァース",
+  "grandam": "オータムブリーズ",
+  "gbms": "ティンバーカントリー",
+  "line": [
+   "クリスエス",
+   "ロベルト",
+   "ヘイルトゥリーズン"
+  ],
+  "dist": [
+   1600,
+   2000
+  ],
+  "surface": "ダート",
+  "growth": "早熟",
+  "fee_tier": "B",
+  "region": "domestic",
+  "weight": 490,
+  "source": "https://www.jbis.or.jp/horse/0001205475/"
+ },
+ {
+  "name": "ダノンレジェンド",
+  "sire": "Macho Uno",
+  "dam": "マイグッドネス",
+  "bms": "Storm Cat",
+  "grandam": "カレシング",
+  "gbms": "Honour and Glory",
+  "line": [
+   "Holy Bull",
+   "Great Above",
+   "Minnesota Mac"
+  ],
+  "dist": [
+   1200,
+   1400
+  ],
+  "surface": "ダート",
+  "growth": "晩成",
+  "fee_tier": "B",
+  "region": "domestic",
+  "weight": 445,
+  "source": "https://www.jbis.or.jp/horse/0001162685/"
+ },
+ {
+  "name": "ベストウォーリア",
+  "sire": "マジェスティックウォリアー",
+  "dam": "Flirtatious Miss",
+  "bms": "Mr. Greeley",
+  "grandam": "Seductive Smile",
+  "gbms": "Silver Hawk",
+  "line": [
+   "A.P. Indy",
+   "Seattle Slew",
+   "Bold Reasoning"
+  ],
+  "dist": [
+   1400,
+   1600
+  ],
+  "surface": "ダート",
+  "growth": "普通",
+  "fee_tier": "C",
+  "region": "domestic",
+  "weight": 506,
+  "source": "https://www.jbis.or.jp/horse/0001163175/"
+ }
 ]
