@@ -69,27 +69,28 @@
     "source": "https://www.jbis.or.jp/horse/0001106251/"
   },
   {
-    "name": "ラブリーデイ",
-    "sire": "キングカメハメハ",
-    "dam": "ポップコーンジャズ",
-    "bms": "ダンスインザダーク",
-    "grandam": "グレイスルーマー",
-    "gbms": "トニービン",
+    "name": "ダノンスコーピオン",
+    "sire": "ロードカナロア",
+    "dam": "レキシールー",
+    "bms": "Sligo Bay",
+    "grandam": "Oneexcessivenite",
+    "gbms": "In Excess",
     "line": [
+      "キングカメハメハ",
       "キングマンボ",
-      "ミスタープロスペクター",
-      "レイズアネイティヴ"
+      "ミスタープロスペクター"
     ],
     "dist": [
-      1800,
-      2400
+      1400,
+      1600
     ],
     "surface": "芝",
-    "growth": "普通",
+    "growth": "早熟",
     "fee_tier": "C",
-    "region": "domestic",
-    "weight": 486,
-    "source": "https://www.jbis.or.jp/horse/0001122040/"
+    "region": "overseas",
+    "weight": 460,
+    "source": "https://www.jbis.or.jp/horse/0001312302/",
+    "age2026": 7
   },
   {
     "name": "キセキ",
