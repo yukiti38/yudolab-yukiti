@@ -1182,6 +1182,7 @@ function makeFictionalStallion(){
     pace: inheritPace(paceOf(sire), paceOf(sire)), /* v3.8：仕上がりの個体差は父から傾向継承 */
     jizoku: Math.random() < 0.05 && jizokuAllowedGt(gt) /* v3.1：晩成系には持続を付けない */
   };
+  surfMarksFromLabel(st, st.surface === "芝ダート" ? "両刀" : st.surface, true); /* v3.9：架空種牡馬の馬場適性マーク */
   return st;
 }
 /* 引退で減った分の補充（供用中の総数が147頭を超えない範囲で） */
@@ -1218,6 +1219,7 @@ function initState(){
         mattari: mattariDefault(), retirePolicyDefault:"logic", retireQueue:[], mareLimit:20, debutLimit:20,
         lineState:{}, lineGf:false }; /* v3.4：牝系の確立状態（始祖ID→{streak, estYear, decline}）。lineGf は旧セーブの経過措置フラグ */ /* v3.1：まったりモード（自動運転）と引退方針・年末確認キュー。頭数上限（繁殖牝馬／1世代のデビュー馬）はプレイヤー設定可・既定20・最小値なし */
   initStallionRoster(); /* v3.0：各エントリに birthYear／retireAge／retired／fictional と bmsLine を用意する */
+  for(const st of S.stallions) surfMarksFromLabel(st, st.surface, false); /* v3.9：新規ゲームの種牡馬にも馬場適性マークを用意 */
   const sts = S.stallions;
   // 種牡馬ロスターは世代交代する（v3.0）。自家生産の牡馬が引退時に種牡馬入りすることはある（そちらは従来どおり）。
   // 開始時：候補5頭から繁殖牝馬を1頭だけ選ぶ（架空・母父は実在プールから）。選ばなかった候補は後のセールに回る。
@@ -1383,6 +1385,10 @@ function migrateV029(){
   /* v3.7 移行：通知枠（旧セーブには無いので補う） */
   if(!Array.isArray(S.notices)) S.notices = [];
   if(typeof S.noticesOpen !== "boolean") S.noticesOpen = false;
+  /* v3.9 移行：馬場適性マーク（旧セーブには無いので、旧ラベルから決定的に導出する。
+     両刀→○○、専門→表○・裏✕。ラベルが残るので見え方は従来どおりに保たれる） */
+  if(S.horses) for(const h of S.horses){ if(typeof h.surfT !== "string") surfMarksFromLabel(h, h.surface, false); }
+  if(S.stallions) for(const st of S.stallions){ if(typeof st.surfT !== "string") surfMarksFromLabel(st, st.surface, false); }
   /* v3.8 移行：仕上がりの個体差 pace（旧セーブには無いので、外部由来と同じ抽選で補う） */
   if(S.horses) for(const h of S.horses){ if(typeof h.pace !== "number") h.pace = paceDraw(); }
   if(S.stallions) for(const st of S.stallions){ if(typeof st.pace !== "number") st.pace = paceDraw(); }
@@ -1668,9 +1674,74 @@ function ageRestrictionViolation(h, race){
   if(/(^|[^0-9])3歳/.test(c) && !c.includes("3歳以上") && age!==3) return "3歳限定";
   return null;
 }
+/* ===== 馬場適性（v3.9・オーナー発案 2026-11-17）：芝／ダート別々のステータス =====
+   旧仕様は馬場が1カテゴリ（芝／ダート／両刀）で、合わない方は一律×0.90（オーナー：
+   「0.90って結構勝てる」＝差が小さすぎた）。新仕様は馬場ごとに ○／−／✕ の適性を
+   持ち、係数は ○1.00／−0.95／✕0.78（オーナー：「勝負にならないレベルまで落としていい」）。
+   最初から表示する（配合の基本情報なので隠さない）。受け継がれ方は オーナー 指定：
+   両刀が配合に入ると産駒はもう片方の適性に引っ張られ、両刀同士でも両刀のままは
+   約10%（残りは芝かダートの ○− 型）。旧仕様の「両刀×両刀＝両刀100%」の罠は消える。
+   h.surface のラベル（芝／ダート／両刀）はマークから導出する表示・互換用の別名 */
+const SURF_FACTOR = { "○": 1.00, "-": 0.95, "✕": 0.78 };
+function surfMarkOf(x, surface){
+  const m = surface === "芝" ? x.surfT : x.surfD;
+  if(m === "○" || m === "-" || m === "✕") return m;
+  /* マーク未設定（旧データ・新規の素体）はラベルから決定的に導出して保持する。
+     ランダムな補完にすると、同じ個体でも読むたびに適性が変わってしまうため */
+  surfMarksFromLabel(x, x.surface, false);
+  return surface === "芝" ? x.surfT : x.surfD;
+}
+function surfText(x){ return "芝" + surfMarkOf(x, "芝") + " ダート" + surfMarkOf(x, "ダート"); }
+function surfLabel(t, d){
+  if(t === d) return t === "○" ? "両刀" : t === "-" ? "両刀" : null; /* ✕✕は呼び出し側で親ラベルに倒す */
+  return (t === "○" || (t === "-" && d === "✕")) ? "芝" : (d === "○" || (d === "-" && t === "✕")) ? "ダート" : "両刀";
+}
+function setSurfMarks(x, t, d){
+  x.surfT = t; x.surfD = d;
+  const lab = surfLabel(t, d);
+  if(lab) x.surface = lab; else if(x.surface !== "芝" && x.surface !== "ダート") x.surface = "芝"; /* ✕✕は既存ラベル（専門）を保持 */
+}
+/* ラベルからマークを置く（外部由来の個体の初期化用）：専門型の裏側は ✕70%／−30% で個体差を付ける */
+function surfMarksFromLabel(x, label, soft){
+  if(label === "両刀" || label === "芝ダート"){ setSurfMarks(x, "○", "○"); return; }
+  const off = soft && Math.random() < 0.3 ? "-" : "✕";
+  if(label === "ダート") setSurfMarks(x, off, "○"); else setSurfMarks(x, "○", off);
+}
+/* 馬場タイプの受け継がれ方（v3.9・オーナー指定 2026-11-17）：両刀が配合に入ると、産駒は
+   もう片方の適性に引っ張られる。両刀同士なら芝かダートのどちらかになり（○−の形）、
+   両刀のまま生まれるのは約10%だけ。両刀が絡まない配合は従来型（同馬場90%／
+   異馬場は父45%・母45%・両刀約10%、系統の芝/ダート寄せで父・母の配分がずれる） */
+function surfTypeOf(x){
+  const l = surfLabel(surfMarkOf(x, "芝"), surfMarkOf(x, "ダート"));
+  if(l) return l;
+  const s = x.surface;
+  return s === "芝ダート" ? "両刀" : s === "ダート" ? "ダート" : "芝";
+}
+function inheritSurfType(sLab, dLab, lbSurf){
+  const r = Math.random();
+  if(sLab === "両刀" && dLab === "両刀") return r < 0.45 ? "芝" : r < 0.90 ? "ダート" : "両刀";
+  /* どの結果も0%にはしない（オーナー指定 2026-11-17）：最低5%を割り振る。同馬場同士は
+     両刀の取り分から、両刀が絡む配合は多い方（専門型85%）から5%を回す */
+  if(sLab === "両刀" || dLab === "両刀"){ const other = sLab === "両刀" ? dLab : sLab; const third = other === "芝" ? "ダート" : "芝"; return r < 0.85 ? other : r < 0.95 ? "両刀" : third; }
+  if(sLab === dLab){ const third = sLab === "芝" ? "ダート" : "芝"; return r < 0.90 ? sLab : r < 0.95 ? "両刀" : third; }
+  let pS = 0.45;
+  const pref = lbSurf > 0 ? "芝" : lbSurf < 0 ? "ダート" : null;
+  if(pref){ const mag = Math.min(Math.abs(lbSurf), 25) / 100; pS += (sLab === pref ? mag : -mag); }
+  pS = clamp(pS, 0.05, 0.90);
+  return r < pS ? sLab : r < 0.901 ? dLab : "両刀";
+}
+/* タイプからマークを作る：両刀が絡んだ配合の専門型は裏側が −（○−の形）。
+   絡まない配合の専門型は裏側が ✕70%／−30% */
+function surfMarksForType(cType, dualInvolved){
+  if(cType === "両刀") return ["○", "○"];
+  const off = dualInvolved ? "-" : (Math.random() < 0.3 ? "-" : "✕");
+  return cType === "芝" ? ["○", off] : [off, "○"];
+}
+function surfBlocked(x, surface){ return surfMarkOf(x, surface) === "✕"; }
+
 function aptitudeFactor(h, race){
   let f = 1;
-  if(race.surface && h.surface!=="両刀" && h.surface!==race.surface) f *= 0.90;
+  if(race.surface) f *= (SURF_FACTOR[surfMarkOf(h, race.surface)] || 1); /* v3.9：馬場適性は面ごとのマークで */
   const d = race.distance_m;
   if(d){ if(d < h.distMin) f *= clamp(1 - (h.distMin-d)/2600, 0.8, 1); if(d > h.distMax) f *= clamp(1 - (d-h.distMax)/2600, 0.78, 1); }
   return f;
@@ -2074,23 +2145,11 @@ function onNewYear(){
       /* 継承は「傾向的」（v0.50）：父母平均を平均65へ0.65倍に回帰させたものが中心。ブレは広く、保証なし。
          系統のパラメータ寄せはパラメータごとの中心へ加える（ニックスとは別枠で、相性の数値は変えない） */
       const fp = (s, d, bias) => inheritCentre((s + d)/2) + nickShift + gb[0] + bias + Math.round(triSpread(spN) * gb[1]);
-      let surf;
-      if(st.surface===h.surface){
-        surf = Math.random()<0.9 ? st.surface : "両刀";
-      } else {
-        /* 馬場が食い違う場合のみ、系統の芝/ダート寄せ（pp）を「寄せ先の馬場を持つ親」側の
-           継承確率へ移す（最大±25pp）。両刀になる確率は従来どおり約0.099、寄せが無ければ従来と同一分布 */
-        let pS = 0.45; const pBoth = 0.099;
-        const pref = lb.surf > 0 ? "芝" : lb.surf < 0 ? "ダート" : null;
-        if(pref){
-          const mag = Math.min(Math.abs(lb.surf), 25)/100;
-          if(st.surface===pref && h.surface!==pref) pS += mag;
-          else if(h.surface===pref && st.surface!==pref) pS -= mag;
-        }
-        pS = clamp(pS, 0.05, 0.90);
-        const rr = Math.random();
-        surf = rr < pS ? st.surface : rr < 1 - pBoth ? h.surface : "両刀";
-      }
+      /* 馬場適性（v3.9・オーナー指定）：両刀が配合に入ると産駒はもう片方に引っ張られる */
+      const sType = surfTypeOf(st), dType = surfTypeOf(h);
+      const dualInvolved = sType === "両刀" || dType === "両刀";
+      const foalSurfType = inheritSurfType(sType, dType, lb.surf);
+      const [foalSurfT, foalSurfD] = surfMarksForType(foalSurfType, dualInvolved);
       const bmsSt = S.stallions.find(s=>s.name===h.sire);
       const cS = (st.dist[0]+st.dist[1])/2, cD = (h.distMin+h.distMax)/2, cB = bmsSt ? (bmsSt.dist[0]+bmsSt.dist[1])/2 : cD;
       const centre = cS*0.5 + cD*0.35 + cB*0.15 + lb.dist + irnd(-200,200);
@@ -2098,9 +2157,10 @@ function onNewYear(){
       const r50 = v => clamp(Math.round(v/50)*50, 1000, 4000);
       const sireCoat = (S.horses.find(x=>x.status==="stallion" && x.name===st.name) || {}).coat || st.coat;
       const foal = newHorse({ name: provisionalName(h.name, S.year), sex, birthYear:S.year, sire:st.name, dam:h.name, damId:h.id, bms:h.sire, /* v3.4：牝系の追跡は個体IDで行う（名前は同名衝突で壊れる） */
-        status:"foal", surface: surf, coat: inheritCoat(sireCoat, h.coat),
+        status:"foal", coat: inheritCoat(sireCoat, h.coat),
         distMin: r50(centre - width/2), distMax: r50(centre + width/2),
         growth: G_DISP[foalGt], gtype: foalGt, pace: inheritPace(paceOf(st), paceOf(h)), ability: 70 });
+      foal.surface = foalSurfType; setSurfMarks(foal, foalSurfT, foalSurfD);
       foal.saleNoise = rnd(0.85, 1.15);
       foal.unnamed = true;
       setParams(foal, fp(sg.spd, h.spd, lb.spd), fp(sg.sta, h.sta, lb.sta), fp(sg.gut, h.gut, lb.gut));
@@ -2127,7 +2187,7 @@ function onNewYear(){
       /* 変異（v0.41→v0.42で父側に訂正）：変異因子を持つ種牡馬の産駒は約1%で能力・適性が大きく変異する */
       if(st.mutation && Math.random()<0.01){
         setParams(foal, clampParam(foal.spd + irnd(-18,26)), clampParam(foal.sta + irnd(-18,26)), clampParam(foal.gut + irnd(-18,26)));
-        if(Math.random()<0.6) foal.surface = foal.surface==="芝" ? "ダート" : foal.surface==="ダート" ? "芝" : (Math.random()<0.5 ? "芝" : "ダート");
+        if(Math.random()<0.6){ const tt = foal.surfT; setSurfMarks(foal, foal.surfD, tt); } /* v3.9：変異の馬場反転はマークの入れ替え */
         const shift = irnd(500,1100) * (Math.random()<0.5 ? -1 : 1);
         const w2 = foal.distMax - foal.distMin;
         const c2 = clamp((foal.distMin+foal.distMax)/2 + shift, 800, 3800);
@@ -2352,7 +2412,7 @@ function autoRangeOf(h){ const t = autoRangePlusOf(h) ? AUTO_RANGE_TOL : 0; retu
 /* 軽量フィット判定（数え上げ・先読み専用）：国内・馬場・距離・クラス・年齢性別条件 */
 function autoFitsLite(h, race, year){
   if(!race || race.sector==="overseas") return false;
-  if(race.surface && h.surface!=="両刀" && h.surface!==race.surface) return false;
+  if(race.surface && surfBlocked(h, race.surface)) return false; /* v3.9：✕の馬場には自動で入れない */
   const aRg = autoRangeOf(h);
   if(race.distance_m == null || race.distance_m < aRg[0] || race.distance_m > aRg[1]) return false;
   if(autoOverClass(h, race)) return false;
@@ -2452,7 +2512,7 @@ function autoEntryPass(){
           if(pol!=="普通" && pol!=="積極的") continue; /* 消極的＝自動では行かない */
           if(S.funds < EXPEDITION_FEE || overseasTripsThisYear(h) >= (pol==="積極的" ? 3 : 2)) continue; /* 遠征費を払える資金があること／年の上限は普通2回・積極的3回 */
         }
-        if(race.surface && h.surface!=="両刀" && h.surface!==race.surface) continue;
+        if(race.surface && surfBlocked(h, race.surface)) continue; /* v3.9：✕の馬場には自動で入れない */
         /* v3.7（オーナー案）：新馬・未勝利に限り、未勝利馬は距離が適性範囲外でも候補に残す（far）。
            範囲内の候補が1つでもあれば far は捨てるので、通常の馬の動きは変わらない。
            範囲内の受け皿が無い長距離馬が、最も近い未勝利戦でデビューできるようにする門戸開放 */
@@ -2534,7 +2594,7 @@ function maybeAutoRotation(h, race){
     let best = null;
     for(const r of DATA.domestic){
       if(!G1_GRADES.includes(r.grade) || r.distance_m == null) continue;
-      if(r.surface && h.surface !== "両刀" && r.surface !== h.surface) continue;
+      if(r.surface && surfBlocked(h, r.surface)) continue; /* v3.9：✕の馬場のG1は自動指定しない */
       const d = Math.abs(r.distance_m - mid);
       if(!best || d < best.d) best = { r, d };
     }
@@ -3093,7 +3153,7 @@ function autoHorseRowsHtml(){
   const racers = S.horses.filter(h=>h.status==="racehorse" && !h.retired);
   if(!racers.length) return "<div class='sub'>現役馬がいません</div>";
   const rows = racers.map(h =>
-    "<tr><td><span class='horse-link' data-horse='"+h.id+"'>"+h.name+"</span>"+((h.rotation||[]).some(k=>rotationRaceOf(k)) ? " <span class='ok'>🎯指定あり</span>" : ((h.rotAuto||[]).some(k=>rotationRaceOf(k)) ? " <span class='ok'>🤖🎯自動指定あり</span>" : ""))+"</td><td>"+ageOf(h)+"歳"+h.sex+"・"+horseClass(h)+"・"+h.surface+" "+h.distMin+"-"+h.distMax+"m</td>"
+    "<tr><td><span class='horse-link' data-horse='"+h.id+"'>"+h.name+"</span>"+((h.rotation||[]).some(k=>rotationRaceOf(k)) ? " <span class='ok'>🎯指定あり</span>" : ((h.rotAuto||[]).some(k=>rotationRaceOf(k)) ? " <span class='ok'>🤖🎯自動指定あり</span>" : ""))+"</td><td>"+ageOf(h)+"歳"+h.sex+"・"+horseClass(h)+"・"+surfText(h)+" "+h.distMin+"-"+h.distMax+"m</td>" /* v3.9：馬場適性マークを明示 */
     + "<td><select data-auto-on='"+h.id+"'><option value='off'"+(!h.autoEntry?" selected":"")+">OFF</option><option value='on'"+(h.autoEntry?" selected":"")+">ON</option></select></td>"
     + "<td><select data-auto-rot='"+h.id+"'><option value=''"+(h.autoRot==null?" selected":"")+">既定（中"+autoDefRot()+"週）</option>"
     + AUTO_ROT_PRESETS.map(n=>"<option value='"+n+"'"+(h.autoRot===n?" selected":"")+">中"+n+"週</option>").join("") + "</select></td>"
@@ -3155,7 +3215,7 @@ function viewEntry(){
   }
   html += "</div>";
   const h = racers.find(x=>x.id===entryHorseId);
-  html += "<div class='sub' style='margin-top:8px;'>"+h.name+" の適性："+h.surface+" "+h.distMin+"-"+h.distMax+"m・"+h.growth+"。◎は適性おすすめ、グレーは条件外（理由付き）。<b>最大3週先まで先行登録できます</b>（各週1レースずつ、複数の週に重ねて登録できます。その週が来ると自動で実施されます）。</div>";
+  html += "<div class='sub' style='margin-top:8px;'>"+h.name+" の適性："+surfText(h)+" "+h.distMin+"-"+h.distMax+"m・"+h.growth+"。◎は適性おすすめ、グレーは条件外（理由付き）。<b>最大3週先まで先行登録できます</b>（各週1レースずつ、複数の週に重ねて登録できます。その週が来ると自動で実施されます）。</div>";
   const sCur = h.stylePref || null;
   const styleBtns = STYLES.map(s=>"<button data-style='"+s+"' class='"+(sCur===s?"":"ghost")+"'>"+s+"</button>").join("");
   html += "<div class='flex' style='margin-top:8px;'><label>脚質：</label>"+styleBtns+"<span class='sub'>脚質適性は表示されません。ステータス（スピード／スタミナ）と気性を見て選んでください（スタミナ型は前へ、スピード型は後ろで脚を溜めるのが基本。根性はどの脚質にもプラス）。未選択なら馬の自然な脚質で走ります。選んだ脚質は登録と一緒に保存されます</span></div>";
@@ -3284,7 +3344,8 @@ function mareBreedable(m){ return m.status==="broodmare" && !m.pregnant && !m.br
 function foalingRisk(age){ return age>=17 ? 0.30 : age===16 ? 0.22 : age===15 ? 0.14 : age===14 ? 0.08 : 0; }
 function compatScore(m, st){
   let s = 0;
-  if(st.surface===m.surface) s += 2; else if(st.surface==="芝ダート" || m.surface==="芝ダート") s += 1;
+  const ov = (a, b) => a === b ? 1 : (a === "○" && b === "✕") || (a === "✕" && b === "○") ? 0 : 0.5;
+  s += ov(surfMarkOf(st, "芝"), surfMarkOf(m, "芝")) + ov(surfMarkOf(st, "ダート"), surfMarkOf(m, "ダート")); /* v3.9：馬場の一致は面ごとのマークの重なり（最大2点） */
   const overlap = Math.min(m.distMax, st.dist[1]) - Math.max(m.distMin, st.dist[0]);
   if(overlap>=400) s += 2; else if(overlap>=0) s += 1;
   return s;
@@ -4121,7 +4182,7 @@ function retireColtCore(h, toStud){
     const hbGbms = damH ? (damH.gbms || null) : null;
     S.stallions.push({name:h.name, sire:h.sire, dam:h.dam, bms:hbBms, grandam:hbGrandam, gbms:hbGbms, pace: paceOf(h), /* v3.8：種牡馬入り時に仕上がりの個体差も引き継ぐ */
       bmsLine: hbBms ? sireChainOf(hbBms).slice(0,3) : [],
-      region:"domestic", surface:h.surface, dist:[h.distMin,h.distMax], growth:h.growth, gtype:gtypeOf(h), fee_tier:"B", fresh:true, jizoku: !!h.jizoku,
+      region:"domestic", surface:h.surface, surfT: surfMarkOf(h, "芝"), surfD: surfMarkOf(h, "ダート"), dist:[h.distMin,h.distMax], growth:h.growth, gtype:gtypeOf(h), fee_tier:"B", fresh:true, jizoku: !!h.jizoku, /* v3.9：馬場適性マークも引き継ぐ */
       birthYear:h.birthYear, retireAge:(S.year - h.birthYear) + 19, retired:false, fictional:false, studStart:S.year});
     topic("✨ "+h.name+" が種牡馬入りしました");
   }
@@ -4485,7 +4546,7 @@ function openHorse(id){
     + familyLineRow(h)
     + (h.coat ? "<dt>毛色</dt><dd>"+h.coat+"</dd>" : "")
     + (h.matureWeight != null ? "<dt>馬体重</dt><dd>"+weightNow(h)+"kg <span class='sub'>（成熟時は約"+h.matureWeight+"kg）</span></dd>" : "")
-    + "<dt>適性</dt><dd>"+h.surface+" "+h.distMin+"-"+h.distMax+"m・"+h.growth+"</dd>"
+    + "<dt>適性</dt><dd>"+surfText(h)+"（"+h.surface+"） "+h.distMin+"-"+h.distMax+"m・"+h.growth+"</dd>" /* v3.9：馬場適性は面ごとのマークを明示 */
     + ((h.status==="yearling" || h.status==="racehorse") ? "<dt>所属</dt><dd>"+(h.stable ? h.stable+"トレーニングセンター（変更できません）"+(h.stayRegion ? "／現在は遠征先に滞在中" : "") : "未定です <button id='stableMihoBtn'>美浦にする</button> <button id='stableRittoBtn'>栗東にする</button> <span class='sub'>一度決めると現役の間は変更できません</span>")+"</dd>" : "")
     + affinitySection(h)
     + (h.spd != null ? "<dt>パラメータ</dt><dd>スピード <b>"+effRank(h,"spd")+"</b>"+trendMark(h,"spd")+" ／ スタミナ <b>"+effRank(h,"sta")+"</b>"+trendMark(h,"sta")+" ／ 根性 <b>"+effRank(h,"gut")+"</b>"+trendMark(h,"gut")+"（総合 <b>"+rankOf(Math.round(effAvg(h)))+"</b>）<br><span class='sub'>素質（上限）：スピード "+rankOf(h.spd)+" ／ スタミナ "+rankOf(h.sta)+" ／ 根性 "+rankOf(h.gut)+"（総合 "+rankOf(Math.round((h.spd+h.sta+h.gut)/3))+"）</span></dd>" : "")
@@ -4667,6 +4728,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>競馬シミュレーター（趣味） v3.8</footer>
+<footer>競馬シミュレーター（趣味） v3.9</footer>
 </body>
 </html>
