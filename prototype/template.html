@@ -258,15 +258,34 @@ function generalRaces(y,m,w){
     const long2 = (w % 2 === 0); // 偶数週は長距離ウィーク
     out.push(mk("2歳新馬", c1, "芝", long2 ? 1800 : (w===1 ? 1400 : 1600), "2歳", "新馬"));
     out.push(mk("2歳新馬", c2, "ダート", long2 ? 1800 : 1200, "2歳", "新馬"));
-    out.push(mk("2歳未勝利", c2, "芝", long2 ? 2000 : 1400, "2歳", "未勝利"));
-    out.push(mk("2歳未勝利", c1, "ダート", long2 ? 1800 : 1400, "2歳", "未勝利"));
+    out.push(mk("2歳新馬", c2, "芝", long2 ? 1400 : 1800, "2歳", "新馬")); /* v3.7：Terai指定で新馬は3個に（芝の距離違いを追加し、短・中・長の受け皿を揃える） */
+    if(m<=7){
+      /* v3.7：6〜7月は未勝利がまだ無く、新馬5開催（Terai指定）。距離帯は芝1200〜2000・ダート1200〜1800の内側 */
+      out.push(mk("2歳新馬", c1, "ダート", long2 ? 1600 : 1800, "2歳", "新馬"));
+      out.push(mk("2歳新馬", c1, "芝", long2 ? 1200 : 2000, "2歳", "新馬"));
+    } else {
+      /* v3.7：2歳未勝利は8月から開催（Terai指定） */
+      out.push(mk("2歳未勝利", c2, "芝", long2 ? 2000 : 1400, "2歳", "未勝利"));
+      out.push(mk("2歳未勝利", c1, "ダート", long2 ? 1800 : 1400, "2歳", "未勝利"));
+    }
   }
   if(m>=7){
     out.push(mk("2歳1勝クラス", c1, "芝", 1600, "2歳", "1勝クラス"));
     out.push(mk("2歳1勝クラス", c2, "ダート", 1400, "2歳", "1勝クラス"));
   }
+  if(m<=3){
+    /* v3.7：3歳新馬（1〜3月・Terai決定）。2歳でデビューできなかった馬の受け皿で、3歳未勝利と併催する。
+       新馬は3月で終了し、4月からは未勝利4開催のみになる */
+    out.push(mk("3歳新馬", c1, "芝", (w % 2 === 0) ? 1800 : 1600, "3歳", "新馬"));
+    out.push(mk("3歳新馬", c2, "ダート", (w % 2 === 0) ? 1600 : 1400, "3歳", "新馬"));
+    out.push(mk("3歳新馬", c2, "芝", (w % 2 === 0) ? 1400 : 2000, "3歳", "新馬"));
+  }
   if(m<=9) out.push(mk("3歳未勝利", c1, "芝", 1800, "3歳", "未勝利"));
   if(m<=9) out.push(mk("3歳未勝利", c2, "ダート", 1400, "3歳", "未勝利"));
+  /* v3.7：長距離の未勝利戦（現実のJRA番組に倣う・Terai指摘「未勝利戦2400は開催されているよね？」）。
+     芝2400は毎週（場は週替わり）、ダート2100は隔週で東京。距離下限が遠い馬のデビュー先になる */
+  if(m<=9) out.push(mk("3歳未勝利", COURSES[(ci+5) % COURSES.length], "芝", (w % 2 === 0) ? 2400 : 2200, "3歳", "未勝利")); /* v3.7：長距離の芝未勝利は2200と2400を隔週で（Terai: 未勝利には2200もある） */
+  if(m<=9) out.push(mk("3歳未勝利", "東京", "ダート", 2100, "3歳", "未勝利")); /* v3.7：Terai指定で毎週開催にし、3歳未勝利は毎週4個（芝1800・ダート1400・芝2400・ダート2100）で固定 */
   out.push(mk("1勝クラス", c1, "芝", 2000, "3歳以上", "1勝クラス"));
   out.push(mk("1勝クラス", c2, "ダート", 1700, "3歳以上", "1勝クラス"));
   out.push(mk("2勝クラス", c1, "芝", 1600, "3歳以上", "2勝クラス"));
@@ -779,6 +798,20 @@ function horseClass(h){
 /* 重賞勝ちの一覧（v0.33）：戦績からグレード対象の勝利だけを抽出する。馬ページの成績欄に明記するため（斤量計算用の gradedWins とは別） */
 const GRADED_SET = ["GI","GII","GIII","G1","G2","G3","JpnI","JpnII","JpnIII","L"];
 function gradedWinList(h){ return h.results.filter(r=>r.finish===1 && GRADED_SET.includes(r.grade)); }
+/* 重賞勝ちの表示用まとめ（v3.7・Terai要望）：同じレース（名前・グレード・競馬場）の勝ちは
+   「有馬記念（GI・2026,2027）」のように年を並べて1件に畳む。連覇・複数回勝ちの多い馬で
+   重賞勝ち欄が勝ち鞍の羅列になって見にくかったため。並びは初勝利の時系列順を維持する */
+function gradedWinSummary(h){
+  const groups = new Map();
+  for(const r of gradedWinList(h)){
+    const key = r.race + "|" + r.grade + "|" + (r.course || "");
+    if(!groups.has(key)) groups.set(key, { race: r.race, grade: r.grade, years: [] });
+    const y = String(r.when).slice(0, 4);
+    const g = groups.get(key);
+    if(!g.years.includes(y)) g.years.push(y);
+  }
+  return [...groups.values()].map(g => g.race + "（" + g.grade + "・" + g.years.join(",") + "）").join("、");
+}
 function evalComment(h){
   if(h.spd == null) return "―評価（"+h.surface+"・"+h.distMin+"〜"+h.distMax+"m・"+h.growth+"）";
   const comp = Math.round((h.spd+h.sta+h.gut)/3);
@@ -1142,8 +1175,8 @@ function substituteAncestor(name, year, group){
 }
 function initState(){
   S = { year:2026, month:1, week:1, calVer:2, ver:3, funds:30000, horses:[], stallions: JSON.parse(JSON.stringify(DATA.stallions)),
-        chronicle:[], statsBirths:{}, topics:[], yearEndDone:false, phase:"choose", candidates:[], salePool:[], saleYear:2026, usedTemplates:[], firstMatingDone:false,
-        giftQueue:[], giftAprDone:false, giftDecDone:false, giftSet:null, favs:[], mile:null, farmWins:0, farmPrize:0, kanmuri:"", soldHorses:[], autoRotDefault:8, autoPolicyDefault:"積極", autoRangePlusDefault:true, autoBulkOpen:false, retiredOpen:false, hofOpen:false, topicsOpen:false, autoOverseasPolicy:"消極的",
+        chronicle:[], statsBirths:{}, topics:[], notices:[], yearEndDone:false, phase:"choose", candidates:[], salePool:[], saleYear:2026, usedTemplates:[], firstMatingDone:false,
+        giftQueue:[], giftAprDone:false, giftDecDone:false, giftSet:null, favs:[], mile:null, farmWins:0, farmPrize:0, kanmuri:"", soldHorses:[], autoRotDefault:8, autoPolicyDefault:"積極", autoRangePlusDefault:true, autoBulkOpen:false, retiredOpen:false, hofOpen:false, topicsOpen:false, noticesOpen:false, autoOverseasPolicy:"消極的",
         mattari: mattariDefault(), retirePolicyDefault:"logic", retireQueue:[], mareLimit:20, debutLimit:20,
         lineState:{}, lineGf:false }; /* v3.4：牝系の確立状態（始祖ID→{streak, estYear, decline}）。lineGf は旧セーブの経過措置フラグ */ /* v3.1：まったりモード（自動運転）と引退方針・年末確認キュー。頭数上限（繁殖牝馬／1世代のデビュー馬）はプレイヤー設定可・既定20・最小値なし */
   initStallionRoster(); /* v3.0：各エントリに birthYear／retireAge／retired／fictional と bmsLine を用意する */
@@ -1227,7 +1260,16 @@ function chron(text){
   S.chronicle.push({ y:S.year, m:S.month, w:S.week, text });
   if(S.chronicle.length>600) S.chronicle = S.chronicle.slice(-600);
 }
-function topic(text){ S.topics.push(text); }
+/* 今週のトピック（v3.7・Terai決定 2026-11-17）：レースに勝った時だけ流す。まったりモードで
+   週が高速に流れる中、登録・引退・故障などの通知が洪水になって勝敗が見えなくなっていたため。
+   勝利系以外は topic() を呼んでも記録しない（呼び出し側は無変更）。年表（マイルストーン）や
+   馬ページ・引退確認キューなど、恒常的な記録・UIは従来どおり残る */
+const TOPIC_WIN_RE = /を勝ちました|重賞初制覇|牧場初のG1制覇|賞金レコードを更新|通算 .*勝に到達|最初に、繁殖牝馬を1頭選んでください/;
+function topic(text){ if(TOPIC_WIN_RE.test(text)) S.topics.push(text); }
+/* 通知枠（v3.7・Terai決定 2026-11-17）：トピックを勝利だけに絞った代わりに、見逃すと困る
+   通知（故障・ローテーション見送りの理由・安全網での落選）は別枠「今週の通知」に置く。
+   対象は「走れなかった理由」系だけに絞り、登録・引退・精算などの通知はどちらにも出さない */
+function notice(text){ if(!Array.isArray(S.notices)) S.notices = []; S.notices.push(text); }
 function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S)); }catch(e){} }
 function load(){ try{ const t = localStorage.getItem(SAVE_KEY); if(t){ S = JSON.parse(t); migrateV029(); return true; } }catch(e){} return false; }
 /* v0.29 移行：単一スロット登録（enteredRaceKey）→週別登録（entries）、成長型の内部細分化（gtype）付与、若馬売却の個体ノイズ付与 */
@@ -1235,6 +1277,14 @@ function migrateV029(){
   if(!S) return;
   S._skipAuto = false; /* v3.2：スキップ中フラグは読み込み時に必ず落とす（途中保存されても引き継がない） */
   if(!S.lineState){ S.lineState = {}; S.lineGf = true; } /* v3.4：旧セーブは確立状態を持たないので、現行基準で成立中の系統をそのまま確立扱いにする経過措置を有効化 */
+  if(!S.hofGf){ /* v3.7：殿堂の両方必須化に伴う経過措置（一度だけ）。旧基準（G1勝ち or 5億円）で
+     殿堂入りしていた現役終了馬に hofVeteran を刻み、新基準でも殿堂リストに残す */
+    if(S.horses) for(const h of S.horses){
+      const done = h.retired || h.status==="broodmare" || h.status==="stallion";
+      if(done && h.results && h.results.length>0 && (hasG1Win(h) || (h.earnings||0)>=50000)) h.hofVeteran = true;
+    }
+    S.hofGf = true;
+  }
   if(S.mattari && S.mattari.auto && S.mattari.auto.buy == null) S.mattari.auto.buy = true; /* v3.4：旧セーブのまったり設定に自動購入の既定（ON）を補う */
   if(S.horses) for(const h of S.horses){ /* v3.4：繁殖入りの起点が無い旧セーブの牝馬は、初仔の前年（無ければ今年）で補う */
     if(h.status==="broodmare" && h.breedingSince == null){ const fy = mareFirstFoalYear(h); h.breedingSince = fy != null ? fy - 1 : S.year; }
@@ -1287,6 +1337,9 @@ function migrateV029(){
   if(typeof S.hofOpen !== "boolean") S.hofOpen = false;
   /* v2.4 移行：今週のトピックの開閉状態。既定は閉じた状態（false） */
   if(typeof S.topicsOpen !== "boolean") S.topicsOpen = false;
+  /* v3.7 移行：通知枠（旧セーブには無いので補う） */
+  if(!Array.isArray(S.notices)) S.notices = [];
+  if(typeof S.noticesOpen !== "boolean") S.noticesOpen = false;
   /* v2.3 移行：適性±200許容。全体の既定は許容する（true）、馬ごとは null＝既定に従う */
   if(typeof S.autoRangePlusDefault !== "boolean") S.autoRangePlusDefault = true;
   /* v3.5 移行：自動出走の海外遠征方針（積極的／普通／消極的）。既定は消極的＝自動では行かない
@@ -1348,7 +1401,9 @@ const CROWN_FILLY = ["桜花賞","オークス","秋華賞"];
 const WIN_MARKS = [50,100,200,300,500,750,1000,1500,2000,3000];
 const PRIZE_MARKS = [100000,300000,500000,1000000,2000000,5000000,10000000]; // 万円（10億・30億・50億・100億・200億・500億・1000億）
 function hasG1Win(h){ return h.results.some(r=>r.finish===1 && G1_GRADES.includes(r.grade)); }
-function hofEligible(h){ return h.results.length>0 && (hasG1Win(h) || (h.earnings||0)>=50000); }
+/* v3.7（Terai決定 2026-11-17）：殿堂入りは「G1勝ち」と「生涯5億円」の両方必須に厳格化
+   （従来はどちらか一方）。旧基準で殿堂入りしていた馬は h.hofVeteran で温存する（移行は migrateV029） */
+function hofEligible(h){ return h.results.length>0 && hasG1Win(h) && (h.earnings||0)>=50000; }
 function sireIsHomebred(h){ return S.horses.some(x=>x.status==="stallion" && x.name===h.sire); }
 function damIsFarmBorn(h){ const d = S.horses.find(x=>x.name===h.dam); return !!(d && S.horses.some(x=>x.name===d.dam)); }
 function crownLegs(h){ const set = h.sex==="牝" ? CROWN_FILLY : CROWN_COLT; return set.filter(n=>h.results.some(r=>r.finish===1 && r.race===n)); }
@@ -1510,7 +1565,9 @@ function eligibility(h, race){
     if(g==="未勝利" && h.wins>0) return "未勝利戦は未勝利馬のみ";
   }
   // クラス戦（一般・特別共通）：勝ち上がった馬は前のクラスには出られない。未勝利馬は新馬・未勝利戦のみ
-  // 未勝利のまま年齢・時期が過ぎた馬には出走できるレースが残らない＝実質引退（Terai決定 2026-11-12）
+  // 未勝利のまま年齢・時期が過ぎた馬には出走できるレースが残らない（Terai決定 2026-11-12）。
+  // v3.7（Terai決定 2026-11-17）：「実質引退」のまま残留する問題を受け、未勝利のまま4歳を
+  // 迎えた馬は年末に実際に引退させる（processYearEndRetirements）
   const CLASS_LIM = {"1勝クラス":1, "2勝クラス":2, "3勝クラス":3};
   if(CLASS_LIM[g] != null){
     if(h.wins===0) return "未勝利馬は新馬・未勝利戦のみ出走できます";
@@ -1817,7 +1874,7 @@ function runRace(race, entries){
       time: race.distance_m ? (baseTime + idx*0.35 + rnd(0,0.5)).toFixed(1) : "", agari: (rnd(33.2,36.8)).toFixed(1), prize };
     const pay = prizePayout(prize); /* v0.56：記録は総額、資金に入るのは進上金・源泉徴収を引いた手取り */
     h.results.push(rec); h.earnings += prize; S.funds += pay.net;
-    if(prize > 0) topic(payoutText(h, pay));
+    if(prize > 0 && finish!==1) topic(payoutText(h, pay)); /* v3.7：勝利時は勝利トピックに一本化（賞金の内訳は戦績・資金で確認できる）。2着以下の賞金は従来どおり（勝利系フィルタで落ちるため実質表示されない） */
     revealAffinities(h, race, tfMap.get(h) || 0); /* 相性は走って初めて確定する（v0.52） */
     if(finish===1){ h.wins++; if(["GI","GII","GIII","JpnI","JpnII","JpnIII","L"].includes(race.grade)) h.gradedWin = true; }
     if(finish===1 && GRADED_SET.includes(race.grade)) maybeAutoRotation(h, race); /* v3.1：自動ローテーション（重賞勝ちで翌年の指定を自動で付ける） */
@@ -1844,7 +1901,7 @@ function runRace(race, entries){
       (h.injuries = h.injuries || []).push({ when: S.year + "年" + S.month + "月第" + S.week + "週", race: race.name, kind: heavy ? "重症" : "軽症", weeks }); /* v3.6：故障歴（馬ページに表示） */
       let dmg = "";
       if(heavy){ const ps = ["spd","sta","gut"][irnd(0,2)]; const vals = { spd:h.spd, sta:h.sta, gut:h.gut }; vals[ps] = Math.max(35, vals[ps]-3); setParams(h, vals.spd, vals.sta, vals.gut); dmg = "能力にも影響が残りました"; } /* v0.50：重症の能力低下は-3（下限35） */
-      topic("🚑 "+h.name+" が故障しました（約"+weeks+"週間休養）");
+      notice("🚑 "+h.name+" が故障しました（約"+weeks+"週間休養）"); /* v3.7：故障は通知枠へ */
     }
   });
   return resultsOut;
@@ -1852,6 +1909,7 @@ function runRace(race, entries){
 /* ================= 週送り ================= */
 function advanceWeek(){
   S.topics = [];
+  S.notices = []; /* v3.7：通知枠も週ごとにリセット */
   // 1) 登録レースを実施
   const wk = racesThisWeek(S.year, S.month, S.week);
   for(const race of wk){
@@ -1862,7 +1920,7 @@ function advanceWeek(){
     const runnable = [];
     for(const h of entries){
       const av = ageRestrictionViolation(h, race);
-      if(av){ topic("⚠️ " + h.name + " は " + race.name + " の年齢条件（" + av + "）を満たさないため、出走できませんでした"); continue; }
+      if(av){ notice("⚠️ " + h.name + " は " + race.name + " の年齢条件（" + av + "）を満たさないため、出走できませんでした"); continue; } /* v3.7：安全網の落選は通知枠へ */
       runnable.push(h);
     }
     for(const h of runnable) h.enteredStyle = h.entries[absWeek()].style || null;
@@ -2333,7 +2391,12 @@ function autoEntryPass(){
           if(S.funds < EXPEDITION_FEE || overseasTripsThisYear(h) >= (pol==="積極的" ? 3 : 2)) continue; /* 遠征費を払える資金があること／年の上限は普通2回・積極的3回 */
         }
         if(race.surface && h.surface!=="両刀" && h.surface!==race.surface) continue;
-        if(race.distance_m==null || race.distance_m<aRg[0] || race.distance_m>aRg[1]) continue;
+        /* v3.7（Terai案）：新馬・未勝利に限り、未勝利馬は距離が適性範囲外でも候補に残す（far）。
+           範囲内の候補が1つでもあれば far は捨てるので、通常の馬の動きは変わらない。
+           範囲内の受け皿が無い長距離馬が、最も近い未勝利戦でデビューできるようにする門戸開放 */
+        const maidenOpen = h.wins===0 && (race.grade==="新馬" || race.grade==="未勝利");
+        const far = race.distance_m!=null && (race.distance_m<aRg[0] || race.distance_m>aRg[1]);
+        if(race.distance_m==null || (far && !maidenOpen)) continue;
         if(autoOverClass(h, race)) continue;                    /* 格上挑戦はしない（自クラス以下だけ。ただし世代限定重賞は1勝以上で例外＝v2.1） */
         if(!(race.sector==="overseas" && S.autoOverseasPolicy==="積極的") && !prestigeFloorOk(h, race)) continue; /* 格の地板（v3.1）：ベスト勝利より2段階以上下のレースには入れない（v3.5：積極的の海外遠征には適用しない） */
         if(eligibility(h, race)) continue;                      /* 関門は手動と完全同一 */
@@ -2345,9 +2408,10 @@ function autoEntryPass(){
           const reserveAfter = Math.max(reserveOf(yr) - (G1_GRADES.includes(race.grade) ? 1 : 0), 0);
           if(AUTO_CAP - (used + 1) < reserveAfter) continue;
         }
-        cands.push({ race, abs:a, tier:autoGradeTier(race), graded, shinba: race.grade === "新馬", distDiff: Math.abs(race.distance_m - mid), prize: prizeTable(race)[0] });
+        cands.push({ race, abs:a, tier:autoGradeTier(race), graded, shinba: race.grade === "新馬", far, distDiff: Math.abs(race.distance_m - mid), prize: prizeTable(race)[0] });
       }
     }
+    if(cands.some(c=>!c.far)) for(let i=cands.length-1;i>=0;i--) if(cands[i].far) cands.splice(i,1); /* v3.7：範囲内の候補がある馬は範囲外（far）を使わない */
     if(!cands.length) continue;
     const debutant = !hasDebuted(h);
     const byScore = (x, y) => ((debutant ? (x.shinba ? 0 : 1) - (y.shinba ? 0 : 1) : 0)) || (x.tier - y.tier) || (x.distDiff - y.distDiff) || (x.abs - y.abs) || (y.prize - x.prize); /* v3.6：未出走馬は新馬戦を最優先（Terai要望）。次いで格→適距離→早い週→賞金 */
@@ -2476,7 +2540,7 @@ function rotationPass(){
         if(mm && mm.abs === raceAbs && !mm.done){
           mm.done = true;
           const t = fromAbs(raceAbs);
-          topic("🎯 ローテーション見送り：" + h.name + " は " + t[1] + "月第" + t[2] + "週 の " + race.name + " に出走できませんでした（" + mm.reason + "）");
+          notice("🎯 ローテーション見送り：" + h.name + " は " + t[1] + "月第" + t[2] + "週 の " + race.name + " に出走できませんでした（" + mm.reason + "）"); /* v3.7：見送り理由は通知枠へ */
         }
       }
     }
@@ -2809,8 +2873,14 @@ function wrapTables(root){
    畳みの外（従来どおり #topics の先頭）に出す */
 function topicsHtml(){
   const list = S.topics.length ? S.topics.map(t=>'<div class="topic">'+t+"</div>").join("") : '<div class="sub">今週は特にありません。眺めるだけでも大丈夫です。</div>';
+  /* 通知枠（v3.7）：故障・見送り理由など「走れなかった理由」系はトピックと分けて置く。
+     件数が 0 の週は枠ごと出さない（まったりで眺める邪魔をしない） */
+  const notices = Array.isArray(S.notices) ? S.notices : [];
+  const noticeFold = notices.length
+    ? "<details data-notices-fold" + (S.noticesOpen ? " open" : "") + "><summary style='cursor:pointer;font-size:16px;font-weight:bold;'>今週の通知（" + notices.length + "件）</summary>" + notices.map(t=>'<div class="topic">'+t+"</div>").join("") + "</details>"
+    : "";
   return (debugOpen ? debugPanel() : "")
-    + "<details data-topics-fold" + (S.topicsOpen ? " open" : "") + "><summary style='cursor:pointer;font-size:16px;font-weight:bold;'>今週のトピック（" + S.topics.length + "件）</summary>" + list + "</details>";
+    + "<details data-topics-fold" + (S.topicsOpen ? " open" : "") + "><summary style='cursor:pointer;font-size:16px;font-weight:bold;'>今週のトピック（" + S.topics.length + "件）</summary>" + list + "</details>" + noticeFold;
 }
 function render(){
   const kn = $("#kanmuriNow"); if(kn) kn.textContent = S.kanmuri ? "「"+S.kanmuri+"」" : "（なし）";
@@ -2822,6 +2892,7 @@ function render(){
   $("#topics").innerHTML = topicsHtml();
   /* トピック欄の開閉状態を保存する（v2.4）。開閉そのものは details の標準動作なので再描画はしない */
   document.querySelectorAll("[data-topics-fold]").forEach(d=>d.addEventListener("toggle",()=>{ S.topicsOpen = !!d.open; save(); }));
+  document.querySelectorAll("[data-notices-fold]").forEach(d=>d.addEventListener("toggle",()=>{ S.noticesOpen = !!d.open; save(); })); /* v3.7：通知枠の開閉状態 */
   if(debugOpen){
     const dc = document.querySelector("[data-debug-create]"), dx = document.querySelector("[data-debug-cancel]");
     if(dc) dc.onclick = () => createDebugHorse();
@@ -3467,11 +3538,11 @@ function retiredListHtml(){
 }
 function viewChron(){
   let html = "";
-  /* ===== 殿堂（WS4a・2026-11-13で基準を厳格化）：現役を終えた馬のうち、
-     GI/JpnI/海外G1勝ち（海外G1はビルド時に "GI" へ正規化済み）または生涯獲得賞金5億円以上 ===== */
+  /* ===== 殿堂（WS4a・2026-11-13で基準を厳格化、v3.7で両方必須化）：現役を終えた馬のうち、
+     GI/JpnI/海外G1勝ち（海外G1はビルド時に "GI" へ正規化済み）かつ生涯獲得賞金5億円以上。
+     旧基準で殿堂入りしていた馬は hofVeteran で残す ===== */
   const careerDone = h => h.retired || h.status==="broodmare" || h.status==="stallion";
-  const hof = S.horses.filter(h => careerDone(h) && h.results.length>0
-    && (h.results.some(r=>r.finish===1 && ["GI","JpnI"].includes(r.grade)) || h.earnings>=50000))
+  const hof = S.horses.filter(h => careerDone(h) && (hofEligible(h) || h.hofVeteran))
     .sort((a,b)=>b.earnings-a.earnings);
   /* v2.4：殿堂リストも引退馬リストと同じく details で畳めるようにした（開閉状態は S.hofOpen、既定は閉） */
   html += "<details data-hof-fold" + (S.hofOpen ? " open" : "") + "><summary style='cursor:pointer;font-size:16px;font-weight:bold;'>🏆 殿堂（" + hof.length + "頭）</summary>";
@@ -3487,7 +3558,7 @@ function viewChron(){
     }).join("");
     html += "<table><tr><th>馬名</th><th>性</th><th>現役期間</th><th>成績</th><th>獲得賞金</th><th>代表勝ち鞍</th><th>現在</th></tr>"+rows+"</table>";
   } else {
-    html += "<div class='sub'>まだ殿堂入りした馬はいません。GI・JpnI・海外G1を勝つか、生涯5億円以上を稼いだ馬が現役を終えると、ここに残ります。</div>";
+    html += "<div class='sub'>まだ殿堂入りした馬はいません。GI・JpnI・海外G1を勝ち、かつ生涯5億円以上を稼いだ馬が現役を終えると、ここに残ります。</div>";
   }
   html += "</details>";
   html += retiredListHtml();
@@ -4150,9 +4221,24 @@ function processYearEndRetirements(){
       topic("🏁 " + h.name + " は10歳になりました。現役限界のため、今年が最後のシーズンになります");
     }
   }
+  const autoRetireOn = autoActive() && S.mattari.auto.retire;
+  /* v3.7（Terai決定 2026-11-17）：未勝利のまま4歳を迎えた馬は引退させる。2026-11-12決定の
+     「出走できるレースが残らない＝実質引退」のままだと、引退判定（成長型ゾーン）に入るまで
+     最長10歳まで現役に残り続け、委託費だけがかかり続けた（20年プレイで長距離馬が残留）。
+     自動処理が有効＋自動引退ONなら通常の自動引退フロー（牝馬は繁殖入り判定あり）、
+     そうでなければ年末確認キューに積む。ゾーン判定より先に処理する */
+  const winless4 = S.horses.filter(h => h.status==="racehorse" && !h.retired && h.wins===0 && ageOf(h)>=4);
+  if(winless4.length){
+    if(autoRetireOn){
+      for(const h of [...winless4]){ topic("🌙 " + h.name + " は未勝利のまま4歳を迎えたため引退します"); autoRetireHorse(h); }
+    } else {
+      if(!Array.isArray(S.retireQueue)) S.retireQueue = [];
+      for(const h of winless4) if(!S.retireQueue.includes(h.id)) S.retireQueue.push(h.id);
+    }
+  }
   const zone = S.horses.filter(inRetireZone);
   if(!zone.length) return;
-  if(autoActive() && S.mattari.auto.retire){
+  if(autoRetireOn){
     for(const h of [...zone]) if(autoRetireDue(h)) autoRetireHorse(h);
   } else {
     if(!Array.isArray(S.retireQueue)) S.retireQueue = [];
@@ -4347,7 +4433,7 @@ function openHorse(id){
     + ((!hasDebuted(h) && (h.status==="yearling" || h.status==="racehorse")) ? "<dt>デビュー</dt><dd>" + (absWeek() >= debutReadyAbs(h) ? "デビュー可能（仕上がり済み）" : fromAbs(debutReadyAbs(h))[1] + "月頃からデビュー可能（仕上がり待ち）") + "</dd>" : "")
     + "<dt>スタッフ評価</dt><dd>"+evalComment(h)+"</dd>"
     + "<dt>成績</dt><dd>"+(h.results.length+(h.preStarts||0))+"戦"+h.wins+"勝・獲得賞金 "+man(h.earnings)+"</dd>"
-    + (gw.length ? "<dt>重賞勝ち</dt><dd>"+gw.map(r=>r.race+"（"+r.grade+"・"+String(r.when).slice(0,4)+"）").join("、")+"</dd>" : "")
+    + (gw.length ? "<dt>重賞勝ち</dt><dd>"+gradedWinSummary(h)+"</dd>" : "")
     + "<dt>コンディション</dt><dd>状態"+Math.round(h.condition)+"／疲労"+Math.round(h.fatigue)+"</dd>"
     + (entryListText(h) ? "<dt>登録中</dt><dd>"+entryListText(h)+"</dd>" : "")
     + "</dl>"
@@ -4519,6 +4605,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>競馬シミュレーター（趣味） v3.6</footer>
+<footer>競馬シミュレーター（趣味） v3.7</footer>
 </body>
 </html>
