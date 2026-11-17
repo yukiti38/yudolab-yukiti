@@ -397,6 +397,10 @@ function newHorse(o){
     condition:80, policy:"train", pregnant:null, entries:{}, lastRaceAbs:-9, retired:false, autoEntry:false, autoRot:null, autoPolicy:null, autoRangePlus:null, rotation:[], rotMemo:{} }, o);
 }
 function absWeek(){ return absOf(S.year, S.month, S.week); }
+/* 登録キー（v3.7.1）：馬場・距離まで含める。同名・同場・同グレードでも馬場や距離が違う
+   別レース（例：同じ週の新潟の芝1800新馬とダート1200新馬）を1つの登録が両方拾って
+   同週に二重出走する事故があったため、キーはレースを一意に指す形にする */
+function raceKeyOf(abs, r){ return abs + "@" + r.name + "|" + (r.racecourse||"") + "|" + (r.grade||"") + "|" + (r.surface||"") + "|" + (r.distance_m||""); }
 function ageOf(h){ return S.year - h.birthYear; }
 /* 成長型：表示は4種（早熟／普通／晩成／超晩成）のまま、内部は7種に細分化する（v0.29・オーナー決定）。
    内部型はプレイヤーに表示しない。ピーク年齢と出生パラメータの偏りが内部型で決まる */
@@ -1340,6 +1344,22 @@ function migrateV029(){
   /* v3.7 移行：通知枠（旧セーブには無いので補う） */
   if(!Array.isArray(S.notices)) S.notices = [];
   if(typeof S.noticesOpen !== "boolean") S.noticesOpen = false;
+  /* v3.7.1 移行：登録キーを馬場・距離込みの新形式に書き換える（同週二重出走の修正）。
+     旧キーは名前・競馬場・グレードまでしか無く、同名・同場・同グレードの別レース
+     （馬場・距離違い）と衝突した。登録スナップショットの name/course/dist から
+     その週のレースを引き直して新キーを付け直す。一致するレースが無い登録は旧キーの
+     まま（どのレースにも当たらず自然に失効する） */
+  if(S.horses) for(const h of S.horses){
+    if(!h.entries) continue;
+    for(const a of Object.keys(h.entries)){
+      const e = h.entries[a];
+      if(!e || !e.key || e.key.split("|").length >= 5) continue; /* 新形式はそのまま */
+      const t3 = fromAbs(+a);
+      const cand = racesThisWeek(t3[0], t3[1], t3[2]).filter(r => r.name === e.name && (r.racecourse||"") === (e.course||""));
+      const hit = cand.find(r => (r.distance_m||null) === (e.dist||null)) || (cand.length === 1 ? cand[0] : null);
+      if(hit) e.key = raceKeyOf(+a, hit);
+    }
+  }
   /* v2.3 移行：適性±200許容。全体の既定は許容する（true）、馬ごとは null＝既定に従う */
   if(typeof S.autoRangePlusDefault !== "boolean") S.autoRangePlusDefault = true;
   /* v3.5 移行：自動出走の海外遠征方針（積極的／普通／消極的）。既定は消極的＝自動では行かない
@@ -1583,7 +1603,7 @@ function eligibility(h, race){
   if(h.fatigue>=70) return "疲労が大きい";
   /* 輸送・遠征の週制約（v0.51）。targetAbs は冒頭で算出済み */
   if(race.sector==="overseas"){
-    const key = targetAbs+"@"+race.name+"|"+(race.racecourse||"")+"|"+(race.grade||"");
+    const key = raceKeyOf(targetAbs, race);
     const already = !!(h.entries && h.entries[targetAbs] && h.entries[targetAbs].key===key);
     if(targetAbs===absWeek() && !already) return "海外遠征は当週登録できません（前週が出発・検疫週になるため事前登録のみ）";
     if(h.entries && h.entries[targetAbs-1] && targetAbs-1>=absWeek()) return "出発・検疫週（前週）に別のレース登録があります";
@@ -1913,7 +1933,7 @@ function advanceWeek(){
   // 1) 登録レースを実施
   const wk = racesThisWeek(S.year, S.month, S.week);
   for(const race of wk){
-    const key = absWeek()+"@"+race.name+"|"+(race.racecourse||"")+"|"+(race.grade||"");
+    const key = raceKeyOf(absWeek(), race);
     const entries = S.horses.filter(h=>h.entries && h.entries[absWeek()] && h.entries[absWeek()].key===key && h.status==="racehorse" && !h.retired && !isInjured(h));
     /* 安全網（v2.1）：年齢条件だけはレース日時点で再判定し、外れた登録は実施せず落とす（週のトピックに残す）。
        旧セーブに残った不正な先行登録への保険で、通常の登録フローでは発生しない */
@@ -2427,7 +2447,7 @@ function autoEntryPass(){
     }
     if(!pick) continue;
     const race = pick.race, a = pick.abs;
-    const key = a + "@" + race.name + "|" + (race.racecourse||"") + "|" + (race.grade||"");
+    const key = raceKeyOf(a, race);
     if(!h.entries) h.entries = {};
     h.entries[a] = { key, style: h.stylePref || bestStyle(h), sector: race.sector, course: race.racecourse||"", dist: race.distance_m||null, name: race.name }; /* 手動登録と同形（取消・差し替え可） */
     const t = fromAbs(a);
@@ -2507,7 +2527,7 @@ function rotationPass(){
       if(raceAbs < now) raceAbs = absOf(S.year + 1, race.month, race.wom); /* 今年分が過ぎていれば来年分を狙う */
       const ahead = raceAbs - now;
       if(ahead > 3) continue;                              /* 登録ウィンドウ（3週前〜当日）の外 */
-      const entryKey = raceAbs + "@" + race.name + "|" + (race.racecourse||"") + "|" + (race.grade||"");
+      const entryKey = raceKeyOf(raceAbs, race);
       const existing = h.entries ? h.entries[raceAbs] : null;
       if(existing && existing.key === entryKey) continue;  /* そのレースに登録済み */
       const memo = h.rotMemo[key];
@@ -3154,7 +3174,7 @@ function drawEntryList(){
   const okCount = arr.filter(x=>!x.reason).length;
   if(entryOnlyOk) arr = arr.filter(x=>!x.reason);
   const rows = arr.map(({r, reason, apt}) => {
-    const key = targetAbs+"@"+r.name+"|"+(r.racecourse||"")+"|"+(r.grade||"");
+    const key = raceKeyOf(targetAbs, r);
     const mark = !reason && apt>=0.99 ? "◎" : !reason && apt>=0.93 ? "○" : "";
     const ent = h.entries ? h.entries[targetAbs] : null;
     const entered = !!(ent && ent.key===key);
@@ -3180,14 +3200,14 @@ function drawEntryList(){
       + " <button data-trials-close='1' class='ghost'>閉じる</button></div>";
   }
   const entHere = h.entries ? h.entries[targetAbs] : null;
-  const entRace = entHere ? wk.find(r => targetAbs+"@"+r.name+"|"+(r.racecourse||"")+"|"+(r.grade||"") === entHere.key) : null;
+  const entRace = entHere ? wk.find(r => raceKeyOf(targetAbs, r) === entHere.key) : null;
   const entNote = entHere ? "<div class='topic'>📝 この週は <b>"+(entRace ? entRace.name : "登録済みレース")+"</b> に登録済みです（別のレースを選ぶと差し替わります）</div>" : "";
   box.innerHTML = trialsHtml + entNote + "<div class='sub'>絞込み後 "+arr.length+" 件（うち出走可能 "+okCount+" 件）／"+tm+"月第"+tw+"週の全 "+wk.length+" レース</div>"
     + "<div class='entryscroll'><table><tr><th></th><th>レース</th><th>区分</th><th>賞金</th><th></th></tr>"+rows+"</table></div>";
   document.querySelectorAll("[data-enter]").forEach(btn => btn.onclick = () => {
     if(!h.entries) h.entries = {};
     const key = btn.getAttribute("data-key");
-    const rr = wk.find(x => targetAbs+"@"+x.name+"|"+(x.racecourse||"")+"|"+(x.grade||"") === key);
+    const rr = wk.find(x => raceKeyOf(targetAbs, x) === key);
     h.entries[targetAbs] = { key, style: h.stylePref || bestStyle(h), sector: rr ? rr.sector : null, course: rr ? (rr.racecourse||"") : "", dist: rr ? (rr.distance_m||null) : null, name: rr ? rr.name : "" }; /* sector等は遠征週・相性判定用（v0.51/52） */
     topic("📝 "+h.name+" を "+tm+"月第"+tw+"週 のレースに登録しました（その週に自動で実施されます）");
     save(); render();
@@ -3482,7 +3502,7 @@ function viewCalendar(){
   const desig = {};
   for(const h of S.horses){ if(h.status!=="racehorse" || h.retired) continue; for(const k of allRotationKeys(h)) (desig[k] = desig[k] || []).push(h.name); }
   const rowOf = r => {
-    const key = absOf(S.year, m, r.wom) + "@" + r.name + "|" + (r.racecourse||"") + "|" + (r.grade||"");
+    const key = raceKeyOf(absOf(S.year, m, r.wom), r);
     const en = entered[key];
     const dg = desig[rotationKeyOf(r)];
     return "<tr><td>"+raceLabel(r)+((r.labels && r.labels.length) ? " <span class='sub'>"+r.labels.join("・")+"</span>" : "")+(en ? " <span class='ok'>登録："+en.join("、")+"</span>" : "")+(dg ? " <span class='ok'>🎯指定："+dg.join("、")+"</span>" : "")+"</td><td>"+man(prizeTable(r)[0])+"</td></tr>";
@@ -4605,6 +4625,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>競馬シミュレーター（趣味） v3.7</footer>
+<footer>競馬シミュレーター（趣味） v3.7.1</footer>
 </body>
 </html>
