@@ -168,7 +168,7 @@
     <button class="ghost" id="importBtn">📥 読み込み</button>
     <input type="file" id="importFile" accept="application/json,.json" style="display:none;">
     <button class="ghost" id="mattariBtn">🌙 まったりモード OFF</button>
-    <span id="mattariCtl" style="display:none;"><select id="mattariSpeed"><option value="10">ゆっくり（1週10秒）</option><option value="4">ふつう（1週4秒）</option><option value="1.5">はやい（1週1.5秒）</option></select><button class="ghost" id="mattariPauseBtn">⏸ 一時停止</button><button class="ghost" id="mattariCfgBtn">まったり設定</button></span>
+    <span id="mattariCtl" style="display:none;"><select id="mattariSpeed"><option value="10">ゆっくり（1週10秒）</option><option value="4">ふつう（1週4秒）</option><option value="1.5">はやい（1週1.5秒）</option><option value="0.5">かなり早い（1週0.5秒）</option></select><button class="ghost" id="mattariPauseBtn">⏸ 一時停止</button><button class="ghost" id="mattariCfgBtn">まったり設定</button></span>
   </div>
   <div class="skipctl">
     <div class="skiprow">
@@ -422,6 +422,34 @@ function debutReadyAbs(h){
 function hasDebuted(h){ return h.results.length > 0 || h.wins > 0 || (h.preStarts || 0) > 0; }
 const G_PEAK = { "超早熟":2.8, "早熟":3.6, "普通早":3.9, "普通":4.6, "普通遅":5.5, "晩成":6.5, "超晩成":8.4 }; /* v3.1：普通早のピークを4.2→3.9（3歳12月＝3歳終わり）に前倒し（オーナー決定） */
 const G_DISP = { "超早熟":"早熟", "早熟":"早熟", "普通早":"普通", "普通":"普通", "普通遅":"普通", "晩成":"晩成", "超晩成":"超晩成" };
+/* 仕上がりの個体差 pace（v3.8・オーナー要望 2026-11-17）：同じ成長型でも仕上がりの早さには
+   個体差があり、ピーク年齢が ±0.5年ほど前後する（負＝早仕上がり）。配合で決まる要素で、
+   産駒は父母 pace の平均＋小さなブレを受け継ぐため、早い血を入れれば型の割に早く
+   仕上がる産駒が出る。ただし早仕上がりの個体が生まれる確率は低めに抑える（paceDraw）。
+   外部由来（種牡馬・繁殖牝馬・贈呈馬など、父母の pace が分からない個体）は paceDraw で引く */
+function paceDraw(){
+  const r = Math.random();
+  if(r < 0.12) return -(0.15 + Math.random() * 0.35); /* 早仕上がり（低確率） */
+  if(r < 0.55) return Math.random() * 0.2 - 0.05;     /* 標準域 */
+  return 0.15 + Math.random() * 0.35;                 /* 遅め */
+}
+function paceOf(x){ return (x && typeof x.pace === "number") ? x.pace : 0; }
+function peakOf(h){ return (G_PEAK[gtypeOf(h)] || 4.6) + paceOf(h); }
+/* 実効年齢（v3.8）：仕上がりの個体差は「型の時計の進み方」として効かせる。ピークが
+   早い個体は若い頃から時計が進んでいて、ピークが遅い個体は若い頃ゆっくり進む。
+   aEff = 1.5 + (a - 1.5) × (型のピーク − 1.5) / (個体のピーク − 1.5) とすると、
+   個体のピーク年齢で aEff がちょうど型のピークに一致し、カーブの形（型別）を保ったまま
+   若い頃の進み具合だけが個体ごとに変わる（晩成 pace −0.5 は2歳6月で約+0.06、
+   pace −0.5 の早熟は2歳戦でさらに仕上がる、という効き方になる） */
+function effAge(h, a){
+  const base = G_PEAK[gtypeOf(h)] || 4.6;
+  const pk = base + paceOf(h);
+  if(pk <= 1.6) return a;
+  return 1.5 + (a - 1.5) * (base - 1.5) / (pk - 1.5);
+}
+function inheritPace(sirePace, damPace){
+  return clamp((sirePace + damPace) / 2 + (Math.random() * 0.2 - 0.1), -0.55, 0.55);
+}
 /* 出生パラメータの偏り [中心シフト, ブレ倍率]：上限固定ではなく分布の偏り（大物の夢は残す） */
 const G_BIAS = { "超早熟":[-3,0.75], "早熟":[-2,0.85], "普通早":[-1,0.95], "普通":[0,1.0], "普通遅":[1,1.10], "晩成":[1,1.20], "超晩成":[2,1.30] };
 function gtypeOf(h){ return (h && h.gtype && G_PEAK[h.gtype]) ? h.gtype : ((h && h.growth) || "普通"); }
@@ -466,18 +494,25 @@ function declineAt(h, yearsPast){
    産駒・牝馬・架空種牡馬など全ての生成経路で、その個体の内部型が晩成系なら false にする */
 function jizokuAllowedGt(gt){ return gt !== "晩成" && gt !== "超晩成"; }
 function yearsPastPeak(h, a){ return (a != null ? a : ageOf(h) + (S.month-1)/12) - (G_PEAK[gtypeOf(h)] || 4.6); }
+/* 成熟度（v3.8・オーナー要望 2026-11-17）：伸び側のカーブも成長型の系統で変える。
+   旧実装は全型ほぼ共通の直線（0.10/年）で「定数伸び」だった。ピークまでの進み具合
+   x（1.5歳=0 → ピーク=1）への指数で系統差を付ける：早熟系は若いうちに一気に伸び、
+   普通系は素直に、晩成系は若い頃ゆっくりで後半に加速する。ピーク位置は型の基準に
+   個体差 pace を加えた peakOf を使う（衰え側の開始も同じピークで揃える） */
+const G_RISE_EXP = { "超早熟":0.42, "早熟":0.42, "普通早":0.55, "普通":0.55, "普通遅":0.55, "晩成":1.0, "超晩成":1.0 };
 function maturityA(h, a){
   if(h.superMax) return 1;
-  const gt = gtypeOf(h);
-  const peak = G_PEAK[gt] || 4.6;
-  if(a > peak) return declineAt(h, a - peak);
-  if(gt==="超晩成"){
-    if(a < 2.5) return clamp(0.30 + (a-1.5)*0.30, 0.3, 0.95);
-    return clamp(1 - Math.abs(a-8.4)*0.07, 0.45, 1);
-  }
-  if(a < 2.5) return clamp(0.45 + (a-1.5)*0.45, 0.4, 0.95);
-  const decline = gt==="超早熟" ? 0.12 : 0.10;
-  return clamp(1 - Math.abs(a-peak)*decline, 0.55, 1);
+  const aE = effAge(h, a);
+  const peak = G_PEAK[gtypeOf(h)] || 4.6;
+  if(aE > peak) return declineAt(h, aE - peak);
+  const x = clamp((aE - 1.5) / Math.max(0.5, peak - 1.5), 0, 1);
+  const e = G_RISE_EXP[gtypeOf(h)] || 0.55;
+  const base = 0.40 + 0.60 * Math.pow(x, e);
+  /* pace の若年ブースト（v3.8）：早仕上がりの個体は、ピークまでの距離が遠い若い時期ほど
+     型の標準より前に出る（晩成の早仕上がりが2〜3歳で勝負になるのはこの分）。ピークに
+     近づくにつれて消え、ピーク到達点は全個体で一致する */
+  const boost = paceOf(h) < 0 ? -paceOf(h) * 0.22 * (1 - x) * (1 - x) : 0;
+  return clamp(base + boost, 0.3, 1);
 }
 /* 回復の衰え（v0.50）：ピーク後2年で疲労回復-20%、4年で-40%。故障率は年齢で変えない */
 function recoveryFactor(h){
@@ -723,18 +758,16 @@ function raceComment(style, pace, finish, quirk){
    絶対上限85に調教分も含む） */
 function monthlyTraining(){
   /* 自動調教（v3.1・まったりモード＋自動調教トグルON）：現役2〜4歳で、プレイヤーが方針を
-     手動設定していない馬に、3パラメータのうち最も弱いものを上げる方針を自動で付ける。
-     月次で追随するので弱点が変われば方針も切り替わる。自動で付けた方針には h.trainAuto を立て、
-     プレイヤーが手動で変更した馬（h.trainManual）は以後自動で付け直さない */
+     手動設定していない馬に方針を自動で付ける。付け方を v3.7.3 で変更（オーナー決定）：
+     従来は「3パラメータのうち最も弱いものを上げる」弱点補強だったが、一律で
+     「調教（バランス）」（policy = "train"、月ごとに3パラメータを回して+1）にする。
+     自動で付けた方針には h.trainAuto を立て、プレイヤーが手動で変更した馬
+     （h.trainManual）は以後自動で付け直さない */
   if(autoActive() && S.mattari.auto.train){
     for(const h of S.horses){
       if(h.status!=="racehorse" || h.retired || h.spd == null || h.trainManual) continue;
       const age = ageOf(h); if(age<2 || age>4) continue;
-      h.trained = h.trained || { spd:0, sta:0, gut:0 };
-      const cand = ["spd","sta","gut"].filter(k => h.trained[k] < 4 && h[k] < 100);
-      if(!cand.length) continue;
-      cand.sort((a,b) => h[a] - h[b]);
-      h.policy = cand[0]; h.trainAuto = true;
+      h.policy = "train"; h.trainAuto = true;
     }
   }
   for(const h of S.horses){
@@ -747,7 +780,7 @@ function monthlyTraining(){
       const before = rankOf(h[k]);
       h[k]++; h.trained[k]++;
       h.ability = Math.round((h.spd+h.sta+h.gut)/3);
-      if(rankOf(h[k]) !== before) topic("📈 "+h.name+" の"+({spd:"スピード",sta:"スタミナ",gut:"根性"})[k]+"が "+rankOf(h[k])+"ランクに上がった（調教の成果）");
+      if(rankOf(h[k]) !== before) notice("📈 "+h.name+" の"+({spd:"スピード",sta:"スタミナ",gut:"根性"})[k]+"が "+rankOf(h[k])+"ランクに上がった（調教の成果）");
     };
     if(h.policy==="spd") gain("spd");
     else if(h.policy==="sta") gain("sta");
@@ -782,7 +815,7 @@ function growthStage(h){
   if(h.status==="foal") return "当歳・成長中";
   if(h.status==="yearling") return "1歳・成長中";
   if(h.superMax) return "充実期";
-  const peak = G_PEAK[gtypeOf(h)] || 4.6;
+  const peak = peakOf(h); /* v3.8：表示の充実期判定も個体差込みのピークで */
   const d = ageOf(h) - peak;
   if(ageOf(h) < 2.4) return "2歳・成長中";
   if(d < -1.2) return "成長中";
@@ -1146,6 +1179,7 @@ function makeFictionalStallion(){
     weight: clamp(Math.round((sire.weight != null ? sire.weight : 490) + irnd(-20, 20)), 440, 580),
     birthYear, retireAge: rollRetireAge(), retired: false, fictional: true, studStart: year, fresh: true,
     record: fictionalRecord(tier, surface, d0, d1),
+    pace: inheritPace(paceOf(sire), paceOf(sire)), /* v3.8：仕上がりの個体差は父から傾向継承 */
     jizoku: Math.random() < 0.05 && jizokuAllowedGt(gt) /* v3.1：晩成系には持続を付けない */
   };
   return st;
@@ -1223,7 +1257,8 @@ function openMattariSettings(){
     + "<div class='flex' style='margin:10px 0;'><label>速度：</label><select id='mattariSpeedSel'>"
     + "<option value='10'" + (S.mattari.speed === 10 ? " selected" : "") + ">ゆっくり（1週10秒）</option>"
     + "<option value='4'" + (S.mattari.speed === 4 ? " selected" : "") + ">ふつう（1週4秒）</option>"
-    + "<option value='1.5'" + (S.mattari.speed === 1.5 ? " selected" : "") + ">はやい（1週1.5秒）</option></select></div>"
+    + "<option value='1.5'" + (S.mattari.speed === 1.5 ? " selected" : "") + ">はやい（1週1.5秒）</option>"
+    + "<option value='0.5'" + (S.mattari.speed === 0.5 ? " selected" : "") + ">かなり早い（1週0.5秒）</option></select></div>"
     + "<div class='flex' style='margin-top:12px;'><button id='mattariCloseBtn'>閉じる</button></div>";
   modal.style.display = "block";
   box.querySelectorAll("[data-mattari-auto]").forEach(cb => cb.onchange = () => { S.mattari.auto[cb.getAttribute("data-mattari-auto")] = cb.checked; save(); });
@@ -1272,7 +1307,11 @@ const TOPIC_WIN_RE = /を勝ちました|重賞初制覇|牧場初のG1制覇|�
 function topic(text){ if(TOPIC_WIN_RE.test(text)) S.topics.push(text); }
 /* 通知枠（v3.7・オーナー決定 2026-11-17）：トピックを勝利だけに絞った代わりに、見逃すと困る
    通知（故障・ローテーション見送りの理由・安全網での落選）は別枠「今週の通知」に置く。
-   対象は「走れなかった理由」系だけに絞り、登録・引退・精算などの通知はどちらにも出さない */
+   対象は「走れなかった理由」系だけに絞り、登録・引退・精算などの通知はどちらにも出さない。
+   v3.7.4 で拡張（オーナー指摘 2026-11-17「別枠で作ってって言った」）：馬の状態変化の通知
+   （ピーク過ぎ／持続判明／充実期入り／調教のランクアップ／疲労警告／引退の検討時期・
+   スタッフ提案）と自動引退・自動淘汰の発生もこちらへ。勝利系フィルタで消えていた分を
+   取り戻す。手動の引退・売却や精算は従来通りどちらにも出さない */
 function notice(text){ if(!Array.isArray(S.notices)) S.notices = []; S.notices.push(text); }
 function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S)); }catch(e){} }
 function load(){ try{ const t = localStorage.getItem(SAVE_KEY); if(t){ S = JSON.parse(t); migrateV029(); return true; } }catch(e){} return false; }
@@ -1344,6 +1383,9 @@ function migrateV029(){
   /* v3.7 移行：通知枠（旧セーブには無いので補う） */
   if(!Array.isArray(S.notices)) S.notices = [];
   if(typeof S.noticesOpen !== "boolean") S.noticesOpen = false;
+  /* v3.8 移行：仕上がりの個体差 pace（旧セーブには無いので、外部由来と同じ抽選で補う） */
+  if(S.horses) for(const h of S.horses){ if(typeof h.pace !== "number") h.pace = paceDraw(); }
+  if(S.stallions) for(const st of S.stallions){ if(typeof st.pace !== "number") st.pace = paceDraw(); }
   /* v3.7.1 移行：登録キーを馬場・距離込みの新形式に書き換える（同週二重出走の修正）。
      旧キーは名前・競馬場・グレードまでしか無く、同名・同場・同グレードの別レース
      （馬場・距離違い）と衝突した。登録スナップショットの name/course/dist から
@@ -2058,7 +2100,7 @@ function onNewYear(){
       const foal = newHorse({ name: provisionalName(h.name, S.year), sex, birthYear:S.year, sire:st.name, dam:h.name, damId:h.id, bms:h.sire, /* v3.4：牝系の追跡は個体IDで行う（名前は同名衝突で壊れる） */
         status:"foal", surface: surf, coat: inheritCoat(sireCoat, h.coat),
         distMin: r50(centre - width/2), distMax: r50(centre + width/2),
-        growth: G_DISP[foalGt], gtype: foalGt, ability: 70 });
+        growth: G_DISP[foalGt], gtype: foalGt, pace: inheritPace(paceOf(st), paceOf(h)), ability: 70 });
       foal.saleNoise = rnd(0.85, 1.15);
       foal.unnamed = true;
       setParams(foal, fp(sg.spd, h.spd, lb.spd), fp(sg.sta, h.sta, lb.sta), fp(sg.gut, h.gut, lb.gut));
@@ -2148,23 +2190,23 @@ function weeklyEvents(){
   if(S.year===2026 && S.month===4 && S.week===1 && !S.giftAprDone){ S.giftAprDone = true; if(!S.giftSet) S.giftSet = Math.random()<0.5 ? "A" : "B"; for(const k of GIFT_SETS[S.giftSet]) S.giftQueue.push(makeGift(k)); topic("🎁 初年度の支援で2歳馬が2頭（牡馬・牝馬）贈られます。1頭ずつ、名前を付けて迎えるか、辞退もできます"); }
   if(S.year===2026 && S.month===12 && S.week===1 && !S.giftDecDone){ S.giftDecDone = true; S.giftQueue.push(makeGift("decFilly")); topic("🎁 初年度の支援で1歳牝馬が贈られます。名前を付けて迎えるか、辞退もできます"); }
   for(const h of S.horses){
-    if(h.status==="racehorse" && ageOf(h)>=7 && !h.retireNudged){ h.retireNudged = true; topic("引退を考え始める時期です："+h.name+"（"+ageOf(h)+"歳）。馬のページから引退させられます"); }
-    if(h.status==="racehorse" && h.fatigue>=80) topic("⚠️ "+h.name+" の疲労がかなり溜まっています。放牧か休養がおすすめです");
-    if(h.status==="racehorse" && growthStage(h)==="充実期" && !h.peakNoted){ h.peakNoted = true; topic("🌟 "+h.name+" が充実期に入りました（"+h.growth+"）"); }
+    if(h.status==="racehorse" && ageOf(h)>=7 && !h.retireNudged){ h.retireNudged = true; notice("引退を考え始める時期です："+h.name+"（"+ageOf(h)+"歳）。馬のページから引退させられます"); }
+    if(h.status==="racehorse" && h.fatigue>=80) notice("⚠️ "+h.name+" の疲労がかなり溜まっています。放牧か休養がおすすめです");
+    if(h.status==="racehorse" && growthStage(h)==="充実期" && !h.peakNoted){ h.peakNoted = true; notice("🌟 "+h.name+" が充実期に入りました（"+h.growth+"）"); }
     /* ピークアウト通知（v0.29）：成熟度がピークを過ぎて下降に転じたら1頭につき1回だけ知らせる。内部型は伏せたまま */
     if(h.status==="racehorse" && !h.peakOutNoted){
       const aF = ageOf(h) + (S.month-1)/12;
-      if(aF > (G_PEAK[gtypeOf(h)] || 4.6) && maturityA(h, aF) < maturityA(h, aF - 0.25) - 0.001){ h.peakOutNoted = true; topic("📉 "+h.name+" はピークを過ぎたようです（"+ageOf(h)+"歳）"); }
+      if(aF > (G_PEAK[gtypeOf(h)] || 4.6) && maturityA(h, aF) < maturityA(h, aF - 0.25) - 0.001){ h.peakOutNoted = true; notice("📉 "+h.name+" はピークを過ぎたようです（"+ageOf(h)+"歳）"); }
     }
     /* 持続の判明（v0.50）：ピークを過ぎた現役馬だけが分かる。持っている場合のみ1回通知する（無い場合は何も起きない） */
     if(h.status==="racehorse" && h.jizoku && !h.jizokuRevealed){
       const aF = ageOf(h) + (S.month-1)/12;
-      if(aF > (G_PEAK[gtypeOf(h)] || 4.6) + 0.5){ h.jizokuRevealed = true; topic("🌱 "+h.name+" は歳を重ねても衰えにくい「持続」の資質があるようです"); }
+      if(aF > (G_PEAK[gtypeOf(h)] || 4.6) + 0.5){ h.jizokuRevealed = true; notice("🌱 "+h.name+" は歳を重ねても衰えにくい「持続」の資質があるようです"); }
     }
     /* 引退の勧め（v0.50）：強制引退はなし。ピーク後しばらく経ち実効がピークの62%以下になったらスタッフが一度だけ勧める */
     if(h.status==="racehorse" && !h.retireAdvised){
       const aF = ageOf(h) + (S.month-1)/12;
-      if(yearsPastPeak(h, aF) >= 2.5 && maturityA(h, aF) <= 0.62){ h.retireAdvised = true; topic("📋 スタッフから "+h.name+" の引退を検討してはどうかと提案がありました（全盛期の力は望みにくくなっています）"); }
+      if(yearsPastPeak(h, aF) >= 2.5 && maturityA(h, aF) <= 0.62){ h.retireAdvised = true; notice("📋 スタッフから "+h.name+" の引退を検討してはどうかと提案がありました（全盛期の力は望みにくくなっています）"); }
     }
   }
   /* 成長メモは年表に残さない（v0.33：年表はビッグイベントのみ）。成長の様子は各馬のページの成長段階で見られる */
@@ -4077,7 +4119,7 @@ function retireColtCore(h, toStud){
     const hbBms = damH ? (damH.sire || null) : (h.bms || null);
     const hbGrandam = damH ? (damH.dam || null) : null;
     const hbGbms = damH ? (damH.gbms || null) : null;
-    S.stallions.push({name:h.name, sire:h.sire, dam:h.dam, bms:hbBms, grandam:hbGrandam, gbms:hbGbms,
+    S.stallions.push({name:h.name, sire:h.sire, dam:h.dam, bms:hbBms, grandam:hbGrandam, gbms:hbGbms, pace: paceOf(h), /* v3.8：種牡馬入り時に仕上がりの個体差も引き継ぐ */
       bmsLine: hbBms ? sireChainOf(hbBms).slice(0,3) : [],
       region:"domestic", surface:h.surface, dist:[h.distMin,h.distMax], growth:h.growth, gtype:gtypeOf(h), fee_tier:"B", fresh:true, jizoku: !!h.jizoku,
       birthYear:h.birthYear, retireAge:(S.year - h.birthYear) + 19, retired:false, fictional:false, studStart:S.year});
@@ -4213,22 +4255,22 @@ function worstBroodmare(){
    牝馬は繁殖入りを試み、上限時は淘汰スコアで最下位と比較（自動淘汰トグルON時のみ入れ替え可） */
 function autoRetireHorse(h){
   if(h.sex === "牡"){
-    if(canEnterStud(h)){ retireColtCore(h, true); topic("🌙 自動引退：" + h.name + " は引退し、種牡馬入りしました"); }
-    else { const price = youngPrice(h); sellHorseCore(h, price); topic("🌙 自動引退：" + h.name + " を引退・売却しました（" + man(price) + "）"); }
+    if(canEnterStud(h)){ retireColtCore(h, true); notice("🌙 自動引退：" + h.name + " は引退し、種牡馬入りしました"); }
+    else { const price = youngPrice(h); sellHorseCore(h, price); notice("🌙 自動引退：" + h.name + " を引退・売却しました（" + man(price) + "）"); }
     return;
   }
-  if(mareCount() < mareLimitOf()){ retireFillyToBrood(h); topic("🌙 自動引退：" + h.name + " が繁殖入りしました"); return; }
+  if(mareCount() < mareLimitOf()){ retireFillyToBrood(h); notice("🌙 自動引退：" + h.name + " が繁殖入りしました"); return; }
   const worst = (S.mattari && S.mattari.auto.cull) ? worstBroodmare() : null;
   if(worst && mareCullScore(h) > mareCullScore(worst)){
     const wp = marePrice(worst);
     sellHorseCore(worst, wp);
-    topic("🌙 自動淘汰：" + worst.name + " を売却しました（" + man(wp) + "）");
+    notice("🌙 自動淘汰：" + worst.name + " を売却しました（" + man(wp) + "）");
     retireFillyToBrood(h);
-    topic("🌙 自動引退：" + h.name + " が繁殖入りしました（" + worst.name + " と入れ替え）");
+    notice("🌙 自動引退：" + h.name + " が繁殖入りしました（" + worst.name + " と入れ替え）");
   } else {
     const price = marePrice(h);
     sellHorseCore(h, price);
-    topic("🌙 自動引退：" + h.name + " は繁殖枠に入れず、売却しました（" + man(price) + "）");
+    notice("🌙 自動引退：" + h.name + " は繁殖枠に入れず、売却しました（" + man(price) + "）");
   }
 }
 /* 年末の引退処理（onNewYear の最後に呼ぶ）：10歳限界の予告＋ゾーン判定。
@@ -4238,7 +4280,7 @@ function processYearEndRetirements(){
   for(const h of S.horses){
     if(h.status==="racehorse" && !h.retired && ageOf(h)===10 && !h.capAnnounced){
       h.capAnnounced = true;
-      topic("🏁 " + h.name + " は10歳になりました。現役限界のため、今年が最後のシーズンになります");
+      notice("🏁 " + h.name + " は10歳になりました。現役限界のため、今年が最後のシーズンになります");
     }
   }
   const autoRetireOn = autoActive() && S.mattari.auto.retire;
@@ -4250,7 +4292,7 @@ function processYearEndRetirements(){
   const winless4 = S.horses.filter(h => h.status==="racehorse" && !h.retired && h.wins===0 && ageOf(h)>=4);
   if(winless4.length){
     if(autoRetireOn){
-      for(const h of [...winless4]){ topic("🌙 " + h.name + " は未勝利のまま4歳を迎えたため引退します"); autoRetireHorse(h); }
+      for(const h of [...winless4]){ notice("🌙 " + h.name + " は未勝利のまま4歳を迎えたため引退します"); autoRetireHorse(h); }
     } else {
       if(!Array.isArray(S.retireQueue)) S.retireQueue = [];
       for(const h of winless4) if(!S.retireQueue.includes(h.id)) S.retireQueue.push(h.id);
@@ -4625,6 +4667,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>競馬シミュレーター（趣味） v3.7.1</footer>
+<footer>競馬シミュレーター（趣味） v3.8</footer>
 </body>
 </html>
