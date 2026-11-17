@@ -163,7 +163,7 @@
     <button class="primary" id="nextWeekBtn">週を進める ▶</button>
     <button id="nextEventBtn">次のイベントまで ⏩</button>
     <button class="ghost" id="debugHorseBtn">🐛 デバッグ馬を作成</button>
-    <details class="hdrmenu"><summary>⚙ その他</summary><div class="hdrmenu-body"><button id="resetBtn">最初から（データ削除）</button><div class="sub">セーブデータを消して最初からやり直します</div><div class="sub" style="margin-top:10px;">冠名（任意）：<span id="kanmuriNow">（なし）</span></div><div class="flex"><input type="text" id="kanmuriInput" size="10" placeholder="例：シロチャン"><button id="kanmuriBtn">設定</button></div><div class="sub">設定すると、これから生まれる産駒の名前の頭に付きます。空欄で設定すると解除されます</div><div class="sub" style="margin-top:10px;">頭数上限（0も設定できます。変更は即保存されます）：</div><div class="flex"><label>繁殖牝馬 <input type="number" id="mareLimitInput" min="0" step="1" style="width:64px;"> 頭まで</label></div><div class="flex"><label>デビュー馬 <input type="number" id="debutLimitInput" min="0" step="1" style="width:64px;"> 頭／世代まで</label></div><div class="sub">繁殖牝馬の上限は購入・繁殖入りの可否に常時効きます。超過分の処分（自動売却）は、まったりモードの「自動売却」がONのとき年末と世代の2歳到達時に行われます</div></div></details>
+    <details class="hdrmenu"><summary>⚙ その他</summary><div class="hdrmenu-body"><button id="manualBtn">📖 マニュアル</button><div class="sub">遊び方とシステムの解説です</div><button id="resetBtn" style="margin-top:10px;">最初から（データ削除）</button><div class="sub">セーブデータを消して最初からやり直します</div><div class="sub" style="margin-top:10px;">冠名（任意）：<span id="kanmuriNow">（なし）</span></div><div class="flex"><input type="text" id="kanmuriInput" size="10" placeholder="例：シロチャン"><button id="kanmuriBtn">設定</button></div><div class="sub">設定すると、これから生まれる産駒の名前の頭に付きます。空欄で設定すると解除されます</div><div class="sub" style="margin-top:10px;">頭数上限（0も設定できます。変更は即保存されます）：</div><div class="flex"><label>繁殖牝馬 <input type="number" id="mareLimitInput" min="0" step="1" style="width:64px;"> 頭まで</label></div><div class="flex"><label>デビュー馬 <input type="number" id="debutLimitInput" min="0" step="1" style="width:64px;"> 頭／世代まで</label></div><div class="sub">繁殖牝馬の上限は購入・繁殖入りの可否に常時効きます。超過分の処分（自動売却）は、まったりモードの「自動売却」がONのとき年末と世代の2歳到達時に行われます</div></div></details>
     <button class="ghost" id="exportBtn">💾 書き出し</button>
     <button class="ghost" id="importBtn">📥 読み込み</button>
     <input type="file" id="importFile" accept="application/json,.json" style="display:none;">
@@ -209,6 +209,7 @@
       <button data-tab="chron">牧場年表</button>
       <button data-tab="lineage">🌳 牝系図</button>
       <button data-tab="calendar">📅 カレンダー</button>
+      <button data-tab="manual">📖 マニュアル</button>
     </div>
     <div id="tabBody" style="margin-top:12px;"></div>
   </section>
@@ -612,7 +613,9 @@ function speedWeight(dist){
   return 0.3;
 }
 function raceBase(h, race){
-  const w = speedWeight(race.distance_m);
+  let w = speedWeight(race.distance_m);
+  const gg = goingOf(absWeek(), race.racecourse, race.surface); /* v3.11：重・不良ではスタミナの比重が上がる */
+  if(gg === 2) w = Math.max(0, w - 0.05); else if(gg === 3) w = Math.max(0, w - 0.10);
   const blend = paramNow(h,"spd")*w + paramNow(h,"sta")*(1-w);
   return blend * (0.82 + h.condition/500) * (1 - h.fatigue/260);
 }
@@ -1683,6 +1686,58 @@ function ageRestrictionViolation(h, race){
    約10%（残りは芝かダートの ○− 型）。旧仕様の「両刀×両刀＝両刀100%」の罠は消える。
    h.surface のラベル（芝／ダート／両刀）はマークから導出する表示・互換用の別名 */
 const SURF_FACTOR = { "○": 1.00, "-": 0.95, "✕": 0.78 };
+/* ================= 馬場状態（v3.11・オーナー発案 2026-11-18） =================
+   週×競馬場×馬場ごとに 良(0)／稍重(1)／重(2)／不良(3) を決める。生成は
+   (abs週, 競馬場名, 馬場) の決定的ハッシュ＋月別の偏りで、保存は一切しない
+   （同じ週・同じ場所なら何度計算しても同じ値。セーブは増えない）。
+   効き方：全馬に基本低下（稍重0.98／重0.95／不良0.92）。重馬場適性（相性の一層）は
+   ○＝低下なし、−＝基本低下どおり、✕＝低下が深い（0.96／0.90／0.84）。
+   重・不良ではスタミナの比重が少し上がる（raceBase の speedWeight をずらす）。
+   表示：当週は実況、来週は予想（約75%で一致、外れは±1段階）、再来週以降は出さない */
+const GOING_NAMES = ["良", "稍重", "重", "不良"];
+const GOING_BASE = [1.00, 0.98, 0.95, 0.92];
+const GOING_BAD = [1.00, 0.96, 0.90, 0.84];
+const GOING_TABLE = { winter: [0.80, 0.92, 0.97, 1.00], spring: [0.65, 0.85, 0.95, 1.00], rainy: [0.40, 0.65, 0.85, 1.00], summer: [0.50, 0.72, 0.88, 1.00], autumn: [0.62, 0.82, 0.94, 1.00] };
+function goingHash(abs, course, surface){
+  let h = (abs * 2654435761) >>> 0;
+  const s = String(course || "");
+  for(let i = 0; i < s.length; i++){ h ^= s.charCodeAt(i) * (i + 1) * 97; h = ((h << 5) - h + (h >>> 11)) >>> 0; }
+  if(surface === "ダート") h ^= 0x9e3779b9;
+  h = (h ^ (h >>> 13)) >>> 0; h = Math.imul(h, 1274126177) >>> 0; h = (h ^ (h >>> 16)) >>> 0;
+  return h / 4294967296;
+}
+function goingOf(abs, course, surface){
+  if(!course) return 0;
+  const m = fromAbs(abs)[1];
+  const key = (m === 12 || m <= 2) ? "winter" : m <= 5 ? "spring" : m <= 7 ? "rainy" : m <= 9 ? "summer" : "autumn";
+  const tb = GOING_TABLE[key], r = goingHash(abs, course, surface);
+  return r < tb[0] ? 0 : r < tb[1] ? 1 : r < tb[2] ? 2 : 3;
+}
+function goingForecastOf(abs, course, surface){
+  const g = goingOf(abs, course, surface);
+  const r = goingHash(abs, course, surface + "予");
+  if(r < 0.75) return g;
+  return clamp(g + (r < 0.875 ? -1 : 1), 0, 3);
+}
+function goingLabelFor(abs, course, surface){
+  const cur = absWeek();
+  if(abs === cur) return GOING_NAMES[goingOf(abs, course, surface)];
+  if(abs === cur + 1) return GOING_NAMES[goingForecastOf(abs, course, surface)] + "（予想）";
+  return "";
+}
+function goingFactor(h, race, abs){
+  const g = goingOf(abs, race.racecourse, race.surface);
+  if(g === 0) return 1;
+  const a = h.aff && h.aff.goAff;
+  if(a === "○") return 1;
+  if(a === "✕") return GOING_BAD[g];
+  return GOING_BASE[g];
+}
+function goingBlocked(h, race, abs){
+  if(!(h.aff && h.aff.known && h.aff.known.go && h.aff.goAff === "✕")) return false;
+  const g = abs === absWeek() ? goingOf(abs, race.racecourse, race.surface) : goingForecastOf(abs, race.racecourse, race.surface);
+  return g >= 2;
+}
 function surfMarkOf(x, surface){
   const m = surface === "芝" ? x.surfT : x.surfD;
   if(m === "○" || m === "-" || m === "✕") return m;
@@ -1779,6 +1834,7 @@ function genAffinities(h){
   else if(cr < 0.47) aff.courseAff[ctake()] = "✕";
   else if(cr < 0.50){ aff.courseAff[ctake()] = "✕"; aff.courseAff[ctake()] = "✕"; }
   aff.yuso = Math.random() < 0.20; // 輸送○（輸送疲労が半分になる）
+  aff.goAff = rollMark(0.25, 0.15); // 重馬場適性（v3.11）：○25%／✕15%／−60%
   return aff;
 }
 function predictMark(t){
@@ -1792,7 +1848,7 @@ function ensureAffinities(h, centre){
   if(!h.aff) h.aff = genAffinities(h);
   if(ageOf(h) >= 2 && !h.aff.pred){
     const a = h.aff;
-    const pred = { root: predictMark(a.rootAff), nonRoot: predictMark(a.nonRoot), yuso: predictMark(a.yuso ? "○" : "-"), dist:{}, course:{} };
+    const pred = { root: predictMark(a.rootAff), nonRoot: predictMark(a.nonRoot), yuso: predictMark(a.yuso ? "○" : "-"), go: predictMark(a.goAff || "-"), dist:{}, course:{} };
     for(const b of AFF_BANDS) if(b >= h.distMin && b <= h.distMax) pred.dist[b] = predictMark(a.distAff[b] || "-");
     for(const c of COURSES10) pred.course[c] = predictMark(a.courseAff[c] || "-");
     a.pred = pred;
@@ -1825,6 +1881,7 @@ function revealAffinities(h, race, tf){
   const course = COURSES10.find(c => (race.racecourse || "").includes(c));
   if(course) a.courseKnown[course] = true;
   if((tf || 0) > 0 || race.sector === "overseas") a.known.yuso = true;
+  if(goingOf(absWeek(), race.racecourse, race.surface) >= 1) a.known.go = true; /* v3.11：稍重以上で走ると重馬場適性が確定 */
 }
 /* 馬ページの相性欄：確定値は太字、未確定はスタッフ予測を薄く出す */
 function affShown(trueVal, predVal, known){
@@ -1852,6 +1909,7 @@ function affinitySection(h){
   return "<dt>相性</dt><dd>根幹距離：" + affShown(a.rootAff, p.root, a.known.root)
     + " ／ 非根幹距離：" + affShown(a.nonRoot, p.nonRoot, a.known.nonRoot)
     + " ／ 輸送：" + affShown(a.yuso ? "○" : "-", p.yuso, a.known.yuso)
+    + " ／ 重馬場：" + affShown(a.goAff || "-", p.go, !!(a.known && a.known.go))
     + (distParts.length ? "<br>距離別：" + distParts.join("、") : "")
     + (courseParts.length ? "<br>競馬場別：" + courseParts.join("、") : "")
     + "</dd>";
@@ -1971,7 +2029,7 @@ function runRace(race, entries){
     const spread = 0.10 * (1 - clamp((gut-40)/60, 0, 1) * 0.5) * (STYLE_VAR[styleOf(h)] || 1) * tempSpreadMul(h);
     const wall = assignedWeight(race, h);
     const w = wtActive ? wall : null;
-    runners.push({ horse:h, weight:w, wall, score: raceBase(h,race)*aptitudeFactor(h,race)*affinityFactor(h,race)*styleFactor(h,pace)*(w!=null ? weightFactor(w) : 1)*(1 + rnd(-1,1)*spread), gut });
+    runners.push({ horse:h, weight:w, wall, score: raceBase(h,race)*aptitudeFactor(h,race)*affinityFactor(h,race)*goingFactor(h, race, absWeek())*styleFactor(h,pace)*(w!=null ? weightFactor(w) : 1)*(1 + rnd(-1,1)*spread), gut });
   }
   const nRivals = fs - entries.length;
   for(let i=0;i<nRivals;i++){
@@ -2165,6 +2223,12 @@ function onNewYear(){
       foal.unnamed = true;
       setParams(foal, fp(sg.spd, h.spd, lb.spd), fp(sg.sta, h.sta, lb.sta), fp(sg.gut, h.gut, lb.gut));
       foal.aff = genAffinities(foal); /* 相性（v0.52〜）：根幹は400区切りのカテゴリ適性（v1.1〜） */
+      { /* 重馬場適性は父母から継承（v3.11） */
+        const sg = (st.aff && st.aff.goAff) || "-", dg = (h.aff && h.aff.goAff) || "-";
+        let pO = 0.25, pX = 0.15;
+        for(const pv of [sg, dg]){ if(pv === "○") pO += 0.12; else if(pv === "✕") pX += 0.10; }
+        foal.aff.goAff = rollMark(Math.min(pO, 0.55), Math.min(pX, 0.45));
+      }
       { /* 馬体重（v0.53・フレーバーのみ）：両親の成熟体重の平均±三角ブレ20kg */
         const sireHorseW = S.horses.find(x => x.status === "stallion" && x.name === st.name);
         const sw = sireHorseW && sireHorseW.matureWeight != null ? sireHorseW.matureWeight : (st.weight != null ? st.weight : 490);
@@ -2413,6 +2477,7 @@ function autoRangeOf(h){ const t = autoRangePlusOf(h) ? AUTO_RANGE_TOL : 0; retu
 function autoFitsLite(h, race, year){
   if(!race || race.sector==="overseas") return false;
   if(race.surface && surfBlocked(h, race.surface)) return false; /* v3.9：✕の馬場には自動で入れない */
+  if(race.racecourse && goingBlocked(h, race, absWeek())) return false; /* v3.11：重馬場✕確定の馬は重・不良で自動登録しない */
   const aRg = autoRangeOf(h);
   if(race.distance_m == null || race.distance_m < aRg[0] || race.distance_m > aRg[1]) return false;
   if(autoOverClass(h, race)) return false;
@@ -2513,6 +2578,7 @@ function autoEntryPass(){
           if(S.funds < EXPEDITION_FEE || overseasTripsThisYear(h) >= (pol==="積極的" ? 3 : 2)) continue; /* 遠征費を払える資金があること／年の上限は普通2回・積極的3回 */
         }
         if(race.surface && surfBlocked(h, race.surface)) continue; /* v3.9：✕の馬場には自動で入れない */
+        if(race.racecourse && goingBlocked(h, race, a)) continue; /* v3.11：重馬場✕確定の馬は重・不良（来週は予想）で自動登録しない */
         /* v3.7（オーナー案）：新馬・未勝利に限り、未勝利馬は距離が適性範囲外でも候補に残す（far）。
            範囲内の候補が1つでもあれば far は捨てるので、通常の馬の動きは変わらない。
            範囲内の受け皿が無い長距離馬が、最も近い未勝利戦でデビューできるようにする門戸開放 */
@@ -3034,6 +3100,7 @@ function render(){
   else if(currentTab==="stallions") b.innerHTML = viewStallions();
   else if(currentTab==="calendar") b.innerHTML = viewCalendar();
   else if(currentTab==="lineage") b.innerHTML = viewLineage();
+  else if(currentTab==="manual") b.innerHTML = viewManual();
   else b.innerHTML = viewChron();
   if(S.giftQueue && S.giftQueue.length){
     b.innerHTML = giftPanel() + b.innerHTML;
@@ -3292,7 +3359,8 @@ function drawEntryList(){
     const wnote2 = r.sector==="overseas" ? "<br><span class='sub'>✈️ 海外遠征：前週が出発・検疫週（疲労+10）、翌週が帰国・検疫週。遠征費 "+man(EXPEDITION_FEE)+"／1レース</span>"
       : tf>0 ? "<br><span class='sub'>🚚 輸送疲れ見込み +"+tf+"（"+(h.stable ? h.stable+"所属" : "所属未定")+(h.stayRegion && courseRegion(r.racecourse)===h.stayRegion ? "・滞在中" : "")+(ageOf(h)===2 ? "・2歳は重め" : "")+"）</span>" : "";
     const trialsBtn = (r.grade==="GI" || r.grade==="JpnI") ? " <button data-trials='"+r.name+"' class='ghost'>トライアル一覧</button>" : "";
-    return "<tr"+(reason?" style='opacity:.45'":"")+"><td>"+mark+"</td><td>"+raceLabel(r)+(chips?"<br>"+chips:"")+wnote+wnote2+affinityPredHint(h, r)+trialsBtn+"</td><td>"+(r.sector==="overseas"?"海外・WHC":r.sector==="regional"?"地方・TKC":"中央・NKC")+"</td><td>1着賞金 "+man(prizeTable(r)[0])+"</td><td>"+btn+"</td></tr>";
+    const goingTxt = (() => { const gt = r.racecourse ? goingLabelFor(absWeek() + entryWeekAhead, r.racecourse, r.surface) : ""; return gt ? " <span class='sub'>馬場：" + gt + "</span>" : ""; })();
+    return "<tr"+(reason?" style='opacity:.45'":"")+"><td>"+mark+"</td><td>"+raceLabel(r)+goingTxt+(chips?"<br>"+chips:"")+wnote+wnote2+affinityPredHint(h, r)+trialsBtn+"</td><td>"+(r.sector==="overseas"?"海外・WHC":r.sector==="regional"?"地方・TKC":"中央・NKC")+"</td><td>1着賞金 "+man(prizeTable(r)[0])+"</td><td>"+btn+"</td></tr>";
   }).join("");
   let trialsHtml = "";
   if(trialsFor){
@@ -3658,6 +3726,45 @@ function retiredListHtml(){
     rows.push("<tr><td>"+r.name+"</td><td>"+r.sex+"</td><td>"+r.birthYear+"年生</td><td>"+career(r.starts||0, r.wins||0, r.earnings||0)+"</td><td>"+notes.join("・")+"</td></tr>");
   }
   return html + "<table><tr><th>馬名</th><th>性</th><th>世代</th><th>成績</th><th>備考</th></tr>"+rows.join("")+"</table></details>";
+}
+/* ===== マニュアル（v3.10）：「その他」メニューとタブから開く遊び方・システム解説。
+   数値はすべて現行実装の定数に合わせること（種付料・受胎率・係数など） ===== */
+function viewManual(){
+  const sec = (title, body) => "<details class='card' style='margin-bottom:8px;'><summary><b>" + title + "</b></summary><div style='margin-top:6px;'>" + body + "</div></details>";
+  let h = "<h3>📖 マニュアル</h3><div class='sub'>遊び方とシステムの解説です。各項目はタップで開きます。</div>";
+  h += sec("🐴 このゲームについて／はじめ方",
+    "2026年から始まる、ゴールなしの牧場経営サンドボックスです。あなたは生産者兼馬主で、週単位で時間を進めながら何年でも遊べます。最初に繁殖牝馬を1頭選び、配合→出産→育成→出走→引退→次の世代へ、という循環を回していくのが基本です。初年度は4月に2歳馬2頭、12月に1歳牝馬1頭の贈呈があります（受け取りは任意）。");
+  h += sec("🗓 週の進め方と1年の流れ",
+    "「週を進める」で1週進みます。1年は日曜起算の52週です。主な季節イベント：<br>・<b>2〜6月</b>：繁殖シーズン（種付けはこの期間だけ）<br>・<b>年始</b>：出産と全馬の加齢<br>・<b>6月</b>：2歳馬のデビューが始まります（早い馬から。晩成は秋以降）<br>・<b>11〜12月</b>：繁殖牝馬セール（毎年10頭出品）<br>・<b>年末</b>：引退判定と年次決算<br>「次のイベントまで」で区切りまで一気に進められます。");
+  h += sec("💴 お金",
+    "収入は基本的に賞金だけです。賞金は馬主80%／調教師10%／騎手5%／厩務員5%に配分され、馬主分からは50万円を超える部分に10.21%の源泉徴収がかかります。G1勝ち賞金の目安は2億円、未勝利戦は550万円です。<br>支出：種付料（ランク制：S 3,000万円／A 1,500万円／B 800万円／C 400万円、自家製種牡馬は無料）、海外遠征費（1頭1レース1,000万円）、月次コスト（委託費：現役馬1頭50万円、育成費：0〜1歳1頭20万円、繋養費：繁殖牝馬・自家製種牡馬1頭20万円、経営費：月100万円）。<br>資金はマイナスになってもゲームオーバーにはなりません。");
+  h += sec("📊 能力の見方（ランク表示）",
+    "能力は数字ではなく <b>S〜Gのランク</b> でだけ表示されます（スピード／スタミナ／根性の3要素＋総合評価）。内部的には100点満点で、Sは最上位帯です。若い馬ほど評価は変動し、レースや調教で育っていきます。");
+  h += sec("🌱 成長型と仕上がり",
+    "成長型は 早熟／普通／晩成／超晩成 の4表示で、ピーク（充実期）の来る時期が違います。早熟は2〜3歳でピークを迎え早めに衰え、晩成は5歳以降に充実しますが若い頃はなかなか勝負になりません。同じ型でも個体ごとに仕上がりの早さには差があり、配合（父母の仕上がり傾向）で子に伝わります。「持続」タイプの馬はピークを過ぎても衰えが緩やかです（晩成系には付きません）。馬ページの「成長」欄で現在地（充実期／円熟期／衰え始め）が分かります。");
+  h += sec("🎯 適性（距離・競馬場など）",
+    "各馬には距離適性（◯◯〜◯◯m）と、隠れた適性（根幹距離・非根幹距離・競馬場・距離帯・長距離輸送）があります。隠れ適性はスタッフの予想（2歳から、約7割の精度）で当たりを付け、実際に走ると確定していきます。適性外の距離では力が割り引かれます。");
+  h += sec("🌧 馬場状態（良・稍重・重・不良）",
+    "馬場状態は週ごと・競馬場ごとに変わります（芝とダートで別々）。出走登録タブでは、その週のレースに実況の馬場状態が付き、来週のレースには予想（約4回に3回は当たりますが、外れることもあります）が付きます。再来週以降は分かりません。<br>馬場が悪くなると全馬に低下がかかります（稍重 ×0.98／重 ×0.95／不良 ×0.92）。重・不良ではスタミナのある馬が相対的に有利になります。<br>各馬には隠れた「重馬場適性」があります（相性欄にスタッフ予想が出ます）。○の馬は低下を受けず、✕の馬は低下が深くなります（稍重 ×0.96／重 ×0.90／不良 ×0.84）。稍重以上の馬場で走ると適性が確定します。重馬場✕が確定した馬は、自動出走では重・不良のレースを避けます。");
+  h += sec("🏟 馬場適性（芝／ダート）",
+    "馬場適性は芝とダート別々のマークで、<b>生まれた時から表示</b>されます（例：芝○ ダート✕）。係数は <b>○ 1.00／− 0.95／✕ 0.78</b> で、✕の馬場では勝負になりません。<br>受け継がれ方：両刀（○○）が配合に入ると、産駒はもう片方の適性に引っ張られます。確率の目安は次の通りです（どの結果も最低5%）。<br>・芝×芝 → 芝90%／両刀5%／ダート5%<br>・ダート×ダート → ダート90%／両刀5%／芝5%<br>・芝×ダート → 父側45%／母側45%／両刀約10%（系統の寄りで父側が最大±25%ずれる）<br>・両刀×芝 → 芝85%／両刀10%／ダート5%<br>・両刀×ダート → ダート85%／両刀10%／芝5%<br>・両刀×両刀 → 芝45%／ダート45%／両刀10%<br>両刀が絡んだ配合で生まれた専門型は、裏側のマークが − になります（○−型）。自動出走は ✕ の馬場のレースを避けます（手動登録は可能です）。");
+  h += sec("🐎 レースと出走登録",
+    "レースは中央（JRA）・地方（Jpn重賞のみ）・海外（G1〜G3）があります。出走登録は3週先まで先行登録できます。<br>・未勝利の馬は新馬・未勝利戦だけに出られます<br>・海外の重賞に出るには、国内の重賞かリステッドで勝つか3着以内に入る必要があります<br>・クラスは勝ち数で上がり、4勝以上か重賞勝ちでオープン入りです<br>・疲労が高い（70以上）上に調子が悪い（40以下）と、レースで故障することがあります。故障中は出走できず、軽症で4〜8週、重症で12〜24週かかります<br>・輸送でも疲労します。遠くの競馬場ほど大きく、2歳馬は1.5倍です");
+  h += sec("🤖 自動出走とローテーション",
+    "自動出走をONにした馬は、適性・クラス・体調を見て毎週自動でレースに登録されます（年間6戦ペース目標・上限7戦）。方針は「積極／慎重」、適性距離の±200m許容のON/OFFも選べます。海外遠征は設定（消極的／普通／積極的）で自動化の範囲が変わり、既定では手動のみです。<br>ローテーションは「どのレースに出すか」の指定です。指定した馬は指定レースにだけ自動登録され、毎年繰り返されます（各馬のページから設定）。");
+  h += sec("💕 繁殖と配合",
+    "種付けは2〜6月だけ。繁殖牝馬は4〜16歳が対象で、受胎率は9歳まで85%、その後下がって16歳で45%。14歳から出産のリスクが上がり、17歳で繁殖を引退します（死亡はありません）。子は年始に生まれます。<br>配合では相性（系統の特性の重なりなど）が産駒に影響します。種牡馬は世代交代していき（引退年齢は個体ごとに決まっていて、産駒が活躍すると延長されます）、引退した分は架空の新種牡馬が補充されます。");
+  h += sec("🌳 系統と牝系",
+    "父系の系統特性（早熟寄り・スタミナ寄りなど）は言葉だけで表示され、配合に薄く影響します（母父は半分の効き）。<br>牝系は牝馬の子孫の広がりで育ちます。直仔5頭以上・子孫25頭以上・ポイント20以上で「候補」になり、そこから2年続けて頭数シェアなどの条件を満たすと「○○系」として成立します。成立した称号は消えませんが、細ると「衰退中」と表示されます。牝系図タブで家系の広がりが見られます。");
+  h += sec("🏁 引退と種牡馬入り",
+    "引退の目安は成長型で違います（早熟は4歳前後、普通は6歳前後、晩成は7歳以降）。10歳のシーズン終了が全馬の上限です。4歳になって未勝利の馬は年末に引退します。<br>牡馬は重賞勝ちか生涯賞金1億円以上で種牡馬入りの資格があり、引退時に「種牡馬入り／売却／そのまま残す」から選べます。牝馬は繁殖入り（頭数上限内）か売却です。引退した馬は「牧場年表」タブの引退馬リストに残ります。");
+  h += sec("🏆 殿堂入り",
+    "殿堂入りは、引退済みで <b>G1（JpnI・海外G1含む）勝ち</b> と <b>生涯賞金5億円以上</b> の両方を満たした馬です。年表タブに殿堂馬が並びます。");
+  h += sec("🌙 まったりモード",
+    "週がタイマーで自動的に進む観賞モードです。速度は4段階（ゆっくり10秒／ふつう4秒／はやい1.5秒／かなり早い0.5秒、1週あたり）。自動の仕組みは9種類（出走／引退／種付け／売却（間引き）／調教／ローテーション／贈呈の受け取り／売却（超過分）／購入）あり、個別にON/OFFできます。オート調教は「調教（バランス）」で統一されます。期間指定のスキップ中も、まったりの設定に沿って自動処理が働きます。");
+  h += sec("💾 セーブとデータ",
+    "セーブはブラウザに自動保存されます。「その他」メニューの書き出し／読み込みでJSONファイルとして保存・復元できます。大事な牧場は時々書き出して手元に残すのがおすすめです（長期間のプレイでセーブが大きくなると、ブラウザの保存上限に近づくことがあります）。頭数上限（繁殖牝馬・デビュー馬）は「その他」メニューでいつでも変更できます。");
+  return h;
 }
 function viewChron(){
   let html = "";
@@ -4681,6 +4788,7 @@ $("#nextEventBtn").onclick = () => { nextEvent(); };
   });
 })();
 $("#resetBtn").onclick = () => { if(confirm("最初からやり直しますか？")){ localStorage.removeItem(SAVE_KEY); initState(); render(); } };
+  const mb = $("#manualBtn"); if(mb) mb.onclick = () => { currentTab = "manual"; document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("active", x.getAttribute("data-tab") === "manual")); render(); };
 $("#kanmuriBtn").onclick = () => { const v = $("#kanmuriInput").value.trim(); S.kanmuri = v; topic(v ? "冠名を「"+v+"」に設定しました。これから生まれる産駒に付きます" : "冠名を解除しました"); save(); render(); };
 /* 頭数上限の設定（v3.1追加）：0以上の整数なら即保存し、不正な入力は元の値に戻す。最小値は設けない */
 function wireLimitInput(id, key, label){
@@ -4728,6 +4836,6 @@ if(!load()) initState();
 ensureParams();
 render();
 </script>
-<footer>競馬シミュレーター（趣味） v3.9</footer>
+<footer>競馬シミュレーター（趣味） v3.11</footer>
 </body>
 </html>
