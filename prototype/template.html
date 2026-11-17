@@ -1318,8 +1318,96 @@ function topic(text){ if(TOPIC_WIN_RE.test(text)) S.topics.push(text); }
    スタッフ提案）と自動引退・自動淘汰の発生もこちらへ。勝利系フィルタで消えていた分を
    取り戻す。手動の引退・売却や精算は従来通りどちらにも出さない */
 function notice(text){ if(!Array.isArray(S.notices)) S.notices = []; S.notices.push(text); }
-function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S)); }catch(e){} }
-function load(){ try{ const t = localStorage.getItem(SAVE_KEY); if(t){ S = JSON.parse(t); migrateV029(); return true; } }catch(e){} return false; }
+/* ===== v4.0 保存基盤（Terai指示 2026-11-18）：主保存を IndexedDB に移し、保存上限の問題を解消する =====
+   セーブの中身（SAVE_KEY・JSON形式）は従来どおり。IndexedDB が使えない環境では localStorage に
+   フォールバックする。旧セーブ（localStorage）は初回起動時に読み戻し確認つきで自動引っ越しし、
+   引っ越し前のコピーは保険として残す。保存の失敗は握り潰さず「今週の通知」で知らせる */
+const IDB_NAME = "nkc_whc_keiba_db";
+let idbDb = null;
+let idbActive = false;
+let saveDirty = false;
+let saveWriting = false;
+let saveFailNoted = false;
+function idbSupported(){ try{ return typeof indexedDB !== "undefined" && !!indexedDB; }catch(e){ return false; } }
+function idbOpen(){ return new Promise(res => { try{
+  const rq = indexedDB.open(IDB_NAME, 1);
+  rq.onupgradeneeded = () => { try{ rq.result.createObjectStore("kv"); }catch(e){} };
+  rq.onsuccess = () => res(rq.result);
+  rq.onerror = () => res(null);
+}catch(e){ res(null); } }); }
+function idbGet(key){ return new Promise(res => { if(!idbDb) return res(null); try{
+  const rq = idbDb.transaction("kv", "readonly").objectStore("kv").get(key);
+  rq.onsuccess = () => res(typeof rq.result === "string" ? rq.result : null);
+  rq.onerror = () => res(null);
+}catch(e){ res(null); } }); }
+function idbPut(key, str){ return new Promise(res => { if(!idbDb) return res(false); try{
+  const tx = idbDb.transaction("kv", "readwrite");
+  tx.objectStore("kv").put(str, key);
+  tx.oncomplete = () => res(true);
+  tx.onerror = () => res(false);
+  tx.onabort = () => res(false);
+}catch(e){ res(false); } }); }
+function idbDel(key){ if(!idbDb) return; try{ idbDb.transaction("kv", "readwrite").objectStore("kv").delete(key); }catch(e){} }
+/* 起動時の保存先の決定（純粋関数）：IndexedDB にあればそれを正とし、無ければ localStorage の
+   旧セーブを引っ越し対象に、どちらも無ければ新規 */
+function bootSavePick(idbStr, lsStr){
+  if(typeof idbStr === "string" && idbStr) return { src: "idb", str: idbStr };
+  if(typeof lsStr === "string" && lsStr) return { src: "ls", str: lsStr };
+  return { src: "new", str: null };
+}
+function noteSaveFailure(){
+  if(saveFailNoted) return;
+  saveFailNoted = true;
+  try{ notice("⚠ セーブの保存に失敗しました。画面上では遊び続けられますが、このまま閉じると最後に保存できた時点まで巻き戻ります。「その他」の書き出しでファイルを残してください"); }catch(e){}
+}
+function flushSave(){
+  if(saveWriting || !saveDirty || !idbDb) return;
+  saveWriting = true; saveDirty = false;
+  let str = null;
+  try{ str = JSON.stringify(S); }catch(e){ saveWriting = false; noteSaveFailure(); return; }
+  idbPut(SAVE_KEY, str).then(ok => {
+    saveWriting = false;
+    if(ok) saveFailNoted = false; else noteSaveFailure();
+    if(saveDirty) flushSave();
+  });
+}
+function save(){
+  if(idbActive && idbDb){ saveDirty = true; flushSave(); return; }
+  try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S)); saveFailNoted = false; }
+  catch(e){ noteSaveFailure(); }
+}
+function load(){ /* 互換用：localStorage だけを見る従来読み込み（通常の起動は boot() が担う） */
+  try{ const t = localStorage.getItem(SAVE_KEY); if(t){ S = JSON.parse(t); migrateV029(); return true; } }catch(e){} return false;
+}
+function storageBackendLabel(){ return idbActive ? "IndexedDB（大容量）" : "localStorage（従来方式）"; }
+function saveSizeText(){ try{ const n = JSON.stringify(S).length; return "約" + (n / 1048576).toFixed(2) + "MB（" + n.toLocaleString() + "文字）"; }catch(e){ return "不明"; } }
+function applyLoadedStr(str){ S = JSON.parse(str); migrateV029(); }
+async function boot(){
+  try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(e){}
+  if(idbSupported()){
+    idbDb = await idbOpen();
+    if(idbDb){
+      const fromIdb = await idbGet(SAVE_KEY);
+      let lsStr = null; try{ lsStr = localStorage.getItem(SAVE_KEY); }catch(e){}
+      const pick = bootSavePick(fromIdb, lsStr);
+      idbActive = true;
+      let migrated = false;
+      if(pick.src === "ls"){
+        /* 引っ越し：書き込んで読み戻し、一致した時だけ IndexedDB を正にする。
+           確認できなければ今回は従来保存のまま続け、次回また試す（データを失う経路を作らない） */
+        const okPut = await idbPut(SAVE_KEY, pick.str);
+        const back = okPut ? await idbGet(SAVE_KEY) : null;
+        if(back !== pick.str) idbActive = false;
+        else migrated = true;
+      }
+      if(pick.str){ try{ applyLoadedStr(pick.str); }catch(e){ initState(); } } else initState();
+      if(migrated) try{ notice("💾 セーブの保存先を新しい方式（IndexedDB）に引っ越しました。これまで通り遊べます"); }catch(e){}
+      ensureParams(); render(); return;
+    }
+  }
+  if(!load()) initState();
+  ensureParams(); render();
+}
 /* v0.29 移行：単一スロット登録（enteredRaceKey）→週別登録（entries）、成長型の内部細分化（gtype）付与、若馬売却の個体ノイズ付与 */
 function migrateV029(){
   if(!S) return;
@@ -3763,7 +3851,7 @@ function viewManual(){
   h += sec("🌙 まったりモード",
     "週がタイマーで自動的に進む観賞モードです。速度は4段階（ゆっくり10秒／ふつう4秒／はやい1.5秒／かなり早い0.5秒、1週あたり）。自動の仕組みは9種類（出走／引退／種付け／売却（間引き）／調教／ローテーション／贈呈の受け取り／売却（超過分）／購入）あり、個別にON/OFFできます。オート調教は「調教（バランス）」で統一されます。期間指定のスキップ中も、まったりの設定に沿って自動処理が働きます。");
   h += sec("💾 セーブとデータ",
-    "セーブはブラウザに自動保存されます。「その他」メニューの書き出し／読み込みでJSONファイルとして保存・復元できます。大事な牧場は時々書き出して手元に残すのがおすすめです（長期間のプレイでセーブが大きくなると、ブラウザの保存上限に近づくことがあります）。頭数上限（繁殖牝馬・デビュー馬）は「その他」メニューでいつでも変更できます。");
+    "セーブはブラウザに自動保存されます（v4.0から保存先は IndexedDB という大容量の保存領域で、上限は端末の空き容量ベースです）。<br>現在の保存先：" + storageBackendLabel() + "／現在のセーブサイズ：" + saveSizeText() + "<br>旧方式（localStorage）で遊んでいたセーブは、初回起動時に自動で引っ越します（引っ越し前のコピーは保険としてブラウザ内に残ります）。保存に失敗した時は「今週の通知」でお知らせします。「その他」メニューの書き出し／読み込みでJSONファイルとして保存・復元もできます。ブラウザのサイトデータを消すとセーブも消えるため、大事な牧場は時々書き出して手元に残すのがおすすめです。頭数上限（繁殖牝馬・デビュー馬）は「その他」メニューでいつでも変更できます。");
   return h;
 }
 function viewChron(){
@@ -4787,7 +4875,7 @@ $("#nextEventBtn").onclick = () => { nextEvent(); };
     }
   });
 })();
-$("#resetBtn").onclick = () => { if(confirm("最初からやり直しますか？")){ localStorage.removeItem(SAVE_KEY); initState(); render(); } };
+$("#resetBtn").onclick = () => { if(confirm("最初からやり直しますか？")){ localStorage.removeItem(SAVE_KEY); idbDel(SAVE_KEY); initState(); render(); } };
   const mb = $("#manualBtn"); if(mb) mb.onclick = () => { currentTab = "manual"; document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("active", x.getAttribute("data-tab") === "manual")); render(); };
 $("#kanmuriBtn").onclick = () => { const v = $("#kanmuriInput").value.trim(); S.kanmuri = v; topic(v ? "冠名を「"+v+"」に設定しました。これから生まれる産駒に付きます" : "冠名を解除しました"); save(); render(); };
 /* 頭数上限の設定（v3.1追加）：0以上の整数なら即保存し、不正な入力は元の値に戻す。最小値は設けない */
@@ -4832,10 +4920,8 @@ $("#importFile").onchange = (ev) => {
   ev.target.value = "";
 };
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
-if(!load()) initState();
-ensureParams();
-render();
+boot();
 </script>
-<footer>競馬シミュレーター（趣味） v3.11</footer>
+<footer>競馬シミュレーター（趣味） v4.0</footer>
 </body>
 </html>
