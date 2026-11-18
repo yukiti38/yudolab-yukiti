@@ -913,6 +913,7 @@ function retireFromBreeding(h){
   h.breedRetired = true;
   h.status = "retired";
   h.retired = true;
+  h.careerEndYear = S.year; /* v4.1：詳細を閉じる起点 */
 }
 /* 手動の繁殖引退ができるか（受胎中は出産まで不可：出産処理が繁殖牝馬ステータス前提のため） */
 function canBreedRetire(h){ return !!h && h.status==="broodmare" && !h.pregnant; }
@@ -1091,7 +1092,7 @@ function stallionOpOffspringRecent(st, years){
 function retireStallion(st){
   st.retired = true; st.retiredYear = S.year;
   const hh = S.horses.find(x=>x.status==="stallion" && x.name===st.name);
-  if(hh) hh.studRetired = true;
+  if(hh){ hh.studRetired = true; hh.careerEndYear = S.year; }
   topic("🌿 " + st.name + " が種牡馬を引退しました");
   /* v3.1.1：種牡馬引退は年表に残さない（オーナー指示：年表の要素を減らす）。告知はトピックのみ */
 }
@@ -1421,6 +1422,34 @@ function migrateV029(){
     }
     S.hofGf = true;
   }
+  if(!S.hofGf2){ /* v4.1：殿堂条件の変更（10億円 or G1級5勝）に伴う経過措置（一度だけ）。v3.7基準
+     （G1勝ち＋5億円）で殿堂入りしていた現役終了馬を hofVeteran で温存する */
+    if(S.horses) for(const h of S.horses){
+      const done = h.retired || h.status==="broodmare" || h.status==="stallion";
+      if(done && h.results && h.results.length>0 && hasG1Win(h) && (h.earnings||0)>=50000) h.hofVeteran = true;
+    }
+    S.hofGf2 = true;
+  }
+  if(!S.hofLegendGf){ /* v4.1：牧場初の重賞勝ち馬・初のG1勝ち馬への殿堂保証を旧セーブにも遡及する。
+     戦績の日時（when）順に走査し、最初の重賞勝ちと最初のG1勝ちの馬に刻む。売却済みの馬は軽量
+     スナップショットしか残らないため対象外（今後は raceMilestones でその場で刻まれる） */
+    if(S.horses){
+      const keyOf = r => { const m = /^(\d+)年(\d+)月第(\d+)週/.exec(r.when || ""); return m ? (+m[1])*10000 + (+m[2])*100 + (+m[3]) : 0; };
+      let firstGd = null, firstG1 = null;
+      for(const h of S.horses){
+        if(!h.results) continue;
+        for(const r of h.results){
+          if(r.finish !== 1) continue;
+          const k = keyOf(r);
+          if(GRADED_SET.includes(r.grade) && (!firstGd || k < firstGd.k)) firstGd = { h: h, k: k };
+          if(G1_GRADES.includes(r.grade) && (!firstG1 || k < firstG1.k)) firstG1 = { h: h, k: k };
+        }
+      }
+      if(firstGd){ firstGd.h.hofLegend = true; firstGd.h.firstGraded = true; if(S.mile) S.mile.gd = true; }
+      if(firstG1){ firstG1.h.hofLegend = true; firstG1.h.firstG1 = true; if(S.mile) S.mile.g1 = true; }
+    }
+    S.hofLegendGf = true;
+  }
   if(S.mattari && S.mattari.auto && S.mattari.auto.buy == null) S.mattari.auto.buy = true; /* v3.4：旧セーブのまったり設定に自動購入の既定（ON）を補う */
   if(S.horses) for(const h of S.horses){ /* v3.4：繁殖入りの起点が無い旧セーブの牝馬は、初仔の前年（無ければ今年）で補う */
     if(h.status==="broodmare" && h.breedingSince == null){ const fy = mareFirstFoalYear(h); h.breedingSince = fy != null ? fy - 1 : S.year; }
@@ -1560,9 +1589,41 @@ const CROWN_FILLY = ["桜花賞","オークス","秋華賞"];
 const WIN_MARKS = [50,100,200,300,500,750,1000,1500,2000,3000];
 const PRIZE_MARKS = [100000,300000,500000,1000000,2000000,5000000,10000000]; // 万円（10億・30億・50億・100億・200億・500億・1000億）
 function hasG1Win(h){ return h.results.some(r=>r.finish===1 && G1_GRADES.includes(r.grade)); }
-/* v3.7（オーナー決定 2026-11-17）：殿堂入りは「G1勝ち」と「生涯5億円」の両方必須に厳格化
-   （従来はどちらか一方）。旧基準で殿堂入りしていた馬は h.hofVeteran で温存する（移行は migrateV029） */
-function hofEligible(h){ return h.results.length>0 && hasG1Win(h) && (h.earnings||0)>=50000; }
+function g1WinCount(h){ return h.results.filter(r=>r.finish===1 && G1_GRADES.includes(r.grade)).length; }
+/* v4.1（オーナー決定 2026-11-18）：殿堂入りは「生涯賞金10億円以上」または「G1級5勝以上」のどちらか
+   （v3.7の両方必須から置き換え）。v3.7基準で入っていた馬は hofVeteran で温存（移行は migrateV029）。
+   牧場初の重賞勝ち馬・初のG1勝ち馬は hofLegend で無条件に殿堂入りする */
+function hofEligible(h){ return h.results.length>0 && ((h.earnings||0)>=100000 || g1WinCount(h)>=5); }
+function isHof(h){ return hofEligible(h) || !!h.hofVeteran || !!h.hofLegend; }
+/* v4.1：現役終了年。引退処理で h.careerEndYear が刻まれる。無い旧セーブの馬は、最後の出走年・
+   牝馬は最後の産駒の出生年・種牡馬は種牡馬引退年から推定する */
+function careerEndYear(h){
+  if(h.careerEndYear) return h.careerEndYear;
+  let y = null;
+  const upd = v => { if(v != null && (y == null || v > y)) y = v; };
+  if(h.results) for(const r of h.results){ const m = /^(\d+)年/.exec(r.when || ""); if(m) upd(parseInt(m[1], 10)); }
+  if(h.sex === "牝") for(const f of S.horses){ if(f.damId === h.id || (f.dam && f.dam === h.name)) upd(f.birthYear); }
+  if(h.studRetired){ const st = S.stallions.find(s => s.name === h.name); if(st && st.retiredYear) upd(st.retiredYear); }
+  return y != null ? y : (h.birthYear || S.year) + 8;
+}
+/* v4.1（オーナー決定 2026-11-18）：引退から50年が経った馬は詳細を閉じる。殿堂馬は無期限。
+   データ自体は消さない（牝系の集計・血統は従来どおり効く） */
+function detailClosed(h){
+  if(!isAlumni(h)) return false;
+  if(isHof(h)) return false;
+  return (S.year - careerEndYear(h)) >= 50;
+}
+/* v4.1（オーナー指示 2026-11-18）：初制覇馬のラベル。牧場初の重賞勝ち馬は「牧場初の快挙」、
+   牧場初のG1勝ち馬は「牧場初の英雄」。両方を同じ馬が取ることもある */
+function legendLabels(h){
+  const ls = [];
+  if(h.firstGraded) ls.push("牧場初の快挙");
+  if(h.firstG1) ls.push("牧場初の英雄");
+  return ls;
+}
+function legendBadgeHtml(h){
+  return legendLabels(h).map(t => " <span class='ok'>🏆 " + t + "</span>").join("");
+}
 function sireIsHomebred(h){ return S.horses.some(x=>x.status==="stallion" && x.name===h.sire); }
 function damIsFarmBorn(h){ const d = S.horses.find(x=>x.name===h.dam); return !!(d && S.horses.some(x=>x.name===d.dam)); }
 function crownLegs(h){ const set = h.sex==="牝" ? CROWN_FILLY : CROWN_COLT; return set.filter(n=>h.results.some(r=>r.finish===1 && r.race===n)); }
@@ -1617,13 +1678,15 @@ function raceMilestones(h, race, finish, prize){
   /* 重賞初制覇（v0.37・オーナー要望）：その馬にとって初めての重賞勝ちは年表に残す（結果は更新済みなので、重賞勝ちがちょうど1つなら今回が初） */
   if(GRADED_SET.includes(race.grade) && gradedWinList(h).length===1){
     topic("🏆 "+h.name+" が "+race.name+" で重賞初制覇です");
+  /* v4.1：牧場初の重賞勝ち馬は殿堂保証（hofLegend） */
+  if(GRADED_SET.includes(race.grade) && !M.gd){ M.gd = true; h.hofLegend = true; h.firstGraded = true; }
   }
   if((CROWN_COLT.includes(race.name) || CROWN_FILLY.includes(race.name)) && !M.classic){
     M.classic = true;
     chron("【初制覇】"+h.name+" が "+race.name+" を勝ち、牧場初のクラシック制覇を果たした");
   }
   if(G1_GRADES.includes(race.grade)){
-    if(!M.g1){ M.g1 = true; chron("【初制覇】"+h.name+" が "+race.name+" を勝ち、牧場初のG1制覇を果たした"); topic("🏆 牧場初のG1制覇です！"); }
+    if(!M.g1){ M.g1 = true; h.hofLegend = true; h.firstG1 = true; /* v4.1：牧場初のG1勝ち馬は殿堂保証 */ chron("【初制覇】"+h.name+" が "+race.name+" を勝ち、牧場初のG1制覇を果たした"); topic("🏆 牧場初のG1制覇です！"); }
     if(race.sector==="overseas" && !M.ovsG1){ M.ovsG1 = true; chron("【初制覇】"+h.name+" が "+race.name+" を勝ち、牧場初の海外G1制覇を果たした"); }
     if(sireIsHomebred(h) && !M.hsG1){ M.hsG1 = true; chron("【初制覇】自家製種牡馬 "+h.sire+" の産駒 "+h.name+" がG1（"+race.name+"）を初めて制覇した"); }
     if(sireIsHomebred(h) && damIsFarmBorn(h) && !M.hxG1){ M.hxG1 = true; chron("【初制覇】自家生産×自家生産の "+h.name+" がG1（"+race.name+"）を初めて制覇した"); }
@@ -1634,7 +1697,7 @@ function raceMilestones(h, race, finish, prize){
 }
 function checkHofMilestone(h){
   ensureMile();
-  if(!S.mile.hof && hofEligible(h)){ S.mile.hof = true; chron("【殿堂入り】"+h.name+" が牧場初の殿堂入りを果たした"); topic("🏆 "+h.name+" が牧場初の殿堂入りです"); }
+  if(!S.mile.hof && isHof(h)){ S.mile.hof = true; chron("【殿堂入り】"+h.name+" が牧場初の殿堂入りを果たした"); topic("🏆 "+h.name+" が牧場初の殿堂入りです"); }
 }
 /* 登録中レースの表示（週ラベルを並べる） */
 function entryListText(h){
@@ -3805,7 +3868,7 @@ function retiredListHtml(){
     const notes = [];
     if(h.status==="retired"){ notes.push("繁殖引退"); if(h.origin==="購入") notes.push("購入馬"); notes.push("ランク"+mareRankOf(h)); }
     else notes.push("引退");
-    rows.push("<tr><td><span class='horse-link' data-horse='"+h.id+"'>"+h.name+"</span></td><td>"+h.sex+"</td><td>"+h.birthYear+"年生</td><td>"+career((h.results?h.results.length:0)+(h.preStarts||0), h.wins||0, h.earnings||0)+"</td><td>"+notes.join("・")+"</td></tr>");
+    rows.push("<tr><td><span class='horse-link' data-horse='"+h.id+"'>"+h.name+"</span>" + legendBadgeHtml(h) + "</td><td>"+h.sex+"</td><td>"+h.birthYear+"年生</td><td>"+career((h.results?h.results.length:0)+(h.preStarts||0), h.wins||0, h.earnings||0)+"</td><td>"+notes.join("・")+"</td></tr>");
   }
   for(const r of sold){
     const notes = ["売却（"+r.year+"年・"+man(r.price)+"）"];
@@ -3845,9 +3908,9 @@ function viewManual(){
   h += sec("🌳 系統と牝系",
     "父系の系統特性（早熟寄り・スタミナ寄りなど）は言葉だけで表示され、配合に薄く影響します（母父は半分の効き）。<br>牝系は牝馬の子孫の広がりで育ちます。直仔5頭以上・子孫25頭以上・ポイント20以上で「候補」になり、そこから2年続けて頭数シェアなどの条件を満たすと「○○系」として成立します。成立した称号は消えませんが、細ると「衰退中」と表示されます。牝系図タブで家系の広がりが見られます。");
   h += sec("🏁 引退と種牡馬入り",
-    "引退の目安は成長型で違います（早熟は4歳前後、普通は6歳前後、晩成は7歳以降）。10歳のシーズン終了が全馬の上限です。4歳になって未勝利の馬は年末に引退します。<br>牡馬は重賞勝ちか生涯賞金1億円以上で種牡馬入りの資格があり、引退時に「種牡馬入り／売却／そのまま残す」から選べます。牝馬は繁殖入り（頭数上限内）か売却です。引退した馬は「牧場年表」タブの引退馬リストに残ります。");
+    "引退の目安は成長型で違います（早熟は4歳前後、普通は6歳前後、晩成は7歳以降）。10歳のシーズン終了が全馬の上限です。4歳になって未勝利の馬は年末に引退します。<br>牡馬は重賞勝ちか生涯賞金1億円以上で種牡馬入りの資格があり、引退時に「種牡馬入り／売却／そのまま残す」から選べます。牝馬は繁殖入り（頭数上限内）か売却です。引退した馬は「牧場年表」タブの引退馬リストに残ります。<br>引退から50年が経つと、その馬の詳細ページは閉じられます（記録データ自体は残ります）。殿堂馬の詳細は無期限で残ります。");
   h += sec("🏆 殿堂入り",
-    "殿堂入りは、引退済みで <b>G1（JpnI・海外G1含む）勝ち</b> と <b>生涯賞金5億円以上</b> の両方を満たした馬です。年表タブに殿堂馬が並びます。");
+    "殿堂入りは、引退済みで <b>生涯賞金10億円以上</b>、または <b>G1（JpnI・海外G1含む）5勝以上</b> のどちらかを満たした馬です。牧場で初めて重賞を勝った馬と初めてG1を勝った馬は、条件にかかわらず殿堂入りします。年表タブに殿堂馬が並びます。");
   h += sec("🌙 まったりモード",
     "週がタイマーで自動的に進む観賞モードです。速度は4段階（ゆっくり10秒／ふつう4秒／はやい1.5秒／かなり早い0.5秒、1週あたり）。自動の仕組みは9種類（出走／引退／種付け／売却（間引き）／調教／ローテーション／贈呈の受け取り／売却（超過分）／購入）あり、個別にON/OFFできます。オート調教は「調教（バランス）」で統一されます。期間指定のスキップ中も、まったりの設定に沿って自動処理が働きます。");
   h += sec("💾 セーブとデータ",
@@ -3856,11 +3919,10 @@ function viewManual(){
 }
 function viewChron(){
   let html = "";
-  /* ===== 殿堂（WS4a・2026-11-13で基準を厳格化、v3.7で両方必須化）：現役を終えた馬のうち、
-     GI/JpnI/海外G1勝ち（海外G1はビルド時に "GI" へ正規化済み）かつ生涯獲得賞金5億円以上。
-     旧基準で殿堂入りしていた馬は hofVeteran で残す ===== */
+  /* ===== 殿堂（v4.1で条件変更）：現役を終えた馬のうち、生涯賞金10億円以上またはG1級5勝以上。
+     旧基準で殿堂入りしていた馬は hofVeteran、牧場初の重賞勝ち馬・初のG1勝ち馬は hofLegend で残す ===== */
   const careerDone = h => h.retired || h.status==="broodmare" || h.status==="stallion";
-  const hof = S.horses.filter(h => careerDone(h) && (hofEligible(h) || h.hofVeteran))
+  const hof = S.horses.filter(h => careerDone(h) && isHof(h))
     .sort((a,b)=>b.earnings-a.earnings);
   /* v2.4：殿堂リストも引退馬リストと同じく details で畳めるようにした（開閉状態は S.hofOpen、既定は閉） */
   html += "<details data-hof-fold" + (S.hofOpen ? " open" : "") + "><summary style='cursor:pointer;font-size:16px;font-weight:bold;'>🏆 殿堂（" + hof.length + "頭）</summary>";
@@ -3872,7 +3934,7 @@ function viewChron(){
       const yrs = h.results.map(r=>parseInt(r.when,10)).filter(y=>!isNaN(y));
       const span = yrs.length ? Math.min(...yrs)+"〜"+Math.max(...yrs)+"年" : "";
       const now = h.status==="broodmare" ? "繁殖牝馬" : h.status==="stallion" ? "種牡馬" : "引退";
-      return "<tr><td><span class='horse-link' data-horse='"+h.id+"'>"+h.name+"</span></td><td>"+h.sex+"</td><td>"+span+"</td><td>"+(h.results.length+(h.preStarts||0))+"戦"+h.wins+"勝</td><td>"+man(h.earnings)+"</td><td>"+(best?best.r.race+"（"+best.r.grade+"）":"―")+"</td><td>"+now+"</td></tr>";
+      return "<tr><td><span class='horse-link' data-horse='"+h.id+"'>"+h.name+"</span>" + legendBadgeHtml(h) + "</td><td>"+h.sex+"</td><td>"+span+"</td><td>"+(h.results.length+(h.preStarts||0))+"戦"+h.wins+"勝</td><td>"+man(h.earnings)+"</td><td>"+(best?best.r.race+"（"+best.r.grade+"）":"―")+"</td><td>"+now+"</td></tr>";
     }).join("");
     html += "<table><tr><th>馬名</th><th>性</th><th>現役期間</th><th>成績</th><th>獲得賞金</th><th>代表勝ち鞍</th><th>現在</th></tr>"+rows+"</table>";
   } else {
@@ -4367,6 +4429,7 @@ function coltRetireMenuHtml(h, price){
    自動引退の3経路で共用する。種牡馬入り時は世代交代ロスターへ登録し、殿堂マイルストーンも確認する */
 function retireColtCore(h, toStud){
   h.retired = true;
+  if(!toStud) h.careerEndYear = S.year; /* v4.1：詳細を閉じる起点（種牡馬入り時は種牡馬引退で刻む） */
   if(toStud){
     h.status="stallion"; h.retired = false; h.studYear = S.year; /* v3.1.4：繁殖入りする牝馬と同様、競走引退フラグは下ろす */
     /* v3.0：自家製種牡馬も世代交代の対象。retireAge は種牡馬入りの年齢＋19（入り年を含めて20年供用＝v0.40 の20年リミット）。
@@ -4656,6 +4719,13 @@ function retireQueueAct(h, act){
 }
 function openHorse(id){
   const h = S.horses.find(x=>x.id===id); if(!h) return;
+  if(detailClosed(h)){
+    $("#horseModalBox").innerHTML = "<div class='flex' style='justify-content:space-between;'><h2 style='margin:0;'>" + h.name + legendBadgeHtml(h) + "</h2><button onclick='document.querySelector(\"#horseModal\").style.display=\"none\"'>閉じる</button></div>"
+      + "<p class='sub'>" + (h.birthYear || "") + "年生まれ・" + h.sex + "・父 " + (h.sire || "－") + "・母 " + (h.dam || "－") + "／通算 " + (h.results ? h.results.filter(r => r.finish === 1).length : 0) + "勝・生涯賞金 " + man(h.earnings || 0) + "</p>"
+      + "<p>この馬は引退から50年以上が経過したため、詳細な記録は閉じられています（記録データ自体は残っており、血統や牝系の集計には使われます）。殿堂馬の詳細は無期限で残ります。</p>";
+    $("#horseModal").style.display = "block";
+    return;
+  }
   const gw = gradedWinList(h);
   const res = h.results.length ? [...h.results].reverse().map(r=>"<tr><td>"+r.when+"</td><td>"+r.race+"（"+r.grade+"）"+(r.pass?"<br><span class='sub'>通過 "+r.pass+"｜"+(r.comment||"")+"</span>":"")+"</td><td>"+r.course+" "+r.surface+(r.dist||"")+"</td><td>"+r.finish+"着/"+r.field+"頭"+(r.weight!=null ? "<br><span class='sub'>斤量"+Number(r.weight).toFixed(1)+"kg</span>" : "")+(r.transport ? "<br><span class='sub'>輸送疲労+"+r.transport+"</span>" : "")+(r.bodyWeight != null ? "<br><span class='sub'>馬体重"+r.bodyWeight+"kg"+(r.weightDiff != null ? "（前走比 "+(r.weightDiff>=0?"+":"")+r.weightDiff+"）" : "")+"</span>" : "")+"</td><td>"+(r.time||"")+"</td><td>上り"+r.agari+"</td><td>"+(r.prize?man(r.prize):"")+"</td></tr>").join("") : "<tr><td>まだ出走がありません</td></tr>";
   let actions = "";
@@ -4735,7 +4805,7 @@ function openHorse(id){
     actions += "<div class='sellmenu'><div class='sub'>この馬はまだ仮名（"+h.name+"）です。"+(h.status==="racehorse" ? "デビューする前に名前を決めてください" : "2歳になるまでに名前を決めてください（過ぎると自動で名前が付きます）")+"</div>"
       + "<div class='sellmenu-body'><input type='text' id='nameInput' size='16' placeholder='名前を入力'><button id='nameBtn'>この名前で登録</button><button id='nameSuggestBtn' class='ghost'>候補："+nameSuggest+"</button></div></div>";
   }
-  $("#horseModalBox").innerHTML = "<div class='flex' style='justify-content:space-between;'><h2 style='margin:0;'>"+h.name+"</h2><button onclick='document.querySelector(\"#horseModal\").style.display=\"none\"'>閉じる</button></div>"
+  $("#horseModalBox").innerHTML = "<div class='flex' style='justify-content:space-between;'><h2 style='margin:0;'>" + h.name + legendBadgeHtml(h) + "</h2><button onclick='document.querySelector(\"#horseModal\").style.display=\"none\"'>閉じる</button></div>"
     + "<dl class='kv'><dt>性・年齢</dt><dd>"+h.sex+"・"+ageOf(h)+"歳</dd><dt>状態</dt><dd>"+statusJa(h)+(isInjured(h) ? "（🚑 故障で休養中・あと約"+(h.injuredUntil-absWeek())+"週）" : "")+(h.studRetired ? "（種牡馬引退）" : "")+(h.breedRetired ? "（繁殖引退）" : "")+"</dd>"
     + "<dt>血統</dt><dd>父 "+h.sire+" ／ 母 "+h.dam+" ／ 母父 "+h.bms+"</dd>"
     + familyLineRow(h)
@@ -4922,6 +4992,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v4.0</footer>
+<footer>競馬シミュレーター（趣味） v4.1</footer>
 </body>
 </html>
