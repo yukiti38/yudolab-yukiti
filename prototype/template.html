@@ -847,7 +847,7 @@ function finishBreakdown(h){
   for(const r of (h.results || [])){ if(r.finish === 1) b[0]++; else if(r.finish === 2) b[1]++; else if(r.finish === 3) b[2]++; else if(r.finish >= 4) b[3]++; }
   return b;
 }
-function finishBreakdownText(h){ const b = finishBreakdown(h); return "（1着" + b[0] + "・2着" + b[1] + "・3着" + b[2] + "・着外" + b[3] + "）"; }
+function finishBreakdownText(h){ const b = finishBreakdown(h); return "(" + b[0] + "-" + b[1] + "-" + b[2] + "-" + b[3] + ")"; } /* v4.4.1：表示は数字のみの (1着-2着-3着-着外) 形式（オーナー指示） */
 /* v4.4：重賞制覇インデックス。カレンダーの各重賞行に「過去に勝ったことがあるか」を出すための
    読み取り専用の集計で、自動出走・登録などの判定には一切使わない。キーはレース名＋競馬場
    （グレードは含めない：ネオムターフカップのように年度で格が変わるレースでも一致させる）。
@@ -5130,6 +5130,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v4.4</footer>
+<footer>競馬シミュレーター（趣味） v4.4.1</footer>
 </body>
 </html>
