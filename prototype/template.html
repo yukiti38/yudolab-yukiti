@@ -1224,7 +1224,7 @@ function initState(){
         chronicle:[], statsBirths:{}, topics:[], notices:[], yearEndDone:false, phase:"choose", candidates:[], salePool:[], saleYear:2026, usedTemplates:[], firstMatingDone:false,
         giftQueue:[], giftAprDone:false, giftDecDone:false, giftSet:null, favs:[], mile:null, farmWins:0, farmPrize:0, kanmuri:"", soldHorses:[], autoRotDefault:8, autoPolicyDefault:"積極", autoRangePlusDefault:true, autoBulkOpen:false, retiredOpen:false, hofOpen:false, topicsOpen:false, noticesOpen:false, autoOverseasPolicy:"消極的",
         mattari: mattariDefault(), retirePolicyDefault:"logic", retireQueue:[], mareLimit:20, debutLimit:20,
-        lineState:{}, lineGf:false }; /* v3.4：牝系の確立状態（始祖ID→{streak, estYear, decline}）。lineGf は旧セーブの経過措置フラグ */ /* v3.1：まったりモード（自動運転）と引退方針・年末確認キュー。頭数上限（繁殖牝馬／1世代のデビュー馬）はプレイヤー設定可・既定20・最小値なし */
+        lineState:{}, lineGf:false, hofGf:true, hofGf2:true }; /* v4.2.1：新規セーブは殿堂の経過措置スタンプの対象外（最初から移行済みにしておく） */ /* v3.4：牝系の確立状態（始祖ID→{streak, estYear, decline}）。lineGf は旧セーブの経過措置フラグ */ /* v3.1：まったりモード（自動運転）と引退方針・年末確認キュー。頭数上限（繁殖牝馬／1世代のデビュー馬）はプレイヤー設定可・既定20・最小値なし */
   initStallionRoster(); /* v3.0：各エントリに birthYear／retireAge／retired／fictional と bmsLine を用意する */
   for(const st of S.stallions) surfMarksFromLabel(st, st.surface, false); /* v3.9：新規ゲームの種牡馬にも馬場適性マークを用意 */
   const sts = S.stallions;
@@ -1627,10 +1627,10 @@ const PRIZE_MARKS = [100000,300000,500000,1000000,2000000,5000000,10000000]; // 
 function hasG1Win(h){ return h.results.some(r=>r.finish===1 && G1_GRADES.includes(r.grade)); }
 function g1WinCount(h){ return h.results.filter(r=>r.finish===1 && G1_GRADES.includes(r.grade)).length; }
 /* v4.1（Terai決定 2026-11-18）：殿堂入りは「生涯賞金10億円以上」または「G1級5勝以上」のどちらか
-   （v3.7の両方必須から置き換え）。v3.7基準で入っていた馬は hofVeteran で温存（移行は migrateV029）。
+   （v3.7の両方必須から置き換え）。経過措置（hofVeteran）は v4.2.1 で廃止し、新条件に一本化した。
    牧場初の重賞勝ち馬・初のG1勝ち馬は hofLegend で無条件に殿堂入りする */
 function hofEligible(h){ return h.results.length>0 && ((h.earnings||0)>=100000 || g1WinCount(h)>=5); }
-function isHof(h){ return hofEligible(h) || !!h.hofVeteran || !!h.hofLegend; }
+function isHof(h){ return hofEligible(h) || !!h.hofLegend; } /* v4.2.1：経過措置（hofVeteran）は殿堂判定から外し、新条件に一本化（Terai指示） */
 /* v4.1：現役終了年。引退処理で h.careerEndYear が刻まれる。無い旧セーブの馬は、最後の出走年・
    牝馬は最後の産駒の出生年・種牡馬は種牡馬引退年から推定する */
 function careerEndYear(h){
@@ -3322,6 +3322,7 @@ function mainListMatch(hh){
     : horseFilter==="racehorse" ? (hh.status==="racehorse" && !hh.retired)
     : horseFilter==="young" ? (hh.status==="foal" || hh.status==="yearling")
     : horseFilter==="breeding" ? (hh.status==="broodmare" || hh.status==="stallion")
+    : horseFilter==="talent" ? !!hh.talent /* v4.2.1：素質馬のみ */
     : true;
 }
 function viewHorses(){
@@ -3335,7 +3336,7 @@ function viewHorses(){
   else if(horseSort==="name") sorted.sort((a,b)=>a.name.localeCompare(b.name, "ja"));
   const rowOf = h =>
     "<tr><td><span class='horse-link' data-horse='"+h.id+"'>"+h.name+"</span>" + talentBadgeHtml(h)+(h.unnamed ? " <span class='sub'>（仮名）</span>" : "")+(h.status==="broodmare" ? " <span class='sub'>ランク"+mareRankOf(h)+"</span>" : "")+"</td><td>"+h.sex+"</td><td>"+ageOf(h)+"歳</td><td>"+statusJa(h)+"</td><td>"+growthStage(h)+"</td><td>"+(h.status==="racehorse" && !h.retired ? horseClass(h) : "―")+"</td><td>"+h.wins+"勝 / "+man(h.earnings)+"</td><td>"+evalComment(h)+"</td><td>状態"+Math.round(h.condition)+" 疲労"+Math.round(h.fatigue)+"</td></tr>";
-  const opts = [["active","現役＋若馬（既定）"],["racehorse","現役のみ"],["young","若馬のみ"],["breeding","繁殖・種牡馬"],["all","すべて"]]
+  const opts = [["active","現役＋若馬（既定）"],["racehorse","現役のみ"],["young","若馬のみ"],["breeding","繁殖・種牡馬"],["talent","🌟素質馬のみ"],["all","すべて"]]
     .map(o=>"<option value='"+o[0]+"'"+(horseFilter===o[0]?" selected":"")+">"+o[1]+"</option>").join("");
   setTimeout(()=>{ const el = $("#horseFilterSel"); if(el) el.onchange = () => { horseFilter = el.value; render(); }; const so = $("#horseSortSel"); if(so) so.onchange = () => { horseSort = so.value; render(); }; }, 0);
   const sortOpts = [["default","既定の順"],["young","若い順"],["old","高齢順"],["earnings","獲得賞金順"],["wins","勝ち数順"],["ability","評価順"],["name","名前順"]]
@@ -3412,7 +3413,7 @@ function autoHorseRowsHtml(){
   const racers = S.horses.filter(h=>h.status==="racehorse" && !h.retired);
   if(!racers.length) return "<div class='sub'>現役馬がいません</div>";
   const rows = racers.map(h =>
-    "<tr><td><span class='horse-link' data-horse='"+h.id+"'>"+h.name+"</span>"+((h.rotation||[]).some(k=>rotationRaceOf(k)) ? " <span class='ok'>🎯指定あり</span>" : ((h.rotAuto||[]).some(k=>rotationRaceOf(k)) ? " <span class='ok'>🤖🎯自動指定あり</span>" : ""))+"</td><td>"+ageOf(h)+"歳"+h.sex+"・"+horseClass(h)+"・"+surfText(h)+" "+h.distMin+"-"+h.distMax+"m</td>" /* v3.9：馬場適性マークを明示 */
+    "<tr><td><span class='horse-link' data-horse='"+h.id+"'>"+h.name+"</span>" + talentBadgeHtml(h)+((h.rotation||[]).some(k=>rotationRaceOf(k)) ? " <span class='ok'>🎯指定あり</span>" : ((h.rotAuto||[]).some(k=>rotationRaceOf(k)) ? " <span class='ok'>🤖🎯自動指定あり</span>" : ""))+"</td><td>"+ageOf(h)+"歳"+h.sex+"・"+horseClass(h)+"・"+surfText(h)+" "+h.distMin+"-"+h.distMax+"m</td>" /* v3.9：馬場適性マークを明示 */
     + "<td><select data-auto-on='"+h.id+"'><option value='off'"+(!h.autoEntry?" selected":"")+">OFF</option><option value='on'"+(h.autoEntry?" selected":"")+">ON</option></select></td>"
     + "<td><select data-auto-rot='"+h.id+"'><option value=''"+(h.autoRot==null?" selected":"")+">既定（中"+autoDefRot()+"週）</option>"
     + AUTO_ROT_PRESETS.map(n=>"<option value='"+n+"'"+(h.autoRot===n?" selected":"")+">中"+n+"週</option>").join("") + "</select></td>"
@@ -3701,7 +3702,7 @@ function sortedForMating(m){
 }
 function broodmareStatusTable(mares){
   let html = "<h3>繁殖牝馬の状態</h3><table><tr><th>繁殖牝馬</th><th>父（母父として）</th><th>適性</th><th>状態</th></tr>";
-  for(const m of mares) html += "<tr><td><span class='horse-link' data-horse='"+m.id+"'>"+m.name+"</span></td><td>"+m.sire+"</td><td>"+m.surface+" "+m.distMin+"-"+m.distMax+"m・"+m.growth+"</td><td>"+(m.pregnant ? "受胎中（父："+m.pregnant.sire+"）" : m.breedRetired ? "繁殖引退" : (ageOf(m)>=14 ? statusJa(m)+"・高齢" : statusJa(m)))+"</td></tr>";
+  for(const m of mares) html += "<tr><td><span class='horse-link' data-horse='"+m.id+"'>"+m.name+"</span>" + talentBadgeHtml(m) + "</td><td>"+m.sire+"</td><td>"+m.surface+" "+m.distMin+"-"+m.distMax+"m・"+m.growth+"</td><td>"+(m.pregnant ? "受胎中（父："+m.pregnant.sire+"）" : m.breedRetired ? "繁殖引退" : (ageOf(m)>=14 ? statusJa(m)+"・高齢" : statusJa(m)))+"</td></tr>";
   return html + "</table>";
 }
 function broodmareTable(){
@@ -3909,7 +3910,7 @@ function retiredListHtml(){
     const notes = [];
     if(h.status==="retired"){ notes.push("繁殖引退"); if(h.origin==="購入") notes.push("購入馬"); notes.push("ランク"+mareRankOf(h)); }
     else notes.push("引退");
-    rows.push("<tr><td><span class='horse-link' data-horse='"+h.id+"'>"+h.name+"</span>" + legendBadgeHtml(h) + "</td><td>"+h.sex+"</td><td>"+h.birthYear+"年生</td><td>"+career((h.results?h.results.length:0)+(h.preStarts||0), h.wins||0, h.earnings||0)+"</td><td>"+notes.join("・")+"</td></tr>");
+    rows.push("<tr><td><span class='horse-link' data-horse='"+h.id+"'>"+h.name+"</span>" + legendBadgeHtml(h) + talentBadgeHtml(h) + "</td><td>"+h.sex+"</td><td>"+h.birthYear+"年生</td><td>"+career((h.results?h.results.length:0)+(h.preStarts||0), h.wins||0, h.earnings||0)+"</td><td>"+notes.join("・")+"</td></tr>");
   }
   for(const r of sold){
     const notes = ["売却（"+r.year+"年・"+man(r.price)+"）"];
@@ -3955,7 +3956,7 @@ function viewManual(){
   h += sec("🌙 まったりモード",
     "週がタイマーで自動的に進む観賞モードです。速度は4段階（ゆっくり10秒／ふつう4秒／はやい1.5秒／かなり早い0.5秒、1週あたり）。自動の仕組みは9種類（出走／引退／種付け／売却（間引き）／調教／ローテーション／贈呈の受け取り／売却（超過分）／購入）あり、個別にON/OFFできます。オート調教は「調教（バランス）」で統一されます。期間指定のスキップ中も、まったりの設定に沿って自動処理が働きます。");
   h += sec("🌟 素質馬（二つ名）",
-    "生まれた産駒のうち、ごくまれに（1%）生まれつきの二つ名を持つ「素質馬」がいます。誕生時にトピックでお知らせし、馬のページとリストに 🌟『二つ名』と出ます。二つ名ごとに授かる強みが違い、遺伝はしません。<br>・<b>天才</b>：全ての素質に恵まれます<br>・<b>疾風</b>：スピードの素質に恵まれます<br>・<b>千里馬</b>：スタミナの素質に恵まれます<br>・<b>鉄心</b>：根性の素質に恵まれます<br>・<b>重馬場の鬼</b>：重・不良の馬場でこそ真価を発揮します<br>・<b>馬場知らず</b>：馬場状態に左右されません<br>・<b>鉄馬</b>：故障しにくく、輸送の疲れも半分です<br>・<b>豪脚</b>：末脚の切れ味が自慢です<br>・<b>逃げ切り名人</b>：逃げ・先行でしぶとい脚を使えます<br>・<b>万能</b>：どの脚質でも平均以上に走れます<br>・<b>大駆け</b>：人気薄のときにこそ燃えます<br>・<b>タフガイ</b>：疲れにくく、状態も崩しにくいです<br>・<b>仔出しの良さ</b>：繁殖で受胎しやすい体質です");
+    "生まれた産駒のうち、ごくまれに（1%）生まれつきの二つ名を持つ「素質馬」がいます。誕生時にトピックでお知らせし、馬のページと各リストに 🌟『二つ名』と出ます。馬一覧の絞り込み「素質馬のみ」でも探せます。二つ名ごとに授かる強みが違い、遺伝はしません。<br>・<b>天才</b>：全ての素質に恵まれます<br>・<b>疾風</b>：スピードの素質に恵まれます<br>・<b>千里馬</b>：スタミナの素質に恵まれます<br>・<b>鉄心</b>：根性の素質に恵まれます<br>・<b>重馬場の鬼</b>：重・不良の馬場でこそ真価を発揮します<br>・<b>馬場知らず</b>：馬場状態に左右されません<br>・<b>鉄馬</b>：故障しにくく、輸送の疲れも半分です<br>・<b>豪脚</b>：末脚の切れ味が自慢です<br>・<b>逃げ切り名人</b>：逃げ・先行でしぶとい脚を使えます<br>・<b>万能</b>：どの脚質でも平均以上に走れます<br>・<b>大駆け</b>：人気薄のときにこそ燃えます<br>・<b>タフガイ</b>：疲れにくく、状態も崩しにくいです<br>・<b>仔出しの良さ</b>：繁殖で受胎しやすい体質です");
   h += sec("💾 セーブとデータ",
     "セーブはブラウザに自動保存されます（v4.0から保存先は IndexedDB という大容量の保存領域で、上限は端末の空き容量ベースです）。<br>現在の保存先：" + storageBackendLabel() + "／現在のセーブサイズ：" + saveSizeText() + "<br>旧方式（localStorage）で遊んでいたセーブは、初回起動時に自動で引っ越します（引っ越し前のコピーは保険としてブラウザ内に残ります）。保存に失敗した時は「今週の通知」でお知らせします。「その他」メニューの書き出し／読み込みでJSONファイルとして保存・復元もできます。ブラウザのサイトデータを消すとセーブも消えるため、大事な牧場は時々書き出して手元に残すのがおすすめです。頭数上限（繁殖牝馬・デビュー馬）は「その他」メニューでいつでも変更できます。");
   return h;
@@ -3977,7 +3978,7 @@ function viewChron(){
       const yrs = h.results.map(r=>parseInt(r.when,10)).filter(y=>!isNaN(y));
       const span = yrs.length ? Math.min(...yrs)+"〜"+Math.max(...yrs)+"年" : "";
       const now = h.status==="broodmare" ? "繁殖牝馬" : h.status==="stallion" ? "種牡馬" : "引退";
-      return "<tr><td><span class='horse-link' data-horse='"+h.id+"'>"+h.name+"</span>" + legendBadgeHtml(h) + "</td><td>"+h.sex+"</td><td>"+span+"</td><td>"+(h.results.length+(h.preStarts||0))+"戦"+h.wins+"勝</td><td>"+man(h.earnings)+"</td><td>"+(best?best.r.race+"（"+best.r.grade+"）":"―")+"</td><td>"+now+"</td></tr>";
+      return "<tr><td><span class='horse-link' data-horse='"+h.id+"'>"+h.name+"</span>" + legendBadgeHtml(h) + talentBadgeHtml(h) + "</td><td>"+h.sex+"</td><td>"+span+"</td><td>"+(h.results.length+(h.preStarts||0))+"戦"+h.wins+"勝</td><td>"+man(h.earnings)+"</td><td>"+(best?best.r.race+"（"+best.r.grade+"）":"―")+"</td><td>"+now+"</td></tr>";
     }).join("");
     html += "<table><tr><th>馬名</th><th>性</th><th>現役期間</th><th>成績</th><th>獲得賞金</th><th>代表勝ち鞍</th><th>現在</th></tr>"+rows+"</table>";
   } else {
@@ -4222,7 +4223,7 @@ function produceSection(h){
   else if(h.sex==="牡" && h.studYear!=null) kids = S.horses.filter(x=>x.sire===h.name);
   if(!kids.length) return "";
   kids.sort((a,b)=>(a.birthYear-b.birthYear) || (a.id-b.id));
-  const rows = kids.map(k=>"<tr><td><span class='horse-link' data-horse='"+k.id+"'>"+k.name+"</span>"+(k.unnamed ? " <span class='sub'>（仮名）</span>" : "")+"</td><td>"+k.sex+"</td><td>"+k.birthYear+"年生</td><td>"+(h.sex==="牝" ? (k.sire||"―") : (k.dam||"―"))+"</td><td>"+(k.results ? k.results.length : 0)+"戦"+(k.wins||0)+"勝</td><td>"+man(k.earnings||0)+"</td><td>"+statusJa(k)+"</td></tr>").join("");
+  const rows = kids.map(k=>"<tr><td><span class='horse-link' data-horse='"+k.id+"'>"+k.name+"</span>" + talentBadgeHtml(k)+(k.unnamed ? " <span class='sub'>（仮名）</span>" : "")+"</td><td>"+k.sex+"</td><td>"+k.birthYear+"年生</td><td>"+(h.sex==="牝" ? (k.sire||"―") : (k.dam||"―"))+"</td><td>"+(k.results ? k.results.length : 0)+"戦"+(k.wins||0)+"勝</td><td>"+man(k.earnings||0)+"</td><td>"+statusJa(k)+"</td></tr>").join("");
   return "<h3>産駒（"+kids.length+"頭）</h3><table><tr><th>馬名</th><th>性</th><th>世代</th><th>"+(h.sex==="牝" ? "父" : "母")+"</th><th>成績</th><th>獲得賞金</th><th>現況</th></tr>"+rows+"</table>";
 }
 /* ================= 牝系図（v0.55・Terai設計確定 2026-11-14） =================
@@ -4392,7 +4393,7 @@ function repG1Win(h){
 function lineCard(h){
   const g1 = repG1Win(h);
   return "<span class='lcard' data-horse='"+h.id+"'>"
-    + "<span class='lname'>"+h.name+(h.unnamed ? " <span class='sub'>（仮名）</span>" : "")+"</span>"
+    + "<span class='lname'>"+h.name+(h.unnamed ? " <span class='sub'>（仮名）</span>" : "") + talentBadgeHtml(h) + "</span>"
     + "<span class='lmeta'>"+h.birthYear+"年生・"+h.sex+"・"+statusJa(h)+"</span>"
     + (h.sire ? "<span class='lmeta'>父 "+h.sire+"</span>" : "")
     + (g1 ? "<span class='lg1'>🏆 "+g1.race+"（"+g1.grade+"）</span>" : "")
@@ -5036,6 +5037,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v4.2</footer>
+<footer>競馬シミュレーター（趣味） v4.2.1</footer>
 </body>
 </html>
