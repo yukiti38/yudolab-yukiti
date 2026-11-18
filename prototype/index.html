@@ -841,14 +841,14 @@ function horseClass(h){
 /* 重賞勝ちの一覧（v0.33）：戦績からグレード対象の勝利だけを抽出する。馬ページの成績欄に明記するため（斤量計算用の gradedWins とは別） */
 const GRADED_SET = ["GI","GII","GIII","G1","G2","G3","JpnI","JpnII","JpnIII","L"];
 function gradedWinList(h){ return h.results.filter(r=>r.finish===1 && GRADED_SET.includes(r.grade)); }
-/* v4.3.1（Terai要望 2026-11-18）：着順の内訳（1着-2着-3着-着外）。馬詳細の成績欄で一目で見られるようにする */
+/* v4.4（Terai要望 2026-11-18）：着順の内訳（1着-2着-3着-着外）。馬詳細の成績欄で一目で見られるようにする */
 function finishBreakdown(h){
   const b = [0, 0, 0, 0];
   for(const r of (h.results || [])){ if(r.finish === 1) b[0]++; else if(r.finish === 2) b[1]++; else if(r.finish === 3) b[2]++; else if(r.finish >= 4) b[3]++; }
   return b;
 }
 function finishBreakdownText(h){ const b = finishBreakdown(h); return "（1着" + b[0] + "・2着" + b[1] + "・3着" + b[2] + "・着外" + b[3] + "）"; }
-/* v4.3.1：重賞制覇インデックス。カレンダーの各重賞行に「過去に勝ったことがあるか」を出すための
+/* v4.4：重賞制覇インデックス。カレンダーの各重賞行に「過去に勝ったことがあるか」を出すための
    読み取り専用の集計で、自動出走・登録などの判定には一切使わない。キーはレース名＋競馬場
    （グレードは含めない：ネオムターフカップのように年度で格が変わるレースでも一致させる）。
    対象は重賞のみ（GI〜GIII・JpnI〜III、リステッドは除く）。売却した馬は戦績が残らないため対象外 */
@@ -1654,7 +1654,7 @@ const WIN_MARKS = [50,100,200,300,500,750,1000,1500,2000,3000];
 const PRIZE_MARKS = [100000,300000,500000,1000000,2000000,5000000,10000000]; // 万円（10億・30億・50億・100億・200億・500億・1000億）
 function hasG1Win(h){ return h.results.some(r=>r.finish===1 && G1_GRADES.includes(r.grade)); }
 function g1WinCount(h){ return h.results.filter(r=>r.finish===1 && G1_GRADES.includes(r.grade)).length; }
-/* v4.3.1（Terai指示 2026-11-18）：殿堂の称号「牧場の優駿」。日本ダービー（東京）を勝った馬は、
+/* v4.4（Terai指示 2026-11-18）：殿堂の称号「牧場の優駿」。日本ダービー（東京）を勝った馬は、
    牧場初かどうかに関係なく全員が称号を得て自動で殿堂入りする。戦績から動的に判定するので、
    過去のダービー勝ち馬にもそのまま遡及する（保存フラグは持たない）。東京ダービー（大井）は対象外 */
 function hasDerbyWin(h){ return (h.results || []).some(r => r.finish === 1 && r.race === "日本ダービー" && (!r.course || r.course === "東京")); }
@@ -1664,7 +1664,7 @@ function titleBadgeHtml(h){ return titleLabels(h).map(t => " <span class='ok'>�
    （v3.7の両方必須から置き換え）。経過措置（hofVeteran）は v4.2.1 で廃止し、新条件に一本化した。
    牧場初の重賞勝ち馬・初のG1勝ち馬は hofLegend で無条件に殿堂入りする */
 function hofEligible(h){ return h.results.length>0 && ((h.earnings||0)>=100000 || g1WinCount(h)>=5); }
-function isHof(h){ return hofEligible(h) || !!h.hofLegend || !!h.hofManual || hasDerbyWin(h); /* v4.3.1：ダービー勝ち馬は称号「牧場の優駿」で自動殿堂入り */ } /* v4.2.1：経過措置（hofVeteran）は殿堂判定から外し、新条件に一本化（Terai指示） */
+function isHof(h){ return hofEligible(h) || !!h.hofLegend || !!h.hofManual || hasDerbyWin(h); /* v4.4：ダービー勝ち馬は称号「牧場の優駿」で自動殿堂入り */ } /* v4.2.1：経過措置（hofVeteran）は殿堂判定から外し、新条件に一本化（Terai指示） */
 /* v4.3：任意殿堂入り（Terai発案 2026-11-18）。条件を満たさない引退馬でもプレイヤーの任意で殿堂に残せる。
    基本は通常引退で、自動では入らない。引退確認モーダルのチェックか、引退馬のページのボタンから切り替える */
 function toggleHofManual(h){
@@ -1769,7 +1769,7 @@ function raceMilestones(h, race, finish, prize){
     if(sireIsHomebred(h) && !M.hsG1){ M.hsG1 = true; chron("【初制覇】自家製種牡馬 "+h.sire+" の産駒 "+h.name+" がG1（"+race.name+"）を初めて制覇した"); }
     if(sireIsHomebred(h) && damIsFarmBorn(h) && !M.hxG1){ M.hxG1 = true; chron("【初制覇】自家生産×自家生産の "+h.name+" がG1（"+race.name+"）を初めて制覇した"); }
   }
-  /* v4.3.1：日本ダービー制覇の通知（称号そのものは hasDerbyWin の動的判定で遡及も効く） */
+  /* v4.4：日本ダービー制覇の通知（称号そのものは hasDerbyWin の動的判定で遡及も効く） */
   if(race.name === "日本ダービー") notice("👑 " + h.name + " が日本ダービーを制覇し、殿堂の称号『牧場の優駿』を得ました");
   const legs = crownLegs(h);
   if(legs.length===2 && !h.crown2){ h.crown2 = true; chron("【二冠】"+h.name+" がクラシック二冠を達成し、三冠に王手をかけた"); topic("👑 "+h.name+" が二冠達成、三冠に王手です"); }
@@ -1913,7 +1913,7 @@ function ageRestrictionViolation(h, race){
    旧仕様は馬場が1カテゴリ（芝／ダート／両刀）で、合わない方は一律×0.90（Terai：
    「0.90って結構勝てる」＝差が小さすぎた）。新仕様は馬場ごとに ○／−／✕ の適性を
    持ち、係数は ○1.00／−0.90／✕0.78（Terai：「勝負にならないレベルまで落としていい」）。
-   v4.3.1：「−」は 0.95→0.90 に引き下げ（Terai指示：−の馬場で重賞を勝てる馬が多すぎる。係数は実測で選定）
+   v4.4：「−」は 0.95→0.90 に引き下げ（Terai指示：−の馬場で重賞を勝てる馬が多すぎる。係数は実測で選定）
    最初から表示する（配合の基本情報なので隠さない）。受け継がれ方は Terai 指定：
    両刀が配合に入ると産駒はもう片方の適性に引っ張られ、両刀同士でも両刀のままは
    約10%（残りは芝かダートの ○− 型）。旧仕様の「両刀×両刀＝両刀100%」の罠は消える。
@@ -3921,7 +3921,7 @@ function viewCalendar(){
   /* ローテーション指定（v2.2）：そのレースを指定している現役馬を🎯で印付けする（指定は毎年効くので年は問わない） */
   const desig = {};
   for(const h of S.horses){ if(h.status!=="racehorse" || h.retired) continue; for(const k of allRotationKeys(h)) (desig[k] = desig[k] || []).push(h.name); }
-  const winIdx = gradedWinIndex(); /* v4.3.1：重賞の制覇マーク用（表示のみ・自動出走には無関係） */
+  const winIdx = gradedWinIndex(); /* v4.4：重賞の制覇マーク用（表示のみ・自動出走には無関係） */
   const winMark = r => { if(!CONQUEST_GRADES.includes(r.grade)) return ""; const w = winIdx[r.name + "|" + (r.racecourse || "")]; return w ? " <span class='ok'>🏆 制覇" + (w.count > 1 ? w.count + "勝" : "") + "（" + w.latestYear + "年 " + w.latestHorse + "）</span>" : ""; };
   const rowOf = r => {
     const key = raceKeyOf(absOf(S.year, m, r.wom), r);
@@ -5130,6 +5130,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v4.3.1</footer>
+<footer>競馬シミュレーター（趣味） v4.4</footer>
 </body>
 </html>
