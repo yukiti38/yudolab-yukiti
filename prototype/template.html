@@ -4762,6 +4762,8 @@ function g1EarlyRetireDue(h){
   const w = g1WinCount(h);
   if(w <= 0) return false;
   const m = maturity(h);
+  /* v5.2（オーナー指摘）：ピークを過ぎて下降に入っていること。成熟度だけでは「まだ成長途中」と「衰え」を区別できず、超晩成のG1勝ち馬が5歳で誤って引退した（マグナドーベルの件） */
+  if(yearsPastPeak(h) <= 0) return false;
   return w >= 5 ? m <= 0.90 : m <= 0.85;
 }
 /* 売却の実体（DOMなし）：資金加算＋売却記録＋除去。トピックは呼び出し側が文脈に合わせて出す */
@@ -5290,6 +5292,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v5.1</footer>
+<footer>競馬シミュレーター（趣味） v5.2</footer>
 </body>
 </html>
