@@ -1630,7 +1630,15 @@ function g1WinCount(h){ return h.results.filter(r=>r.finish===1 && G1_GRADES.inc
    （v3.7の両方必須から置き換え）。経過措置（hofVeteran）は v4.2.1 で廃止し、新条件に一本化した。
    牧場初の重賞勝ち馬・初のG1勝ち馬は hofLegend で無条件に殿堂入りする */
 function hofEligible(h){ return h.results.length>0 && ((h.earnings||0)>=100000 || g1WinCount(h)>=5); }
-function isHof(h){ return hofEligible(h) || !!h.hofLegend; } /* v4.2.1：経過措置（hofVeteran）は殿堂判定から外し、新条件に一本化（Terai指示） */
+function isHof(h){ return hofEligible(h) || !!h.hofLegend || !!h.hofManual; } /* v4.2.1：経過措置（hofVeteran）は殿堂判定から外し、新条件に一本化（Terai指示） */
+/* v4.3：任意殿堂入り（Terai発案 2026-11-18）。条件を満たさない引退馬でもプレイヤーの任意で殿堂に残せる。
+   基本は通常引退で、自動では入らない。引退確認モーダルのチェックか、引退馬のページのボタンから切り替える */
+function toggleHofManual(h){
+  if(!h) return;
+  if(h.hofManual){ h.hofManual = false; notice("🏆 " + h.name + " の任意の殿堂入りを取り消しました"); }
+  else { h.hofManual = true; notice("🏆 " + h.name + " を任意で殿堂入りさせました"); }
+  save();
+}
 /* v4.1：現役終了年。引退処理で h.careerEndYear が刻まれる。無い旧セーブの馬は、最後の出走年・
    牝馬は最後の産駒の出生年・種牡馬は種牡馬引退年から推定する */
 function careerEndYear(h){
@@ -2326,7 +2334,7 @@ function advanceWeek(){
   const prevMonth = S.month;
   S.week++; if(S.week > WEEKS_IN_MONTH[S.month-1]){ S.week=1; S.month++; }
   if(S.month>12){ S.month=1; S.year++; onNewYear(); }
-  if(S.month !== prevMonth){ monthlyCosts(prevMonth); monthlyTraining(); } /* v0.56：月替わりで前月分の経費を精算 */
+  if(S.month !== prevMonth){ monthlyCosts(prevMonth); monthlyTraining(); processMonthlyRetirements(); } /* v0.56：月替わりで前月分の経費を精算 */
   // 4) 新しい週のイベント
   weeklyEvents();
   /* 贈呈馬の自動受け入れ（v3.1・まったりモード）：届いた贈呈馬は辞退せず全て迎える */
@@ -3119,6 +3127,16 @@ function buildDebugHorse(o){
   if(o.distBulk){ aff.distAff = {}; if(o.distBulk !== "-") for(const b of AFF_BANDS) if(b >= h.distMin && b <= h.distMax) aff.distAff[b] = o.distBulk; }
   if(o.courseBulk){ aff.courseAff = {}; if(o.courseBulk !== "-") for(const c of COURSES10) aff.courseAff[c] = o.courseBulk; }
   h.aff = aff;
+  /* v4.3：二つ名（素質馬）。効果は rollTalent と同じだが、デバッグ用にパラメータ上限110のまま底上げする */
+  let tKey = o.talent || null;
+  if(tKey === "random"){ const ks = Object.keys(TALENTS); const tot = ks.reduce((a, k) => a + TALENTS[k].w, 0); let r = Math.random() * tot; tKey = ks[ks.length - 1]; for(const k of ks){ r -= TALENTS[k].w; if(r < 0){ tKey = k; break; } } }
+  if(tKey && TALENTS[tKey]){ h.talent = tKey;
+    if(tKey === "genius"){ h.spd = clampP(h.spd + 4); h.sta = clampP(h.sta + 4); h.gut = clampP(h.gut + 4); }
+    else if(tKey === "speed") h.spd = clampP(h.spd + 8);
+    else if(tKey === "stamina") h.sta = clampP(h.sta + 8);
+    else if(tKey === "guts") h.gut = clampP(h.gut + 8);
+    else if(tKey === "oni" || tKey === "baba") aff.goAff = "○";
+    h.ability = Math.round((h.spd + h.sta + h.gut) / 3); }
   ensureAffinities(h); /* 2歳以上はスタッフ予測まで付けて、作成直後から馬ページに相性欄が出るようにする */
   if(o.weight != null && o.weight !== "") h.matureWeight = clamp(Math.round(o.weight), 250, 800);
   else ensureWeight(h); /* 未指定なら通常の生成（両親からの推定）に任せる */
@@ -3155,6 +3173,7 @@ function debugPanel(){
     + "<span class='sub'>（パラメータ通常 35〜85）</span>"
     + "<label>成長 " + sel("dbgGrowth", G_CHAIN.map(g=>[g,g]), "普通") + "</label>"
     + "<label>持続 " + sel("dbgJizoku", [["no","なし"],["yes","あり"]], "no") + "</label>"
+    + "<label>二つ名 " + sel("dbgTalent", [["","なし"],["random","ランダム"]].concat(Object.keys(TALENTS).map(k=>[k, TALENTS[k].name])), "") + "</label>"
     + "<label>所属 " + sel("dbgStable", [["","未定"],["栗東","栗東"],["美浦","美浦"]], "") + "</label>"
     + "<label>成熟体重 <input id='dbgWeight' type='number' placeholder='自動' style='width:64px;'>kg</label>"
     + "<label>気性 " + sel("dbgTemp", [["35","穏やか"],["55","普通"],["80","気性難"]], "55") + "</label>"
@@ -3188,7 +3207,7 @@ function createDebugHorse(){
     coat: gv("#dbgCoat", "random"),
     record: parseInt(gv("#dbgRecord", "0"), 10),
     superMax: !!(document.querySelector("#dbgMax") && document.querySelector("#dbgMax").checked),
-    jizoku: gv("#dbgJizoku", "no") === "yes",
+    jizoku: gv("#dbgJizoku", "no") === "yes", talent: gv("#dbgTalent", "") || null,
     stable: gv("#dbgStable", ""),
     weight: isNaN(wRaw) ? null : wRaw,
     rootAff: gv("#dbgRootAff", "") || null,
@@ -3950,9 +3969,9 @@ function viewManual(){
   h += sec("🌳 系統と牝系",
     "父系の系統特性（早熟寄り・スタミナ寄りなど）は言葉だけで表示され、配合に薄く影響します（母父は半分の効き）。<br>牝系は牝馬の子孫の広がりで育ちます。直仔5頭以上・子孫25頭以上・ポイント20以上で「候補」になり、そこから2年続けて頭数シェアなどの条件を満たすと「○○系」として成立します。成立した称号は消えませんが、細ると「衰退中」と表示されます。牝系図タブで家系の広がりが見られます。");
   h += sec("🏁 引退と種牡馬入り",
-    "引退の目安は成長型で違います（早熟は4歳前後、普通は6歳前後、晩成は7歳以降）。10歳のシーズン終了が全馬の上限です。4歳になって未勝利の馬は年末に引退します。<br>牡馬は重賞勝ちか生涯賞金1億円以上で種牡馬入りの資格があり、引退時に「種牡馬入り／売却／そのまま残す」から選べます。牝馬は繁殖入り（頭数上限内）か売却です。引退した馬は「牧場年表」タブの引退馬リストに残ります。<br>引退から50年が経つと、その馬の詳細ページは閉じられます（記録データ自体は残ります）。殿堂馬の詳細は無期限で残ります。");
+    "引退の目安は成長型で違います（早熟は4歳前後、普通は6歳前後、晩成は7歳以降）。10歳のシーズン終了が全馬の上限です。自動引退がONのときは毎月判定され、目安に達した馬はシーズン途中でも引退します（手動の場合は年末に確認します）。G1を勝った馬は、衰えが見えたら通常の目安より早く引退します（5勝以上の馬はさらに早めです）。4歳になって未勝利の馬は年末に引退します。<br>牡馬は重賞勝ちか生涯賞金1億円以上で種牡馬入りの資格があり、引退時に「種牡馬入り／売却／そのまま残す」から選べます。牝馬は繁殖入り（頭数上限内）か売却です。引退した馬は「牧場年表」タブの引退馬リストに残ります。<br>引退から50年が経つと、その馬の詳細ページは閉じられます（記録データ自体は残ります）。殿堂馬の詳細は無期限で残ります。");
   h += sec("🏆 殿堂入り",
-    "殿堂入りは、引退済みで <b>生涯賞金10億円以上</b>、または <b>G1（JpnI・海外G1含む）5勝以上</b> のどちらかを満たした馬です。牧場で初めて重賞を勝った馬と初めてG1を勝った馬は、条件にかかわらず殿堂入りします。年表タブに殿堂馬が並びます。");
+    "殿堂入りは、引退済みで <b>生涯賞金10億円以上</b>、または <b>G1（JpnI・海外G1含む）5勝以上</b> のどちらかを満たした馬です。牧場で初めて重賞を勝った馬と初めてG1を勝った馬は、条件にかかわらず殿堂入りします。年表タブに殿堂馬が並びます。条件を満たさなくても、引退した馬のページや年末の引退確認から任意で殿堂入りさせることもできます（取り消しも可能で、任意の殿堂馬は詳細も無期限で残ります）。");
   h += sec("🌙 まったりモード",
     "週がタイマーで自動的に進む観賞モードです。速度は4段階（ゆっくり10秒／ふつう4秒／はやい1.5秒／かなり早い0.5秒、1週あたり）。自動の仕組みは9種類（出走／引退／種付け／売却（間引き）／調教／ローテーション／贈呈の受け取り／売却（超過分）／購入）あり、個別にON/OFFできます。オート調教は「調教（バランス）」で統一されます。期間指定のスキップ中も、まったりの設定に沿って自動処理が働きます。");
   h += sec("🌟 素質馬（二つ名）",
@@ -3978,7 +3997,7 @@ function viewChron(){
       const yrs = h.results.map(r=>parseInt(r.when,10)).filter(y=>!isNaN(y));
       const span = yrs.length ? Math.min(...yrs)+"〜"+Math.max(...yrs)+"年" : "";
       const now = h.status==="broodmare" ? "繁殖牝馬" : h.status==="stallion" ? "種牡馬" : "引退";
-      return "<tr><td><span class='horse-link' data-horse='"+h.id+"'>"+h.name+"</span>" + legendBadgeHtml(h) + talentBadgeHtml(h) + "</td><td>"+h.sex+"</td><td>"+span+"</td><td>"+(h.results.length+(h.preStarts||0))+"戦"+h.wins+"勝</td><td>"+man(h.earnings)+"</td><td>"+(best?best.r.race+"（"+best.r.grade+"）":"―")+"</td><td>"+now+"</td></tr>";
+      return "<tr><td><span class='horse-link' data-horse='"+h.id+"'>"+h.name+"</span>" + legendBadgeHtml(h) + talentBadgeHtml(h) + (h.hofManual && !hofEligible(h) && !h.hofLegend ? " <span class='sub'>（任意）</span>" : "") + "</td><td>"+h.sex+"</td><td>"+span+"</td><td>"+(h.results.length+(h.preStarts||0))+"戦"+h.wins+"勝</td><td>"+man(h.earnings)+"</td><td>"+(best?best.r.race+"（"+best.r.grade+"）":"―")+"</td><td>"+now+"</td></tr>";
     }).join("");
     html += "<table><tr><th>馬名</th><th>性</th><th>現役期間</th><th>成績</th><th>獲得賞金</th><th>代表勝ち鞍</th><th>現在</th></tr>"+rows+"</table>";
   } else {
@@ -4519,7 +4538,7 @@ function retireEndAge(h){
 function inRetireZone(h){
   if(!h || h.status !== "racehorse" || h.retired) return false;
   if(ageOf(h) >= 11) return true; /* 10歳シーズンを終えた馬は必ずゾーン入り（現役限界） */
-  if(ageOf(h) >= retireEndAge(h)) return true; /* 型別終了目安の年に達した */
+  if(ageOf(h) + (S.month-1)/12 >= retireEndAge(h)) return true; /* 型別終了目安（v4.3：分数年齢で判定し、目安の月に達したら入る。整数年齢＋年末判定では目安を最大1年近く超過していた） */
   return yearsPastPeak(h) > 0 && maturity(h) <= 0.62; /* 成熟度の低下でも入る（超早熟の早期燃え尽き等） */
 }
 /* 引退方針（v3.1）：牧場既定 S.retirePolicyDefault（"logic"＝そのまま引退／"comment"＝コメントまで粘る）
@@ -4528,15 +4547,27 @@ function retirePolicyOf(h){
   if(h && (h.retirePolicy === "logic" || h.retirePolicy === "comment")) return h.retirePolicy;
   return S.retirePolicyDefault === "comment" ? "comment" : "logic";
 }
-function autoRetireDue(h){
+function autoRetireDue(h, aF){ /* aF：comment 方針の評価時点（月次判定では現在の分数年齢を渡す） */
   if(ageOf(h) >= 11) return true; /* 10歳限界は方針によらず必須 */
   if(retirePolicyOf(h) === "logic") return inRetireZone(h);
   /* comment：スタッフ提案の条件（ピーク後2.5年以上 かつ 成熟度0.62以下）を満たすか、
      目安年齢＋1歳に達した時点で引退。その年の最終時点（11/12歳）で判定する */
-  const aF = ageOf(h) - 1 + 11/12;
+  if(aF == null) aF = ageOf(h) - 1 + 11/12; /* 従来の年末評価時点 */
   if(yearsPastPeak(h, aF) >= 2.5 && maturityA(h, aF) <= 0.62) return true;
   if(aF >= retireEndAge(h) + 1) return true;
   return false;
+}
+
+/* G1勝ち馬の前倒し引退（v4.3・Terai設計 2026-11-18）：実績馬は衰えが見えたら通常の
+   ゾーンより早く締める。条件は「ピークを過ぎたか」ではなく成熟度（衰えの実態）で見る：
+   G1 5勝以上は成熟度0.90以下（衰えの兆し）、G1 1勝以上は0.85以下（衰えの始まり）。
+   力が保てている馬は対象にならない。引退方針（logic/comment）は見ない（未勝利4歳ルールと同じ） */
+function g1EarlyRetireDue(h){
+  if(!h || h.status !== "racehorse" || h.retired) return false;
+  const w = g1WinCount(h);
+  if(w <= 0) return false;
+  const m = maturity(h);
+  return w >= 5 ? m <= 0.90 : m <= 0.85;
 }
 /* 売却の実体（DOMなし）：資金加算＋売却記録＋除去。トピックは呼び出し側が文脈に合わせて出す */
 function sellHorseCore(h, price){
@@ -4639,6 +4670,18 @@ function autoRetireHorse(h){
 /* 年末の引退処理（onNewYear の最後に呼ぶ）：10歳限界の予告＋ゾーン判定。
    まったりモードON＋自動引退トグルONなら方針に従って自動で引退させ、
    そうでなければゾーン内の馬だけを年末確認キュー（S.retireQueue）に積む */
+/* 引退の月次判定（v4.3・Terai指示 2026-11-18）：自動処理が有効なときは毎月チェックし、
+   ゾーン＋方針条件を満たした馬をその場で自動引退させる。年末判定だけだと、条件を満たしてから
+   最長で丸1シーズン近く衰えたまま走り続けていた。手動プレイは従来どおり年末確認のまま */
+function processMonthlyRetirements(){
+  if(!(autoActive() && S.mattari.auto.retire)) return;
+  for(const h of [...S.horses]){
+    if(h.status !== "racehorse" || h.retired) continue;
+    if(g1EarlyRetireDue(h)){ notice("🏆 " + h.name + "（G1 " + g1WinCount(h) + "勝）は衰えが見えたため、前倒しで引退します"); autoRetireHorse(h); }
+    else if(inRetireZone(h) && autoRetireDue(h, ageOf(h) + (S.month-1)/12)) autoRetireHorse(h);
+  }
+}
+
 function processYearEndRetirements(){
   for(const h of S.horses){
     if(h.status==="racehorse" && !h.retired && ageOf(h)===10 && !h.capAnnounced){
@@ -4665,6 +4708,7 @@ function processYearEndRetirements(){
   if(!zone.length) return;
   if(autoRetireOn){
     for(const h of [...zone]) if(autoRetireDue(h)) autoRetireHorse(h);
+    for(const h of S.horses.filter(x => x.status==="racehorse" && !x.retired && !zone.includes(x) && g1EarlyRetireDue(x))){ notice("🏆 " + h.name + "（G1 " + g1WinCount(h) + "勝）は衰えが見えたため、前倒しで引退します"); autoRetireHorse(h); } /* v4.3：G1前倒しの年末バックストップ */
   } else {
     if(!Array.isArray(S.retireQueue)) S.retireQueue = [];
     for(const h of zone) if(!S.retireQueue.includes(h.id)) S.retireQueue.push(h.id);
@@ -4731,6 +4775,7 @@ function openRetireQueue(){
     + "<p><b>" + h.name + "</b>（" + h.sex + "・" + ageOf(h) + "歳・" + h.growth + "）は引退ゾーンに入りました。"
     + (forced ? "<span class='bad'>10歳の現役限界に達したため、引退が必要です。</span>" : "どうしますか？「まだ走らせる」を選ぶと、翌年末にまた確認します。")
     + "</p><div class='sub'>" + (h.results.length + (h.preStarts||0)) + "戦" + h.wins + "勝・獲得賞金 " + man(h.earnings) + "／確認待ち " + S.retireQueue.length + " 頭</div>"
+    + "<div style='margin-top:8px;'><label><input type='checkbox' id='rqHof'> 🏆 引退と同時に、任意で殿堂入りさせる</label></div>"
     + "<div class='flex' style='margin-top:10px;'>";
   if(h.sex === "牡"){
     if(canEnterStud(h)) html += "<button data-rq='stud'>種牡馬として引退する</button>";
@@ -4756,6 +4801,7 @@ function retireQueueAct(h, act){
     sellHorseCore(h, price);
     topic("💴 " + h.name + " を引退・売却しました（" + man(price) + "）");
   }
+  if(act !== "sell" && act !== "defer" && $("#rqHof") && $("#rqHof").checked){ h.hofManual = true; notice("🏆 " + h.name + " を任意で殿堂入りさせました"); } /* v4.3：引退時の任意殿堂入り */
   S.retireQueue = (S.retireQueue || []).filter(id => id !== h.id);
   save();
   openRetireQueue();
@@ -4766,7 +4812,9 @@ function openHorse(id){
   if(detailClosed(h)){
     $("#horseModalBox").innerHTML = "<div class='flex' style='justify-content:space-between;'><h2 style='margin:0;'>" + h.name + legendBadgeHtml(h) + talentBadgeHtml(h) + "</h2><button onclick='document.querySelector(\"#horseModal\").style.display=\"none\"'>閉じる</button></div>"
       + "<p class='sub'>" + (h.birthYear || "") + "年生まれ・" + h.sex + "・父 " + (h.sire || "－") + "・母 " + (h.dam || "－") + "／通算 " + (h.results ? h.results.filter(r => r.finish === 1).length : 0) + "勝・生涯賞金 " + man(h.earnings || 0) + "</p>"
-      + "<p>この馬は引退から50年以上が経過したため、詳細な記録は閉じられています（記録データ自体は残っており、血統や牝系の集計には使われます）。殿堂馬の詳細は無期限で残ります。</p>";
+      + "<p>この馬は引退から50年以上が経過したため、詳細な記録は閉じられています（記録データ自体は残っており、血統や牝系の集計には使われます）。殿堂馬の詳細は無期限で残ります。</p>"
+      + "<p><button id='hofManualBtn'>🏆 任意で殿堂入りさせる（詳細も無期限で残ります）</button></p>";
+    const hb0 = $("#hofManualBtn"); if(hb0) hb0.onclick = () => { toggleHofManual(h); openHorse(h.id); render(); };
     $("#horseModal").style.display = "block";
     return;
   }
@@ -4849,6 +4897,11 @@ function openHorse(id){
     actions += "<div class='sellmenu'><div class='sub'>この馬はまだ仮名（"+h.name+"）です。"+(h.status==="racehorse" ? "デビューする前に名前を決めてください" : "2歳になるまでに名前を決めてください（過ぎると自動で名前が付きます）")+"</div>"
       + "<div class='sellmenu-body'><input type='text' id='nameInput' size='16' placeholder='名前を入力'><button id='nameBtn'>この名前で登録</button><button id='nameSuggestBtn' class='ghost'>候補："+nameSuggest+"</button></div></div>";
   }
+  /* v4.3：任意殿堂入りの切り替え（現役を終えた馬だけ） */
+  if(h.retired || h.status === "broodmare" || h.status === "stallion"){
+    if(h.hofManual) actions += "<div class='topic' style='margin-top:10px;'>🏆 任意で殿堂入りしています <button id='hofManualBtn' class='ghost'>取り消す</button></div>";
+    else if(!isHof(h)) actions += "<div style='margin-top:10px;'><button id='hofManualBtn'>🏆 任意で殿堂入りさせる</button> <span class='sub'>条件を満たしていなくても、思い入れのある馬を殿堂に残せます（詳細も無期限で残ります）</span></div>";
+  }
   $("#horseModalBox").innerHTML = "<div class='flex' style='justify-content:space-between;'><h2 style='margin:0;'>" + h.name + legendBadgeHtml(h) + talentBadgeHtml(h) + "</h2><button onclick='document.querySelector(\"#horseModal\").style.display=\"none\"'>閉じる</button></div>"
     + "<dl class='kv'><dt>性・年齢</dt><dd>"+h.sex+"・"+ageOf(h)+"歳</dd><dt>状態</dt><dd>"+statusJa(h)+(isInjured(h) ? "（🚑 故障で休養中・あと約"+(h.injuredUntil-absWeek())+"週）" : "")+(h.studRetired ? "（種牡馬引退）" : "")+(h.breedRetired ? "（繁殖引退）" : "")+"</dd>"
     + (h.talent ? "<dt>二つ名</dt><dd>🌟 『" + talentName(h) + "』<span class='sub'> ― " + TALENTS[h.talent].desc + "</span></dd>" : "")
@@ -4924,6 +4977,7 @@ function openHorse(id){
     topic("🌸 "+h.name+" が繁殖を引退しました");
     $("#horseModal").style.display = "none"; save(); render();
   };
+  const hmb = $("#hofManualBtn"); if(hmb) hmb.onclick = () => { toggleHofManual(h); openHorse(h.id); render(); };
   const sb = $("#sellMareBtn"); if(sb) sb.onclick = () => {
     const price = marePriceShown != null ? marePriceShown : marePrice(h);
     S.funds += price;
@@ -5037,6 +5091,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v4.2.1</footer>
+<footer>競馬シミュレーター（趣味） v4.3</footer>
 </body>
 </html>
