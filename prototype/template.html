@@ -453,14 +453,14 @@ const G_CHAIN = ["超早熟","早熟","普通早","普通","普通遅","晩成",
 /* デビュー可能時期（v3.6・オーナー要望）：2歳の仕上がりは成長型でずらす（従来は全馬6月に
    一斉デビュー可能で「皆でよーいドン」だった）。内部型ごとの基準月±1か月の個体差を持ち、
    初回計算時に決めて馬に保存する。12月上限なので全馬が2歳のうちにデビュー可能になる */
-const DEBUT_MONTH = { "超早熟":6, "早熟":7, "普通早":8, "普通":9, "普通遅":10, "晩成":11, "超晩成":12 };
+const DEBUT_MONTH = { "超早熟":6, "早熟":7, "普通早":8, "普通":9, "普通遅":10, "晩成":12, "超晩成":14 }; /* v5.3：晩成系は年跨ぎ（晩成12月／超晩成1〜3月＝14±1）。12超は翌年（3歳）の月 */
 function debutReadyAbs(h){
   if(h.debutReadyAbs != null) return h.debutReadyAbs;
   const base = DEBUT_MONTH[gtypeOf(h)] || 9;
   const r = Math.random();
   const jit = r < 0.25 ? -1 : (r < 0.5 ? 1 : 0);
-  const mo = Math.min(12, Math.max(6, base + jit));
-  h.debutReadyAbs = absOf(h.birthYear + 2, mo, 1);
+  const dm = Math.max(6, base + jit); /* v5.3：上限クランプを外し、13以上は翌年の月として扱う */
+  h.debutReadyAbs = absOf(h.birthYear + 2 + Math.floor((dm - 1) / 12), ((dm - 1) % 12) + 1, 1);
   return h.debutReadyAbs;
 }
 /* デビュー済みかどうか（戦績・勝ち星・前歴のどれかあれば済み）。仕上がりゲートと新馬優先の判定に使う */
@@ -544,18 +544,51 @@ function yearsPastPeak(h, a){ return (a != null ? a : ageOf(h) + (S.month-1)/12)
    x（1.5歳=0 → ピーク=1）への指数で系統差を付ける：早熟系は若いうちに一気に伸び、
    普通系は素直に、晩成系は若い頃ゆっくりで後半に加速する。ピーク位置は型の基準に
    個体差 pace を加えた peakOf を使う（衰え側の開始も同じピークで揃える） */
+/* デビュー時点の成熟度（v5.3）：全成長型で共通。デビューの瞬間の能力差は素質
+   （天井）だけで決まり、成長型では決まらない */
+/* デビュー後の伸びの底上げ（v5.3）：進み具合の分母に足す年数。早熟系のデビュー直後の張り付きを防ぐ */
+const DEBUT_RISE_SPAN = 2.5;
+const DEBUT_MATURITY = 0.78;
+/* その馬のデビュー年齢（小数）。debutReadyAbs（絶対週）から逆算する */
+function debutAgeOf(h){
+  const dAbs = debutReadyAbs(h);
+  return (dAbs - absOf(h.birthYear, 1, 1)) / 52;
+}
 const G_RISE_EXP = { "超早熟":0.42, "早熟":0.42, "普通早":0.55, "普通":0.55, "普通遅":0.55, "晩成":1.0, "超晩成":1.0 };
 function maturityA(h, a){
   if(h.superMax) return 1;
   const aE = effAge(h, a);
   const peak = G_PEAK[gtypeOf(h)] || 4.6;
+  /* v5.3：ピーク到達で成熟度は1.0に届く（DEBUT_RISE_SPANで緩めた伸びは、ピーク直前の
+     最後の区間で取り戻す。ピーク前0.25歳から1.0へ直線で寄せる） */
   if(aE > peak) return declineAt(h, aE - peak);
-  const x = clamp((aE - 1.5) / Math.max(0.5, peak - 1.5), 0, 1);
-  const e = G_RISE_EXP[gtypeOf(h)] || 0.55;
-  const base = 0.40 + 0.60 * Math.pow(x, e);
+  if(aE > peak - 0.25){
+    const u0 = clamp((peak - 0.25 - debutAgeOf(h)) / Math.max(0.3, (peak - debutAgeOf(h)) + DEBUT_RISE_SPAN), 0, 1);
+    const e0 = G_RISE_EXP[gtypeOf(h)] || 0.55;
+    const m0 = DEBUT_MATURITY + (1 - DEBUT_MATURITY) * Math.pow(u0, e0);
+    const f = (aE - (peak - 0.25)) / 0.25;
+    const boost0 = paceOf(h) < 0 ? -paceOf(h) * 0.22 * Math.pow(1 - clamp((aE - 1.5) / Math.max(0.5, peak - 1.5), 0, 1), 2) : 0;
+    return clamp(m0 + (1 - m0) * f + boost0 * (1 - f), 0.3, 1);
+  }
+  /* v5.3（オーナー設計）：デビューの瞬間では成長型は能力差にならない。デビュー時点の
+     到達度（DEBUT_MATURITY）は全型共通で、型の差はデビュー後の伸び方（ピークまでの
+     距離と系統の指数）とピーク位置で出す。早熟はデビューから3歳春までを全速力で
+     駆け抜け、晩成は6〜8歳までのマラソンを行う */
+  const dAge = debutAgeOf(h);
+  /* v5.3：デビュー後はピークで割って進み具合を取る。ただし早熟系はピークが近く分母が小さいため、素の進み具合をそのまま使うとデビュー直後にピークへ張り付いてしまう（全速力の行き過ぎ）。進み具合に DEBUT_RISE_SPAN（歳）を足して全型で分母を底上げし、デビュー直後の伸びを緩める。晩成系は分母が元々大きいので影響は小さい */
+  let base;
+  if(aE <= dAge){
+    const t = clamp((aE - 1.5) / Math.max(0.3, dAge - 1.5), 0, 1);
+    base = 0.40 + (DEBUT_MATURITY - 0.40) * t;
+  } else {
+    const u = clamp((aE - dAge) / Math.max(0.3, (peak - dAge) + DEBUT_RISE_SPAN), 0, 1);
+    const e = G_RISE_EXP[gtypeOf(h)] || 0.55;
+    base = DEBUT_MATURITY + (1 - DEBUT_MATURITY) * Math.pow(u, e);
+  }
   /* pace の若年ブースト（v3.8）：早仕上がりの個体は、ピークまでの距離が遠い若い時期ほど
      型の標準より前に出る（晩成の早仕上がりが2〜3歳で勝負になるのはこの分）。ピークに
      近づくにつれて消え、ピーク到達点は全個体で一致する */
+  const x = clamp((aE - 1.5) / Math.max(0.5, peak - 1.5), 0, 1);
   const boost = paceOf(h) < 0 ? -paceOf(h) * 0.22 * (1 - x) * (1 - x) : 0;
   return clamp(base + boost, 0.3, 1);
 }
@@ -2996,11 +3029,15 @@ function maybeAutoRotation(h, race){
   const k1 = rotationKeyOf(race);
   if(!h.rotAuto.includes(k1) && !h.rotation.includes(k1)){ h.rotAuto.push(k1); added.push(race.name); }
   if(!G1_GRADES.includes(race.grade)){
-    const mid = (h.distMin + h.distMax) / 2;
+    /* v5.3（オーナー指摘）：G1ルートは「勝った戦場の中」で探す。障害の重賞勝ちで平地G1
+       （大阪杯）が指定され、障害専業馬が平地GIを勝ってしまった穴の修正（2世・3世で発生） */
+    const jumpWin = isJumpRace(race);
+    const mid = jumpWin && race.distance_m != null ? race.distance_m : (h.distMin + h.distMax) / 2;
     let best = null;
     for(const r of DATA.domestic){
       if(!G1_GRADES.includes(r.grade) || r.distance_m == null) continue;
-      if(r.surface && surfBlocked(h, r.surface)) continue; /* v3.9：✕の馬場のG1は自動指定しない */
+      if(isJumpRace(r) !== jumpWin) continue; /* v5.3：平地と障害を混ぜない */
+      if(!jumpWin && r.surface && surfBlocked(h, r.surface)) continue; /* v5.3：馬場✕ガードは平地だけ（障害にsurfMarkOfを当てると常に✕になる） */
       const d = Math.abs(r.distance_m - mid);
       if(!best || d < best.d) best = { r, d };
     }
@@ -3606,7 +3643,7 @@ function autoBulkHtml(){
   /* v2.4：パネルが縦に長くタブを占有するため、年ごとのまとめと同じ details で畳めるようにした。
      開閉状態は S.autoBulkOpen に保存し（既定は閉）、セーブに保存する */
   return "<details class='autobulk' data-autobulk-fold" + (S.autoBulkOpen ? " open" : "") + "><summary>🤖 自動出走の一括設定</summary>"
-    + "<div class='topic'>🤖 <b>自動出走（オート出走決定）</b>：ONの馬は毎週、適性・クラス・体調を見て自動でレースに登録されます（年間6戦ペース目標・上限7戦／重賞優先／G1分の枠を確保／海外遠征は既定（消極的）では手動）。登録は通常の登録と同じで、出走登録タブから取り消せます。方針「積極」の馬は世代限定重賞にも挑戦します（世代G1は実績のある馬だけ）。「慎重」の馬は重賞にはOPになるまで出ません。適性±200を「許容する」の馬は、適性距離の前後200mまでのレースも候補になります（適性下限の長い馬が2歳でデビューするのに必要です）。🎯 ローテーション（出走指定）を設定した馬は自動出走の対象外で、指定レースにだけ自動登録されます（指定は各馬のページから）。未出走馬は新馬戦を優先して選びます。デビューできる時期は成長型でずれます（早い馬は6月、晩成は秋以降・各馬のページに表示）。<br>"
+    + "<div class='topic'>🤖 <b>自動出走（オート出走決定）</b>：ONの馬は毎週、適性・クラス・体調を見て自動でレースに登録されます（年間6戦ペース目標・上限7戦／重賞優先／G1分の枠を確保／海外遠征は既定（消極的）では手動）。登録は通常の登録と同じで、出走登録タブから取り消せます。方針「積極」の馬は世代限定重賞にも挑戦します（世代G1は実績のある馬だけ）。「慎重」の馬は重賞にはOPになるまで出ません。適性±200を「許容する」の馬は、適性距離の前後200mまでのレースも候補になります（適性下限の長い馬が2歳でデビューするのに必要です）。🎯 ローテーション（出走指定）を設定した馬は自動出走の対象外で、指定レースにだけ自動登録されます（指定は各馬のページから）。未出走馬は新馬戦を優先して選びます。デビューできる時期は成長型でずれます（早い馬は6月、晩成は12月〜3歳の年明け・各馬のページに表示）。<br>"
     + "<button data-auto-all='on'>全馬ON</button> <button data-auto-all='off' class='ghost'>全馬OFF</button> "
     + "<label>既定の出走間隔：<select data-auto-defrot>" + AUTO_ROT_PRESETS.map(n=>"<option value='"+n+"'"+(autoDefRot()===n?" selected":"")+">中"+n+"週"+(n===8?"（標準）":"")+"</option>").join("") + "</select></label> "
     + "<label>既定方針：<select data-auto-defpolicy>" + ["積極","慎重"].map(p=>"<option value='"+p+"'"+(autoDefPolicy()===p?" selected":"")+">"+p+"</option>").join("") + "</select></label> "
@@ -4140,13 +4177,13 @@ function viewManual(){
   h += sec("🐴 このゲームについて／はじめ方",
     "2026年から始まる、ゴールなしの牧場経営サンドボックスです。あなたは生産者兼馬主で、週単位で時間を進めながら何年でも遊べます。最初に繁殖牝馬を1頭選び、配合→出産→育成→出走→引退→次の世代へ、という循環を回していくのが基本です。初年度は4月に2歳馬2頭、12月に1歳牝馬1頭の贈呈があります（受け取りは任意）。");
   h += sec("🗓 週の進め方と1年の流れ",
-    "「週を進める」で1週進みます。1年は日曜起算の52週です。主な季節イベント：<br>・<b>2〜6月</b>：繁殖シーズン（種付けはこの期間だけ）<br>・<b>年始</b>：出産と全馬の加齢<br>・<b>6月</b>：2歳馬のデビューが始まります（早い馬から。晩成は秋以降）<br>・<b>11〜12月</b>：繁殖牝馬セール（毎年10頭出品）<br>・<b>年末</b>：引退判定と年次決算<br>「次のイベントまで」で区切りまで一気に進められます。");
+    "「週を進める」で1週進みます。1年は日曜起算の52週です。主な季節イベント：<br>・<b>2〜6月</b>：繁殖シーズン（種付けはこの期間だけ）<br>・<b>年始</b>：出産と全馬の加齢<br>・<b>6月</b>：2歳馬のデビューが始まります（早い馬から。晩成は12月〜年明け、超晩成は3歳の春先）<br>・<b>11〜12月</b>：繁殖牝馬セール（毎年10頭出品）<br>・<b>年末</b>：引退判定と年次決算<br>「次のイベントまで」で区切りまで一気に進められます。");
   h += sec("💴 お金",
     "収入は基本的に賞金だけです。賞金は馬主80%／調教師10%／騎手5%／厩務員5%に配分され、馬主分からは50万円を超える部分に10.21%の源泉徴収がかかります。G1勝ち賞金の目安は2億円、未勝利戦は550万円です。<br>支出：種付料（ランク制：S 3,000万円／A 1,500万円／B 800万円／C 400万円、自家製種牡馬は無料）、海外遠征費（1頭1レース1,000万円）、月次コスト（委託費：現役馬1頭50万円、育成費：0〜1歳1頭20万円、繋養費：繁殖牝馬・自家製種牡馬1頭20万円、経営費：月100万円）。<br>資金はマイナスになってもゲームオーバーにはなりません。");
   h += sec("📊 能力の見方（ランク表示）",
     "能力は数字ではなく <b>S〜Gのランク</b> でだけ表示されます（スピード／スタミナ／根性の3要素＋総合評価）。内部的には100点満点で、Sは最上位帯です。若い馬ほど評価は変動し、レースや調教で育っていきます。");
   h += sec("🌱 成長型と仕上がり",
-    "成長型は 早熟／普通／晩成／超晩成 の4表示で、ピーク（充実期）の来る時期が違います。早熟は2〜3歳でピークを迎え早めに衰え、晩成は5歳以降に充実しますが若い頃はなかなか勝負になりません。同じ型でも個体ごとに仕上がりの早さには差があり、配合（父母の仕上がり傾向）で子に伝わります。「持続」タイプの馬はピークを過ぎても衰えが緩やかです（晩成系には付きません）。馬ページの「成長」欄で現在地（充実期／円熟期／衰え始め）が分かります。");
+    "成長型は 早熟／普通／晩成／超晩成 の4表示で、ピーク（充実期）の来る時期が違います。早熟は2〜3歳でピークを迎え早めに衰え、晩成は5歳以降に充実します。デビューの時点ではどの成長型でも仕上がり具合は同じくらいで、差が出るのはその後の伸び方です（早熟はデビューから3歳春までが全盛、晩成は6〜8歳までの長いマラソン）。同じ型でも個体ごとに仕上がりの早さには差があり、配合（父母の仕上がり傾向）で子に伝わります。「持続」タイプの馬はピークを過ぎても衰えが緩やかです（晩成系には付きません）。馬ページの「成長」欄で現在地（充実期／円熟期／衰え始め）が分かります。");
   h += sec("🎯 適性（距離・競馬場など）",
     "各馬には距離適性（◯◯〜◯◯m）と、隠れた適性（根幹距離・非根幹距離・競馬場・距離帯・長距離輸送）があります。隠れ適性はスタッフの予想（2歳から、約7割の精度）で当たりを付け、実際に走ると確定していきます。適性外の距離では力が割り引かれます。");
   h += sec("🌧 馬場状態（良・稍重・重・不良）",
@@ -5292,6 +5329,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v5.2</footer>
+<footer>競馬シミュレーター（趣味） v5.3</footer>
 </body>
 </html>
