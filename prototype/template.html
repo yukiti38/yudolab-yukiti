@@ -1920,7 +1920,46 @@ function hasOverseasEntryAt(h, a){ const e = h.entries && h.entries[a]; return !
 function isTravelWeek(h, a){ return hasOverseasEntryAt(h, a + 1); }
 function isReturnWeek(h, a){ return h.expedReturnAbs != null && h.expedReturnAbs === a; }
 /* ================= レース適否 ================= */
-function eligibility(h, race){
+/* 出走ライン賞金（v5.6・Terai発案／POST_SIM 119）：本物の「出走馬決定賞金」の読み替え。
+   全戦績の本賞金×0.5 ＋ 直近1年の分×0.5上乗せ ＋ 直近2年のG1級の分×0.5上乗せ。
+   通算ではなく近況で「今の格」を測る数字で、国内G1の出走ライン判定に使う */
+function resultAbsOf(r){ const m = /^(\d+)年(\d+)月第(\d+)週/.exec(r.when || ""); return m ? absOf(+m[1], +m[2], +m[3]) : -9999; }
+function lineMoney(h){
+  const now = absWeek(); let sum = 0;
+  for(const r of (h.results || [])){
+    const p = r.prize || 0; if(!p) continue;
+    const a = resultAbsOf(r);
+    let v = p * 0.5;
+    if(a >= now - 52) v += p * 0.5; /* 直近1年は上乗せ（近況重視） */
+    if(G1_GRADES.includes(r.grade) && a >= now - 104) v += p * 0.5; /* 直近2年のG1級実績はさらに上乗せ */
+    sum += v;
+  }
+  return Math.floor(sum);
+}
+const G1_LINE_OPEN = 10000; /* 古馬G1の出走ライン（万円＝1億円。本物の有馬記念の境目と同水準） */
+const G1_LINE_3YO = 1000; /* 3歳限定G1のライン（本物のクラシックの賞金枠＝収得賞金1,000万〜1,600万円の下限寄り。2連勝級の馬（新馬＋1勝クラス≒1,350万円）を通し、1勝だけの馬は弾く水準） */
+/* そのレースに掛かる出走ライン（万円）。0＝ラインなし：海外・障害G1・2歳G1・G1以外には掛けない（Terai決定） */
+function lineFor(race){
+  if(!race || race.sector === "overseas" || isJumpRace(race)) return 0;
+  if(race.grade !== "GI" && race.grade !== "JpnI") return 0;
+  const c = race.conditions || "";
+  if(c.includes("2歳") && !c.includes("2歳以上")) return 0; /* 2歳G1はラインなし */
+  if(/(^|[^0-9])3歳/.test(c) && !c.includes("3歳以上")) return G1_LINE_3YO; /* 3歳限定G1 */
+  return G1_LINE_OPEN;
+}
+/* 出走ライン抽選（v5.6・Terai発案）：ライン未達でも、その開催につき1回だけ抽選を受けられる。
+   結果は h.lineLottery[開催キー] に保存され、再抽選はできない。当選した開催に限り eligibility を通る */
+const LINE_LOTTERY_CHANCE = 0.2;
+function rollLineLottery(h, race, abs){
+  const key = raceKeyOf(abs, race);
+  if(!h.lineLottery) h.lineLottery = {};
+  if(key in h.lineLottery) return h.lineLottery[key];
+  const ok = Math.random() < LINE_LOTTERY_CHANCE;
+  h.lineLottery[key] = ok;
+  if(ok) notice("🎲 " + h.name + " は " + race.name + " の出走抽選に当選しました（出走ライン賞金は未達ですが、この開催に出走できます）");
+  return ok;
+}
+function eligibility(h, race, abs){ /* abs（対象開催の絶対週）を渡すと、その開催の抽選当選も加味する */
   if(isInjured(h)) return "故障で休養中";
   /* 年齢条件は「レース日時点の年齢」で判定する（v2.1・京成杯事案）：登録は最大3週先まで先行できるため、
      現在の年齢で判定すると、12月に3歳で登録→年明けに4歳で3歳限定戦に出走できてしまった。
@@ -1971,6 +2010,8 @@ function eligibility(h, race){
     if(!h.gradedWin && !placed) return "海外遠征には国内の重賞・リステッドでの勝利か3着以内が必要です";
   }
   if(age===2 && tYMD[1]<6 && !race.general) return "2歳の重賞出走は6月以降（試作ルール）";
+  const g1line = lineFor(race); /* v5.6：国内G1の出走ライン（手動・自動・ローテーション共通の関門） */
+  if(g1line > 0){ const lm = lineMoney(h); if(lm < g1line && !(abs != null && h.lineLottery && h.lineLottery[raceKeyOf(abs, race)])) return "賞金不足（出走ライン" + g1line + "万円に対し現在" + lm + "万円）"; }
   if(h.fatigue>=70) return "疲労が大きい";
   /* 輸送・遠征の週制約（v0.51）。targetAbs は冒頭で算出済み */
   if(race.sector==="overseas"){
@@ -2875,6 +2916,7 @@ function autoFitsLite(h, race, year){
   if(race.distance_m == null || race.distance_m < aRg[0] || race.distance_m > aRg[1]) return false;
   if(autoOverClass(h, race)) return false;
   if(!prestigeFloorOk(h, race)) return false; /* v3.1：格の地板（温存・G1リザーブの数え上げでも同じ基準にする） */
+  const g1line = lineFor(race); if(g1line > 0 && lineMoney(h) < g1line) return false; /* v5.6：ライン未達のG1はフィット扱いにしない（リザーブ・温存の数え上げから外す） */
   return autoCondOk(h, race, year);
 }
 /* ペース由来の間隔：その年の残り週数を「目標まであと何戦か」で割り、前走（今年まだ走っていなければ年始の前週）を起点に測る */
@@ -2917,7 +2959,7 @@ function autoG1Reserve(h, year){
       if(autoFitsLite(h, race, t[0])) n++;
     }
   }
-  return Math.min(n, 3);
+  return n; /* v5.6：上限3を撤廃し、残りフィットG1全部を数える（Terai承認のリザーブ改革） */
 }
 /* 今週から6週以内に控えた最上位の大レース（重賞・リステッド）。温存判定に使う。
    大レースは重賞・リステッドなので、間隔の下限はプリセットではなく中2週（v3.1）。
@@ -2960,6 +3002,7 @@ function autoEntryPass(){
     const mid = (aRg[0] + aRg[1]) / 2;
     const reserveCache = {};
     const reserveOf = yr => (yr in reserveCache) ? reserveCache[yr] : (reserveCache[yr] = autoG1Reserve(h, yr));
+    const lastSurf = h.results && h.results.length ? (h.results[h.results.length-1].surface || null) : null; /* v5.6：ローテの連続性（前走と同じ馬場を優先する） */
     const cands = [];
     for(let k=0;k<=3;k++){
       const t = shiftWeek(S.year, S.month, S.week, k);
@@ -2984,24 +3027,34 @@ function autoEntryPass(){
         if(race.distance_m==null || (far && !maidenOpen)) continue;
         if(autoOverClass(h, race)) continue;                    /* 格上挑戦はしない（自クラス以下だけ。ただし世代限定重賞は1勝以上で例外＝v2.1） */
         if(!(race.sector==="overseas" && S.autoOverseasPolicy==="積極的") && !prestigeFloorOk(h, race)) continue; /* 格の地板（v3.1）：ベスト勝利より2段階以上下のレースには入れない（v3.5：積極的の海外遠征には適用しない） */
-        if(eligibility(h, race)) continue;                      /* 関門は手動と完全同一 */
+        let eligReason = eligibility(h, race, a);              /* 関門は手動と完全同一（v5.6：その開催の抽選当選も見る） */
+        if(eligReason && eligReason.startsWith("賞金不足") && rollLineLottery(h, race, a)) eligReason = eligibility(h, race, a); /* v5.6：ライン未達なら開催1回限りの抽選 */
+        if(eligReason) continue;
         const graded = AUTO_BIG_GRADES.includes(race.grade);
         if(a < autoDueAbs(h, yr, graded)) continue;             /* ローテ／ペースの間隔（重賞はハード側のみ） */
         /* G1リザーブ：この1戦を使った後の残り枠が、残りフィットG1分の確保を割らないこと */
-        if(!(race.sector==="overseas" && S.autoOverseasPolicy==="積極的")){ /* v3.5：積極的の海外遠征は国内G1リザーブに縛られない */
+        /* G1リザーブ：この1戦を使った後の残り枠が、残りフィットG1分の確保を割らないこと。
+           v5.6改革（Terai承認）：リザーブは残りフィットG1全部を数え、G1自身はリザーブで止めない
+           （年間上限は autoDueAbs 側で効く）。旧仕様は「最大3つまで」＋G1自身にも適用だったため、
+           前哨戦で枠を使い切ると一番近いG1から犠牲になる逆転があった */
+        if(!(race.sector==="overseas" && S.autoOverseasPolicy==="積極的") && !G1_GRADES.includes(race.grade)){ /* v3.5：積極的の海外遠征は国内G1リザーブに縛られない */
           const used = autoStartsInYear(h, yr);
-          const reserveAfter = Math.max(reserveOf(yr) - (G1_GRADES.includes(race.grade) ? 1 : 0), 0);
-          if(AUTO_CAP - (used + 1) < reserveAfter) continue;
+          if(AUTO_CAP - (used + 1) < reserveOf(yr)) continue;
         }
-        cands.push({ race, abs:a, tier:autoGradeTier(race), graded, shinba: race.grade === "新馬", far, distDiff: Math.abs(race.distance_m - mid), prize: prizeTable(race)[0] });
+        cands.push({ race, abs:a, tier:autoGradeTier(race), graded, shinba: race.grade === "新馬", far, sw: (lastSurf && race.surface && race.surface !== lastSurf) ? 1 : 0, distDiff: Math.abs(race.distance_m - mid), prize: prizeTable(race)[0] });
       }
     }
     if(cands.some(c=>!c.far)) for(let i=cands.length-1;i>=0;i--) if(cands[i].far) cands.splice(i,1); /* v3.7：範囲内の候補がある馬は範囲外（far）を使わない */
     if(!cands.length) continue;
     const debutant = !hasDebuted(h);
-    const byScore = (x, y) => ((debutant ? (x.shinba ? 0 : 1) - (y.shinba ? 0 : 1) : 0)) || (x.tier - y.tier) || (x.distDiff - y.distDiff) || (x.abs - y.abs) || (y.prize - x.prize); /* v3.6：未出走馬は新馬戦を最優先（Terai要望）。次いで格→適距離→早い週→賞金 */
+    const byScore = (x, y) => ((debutant ? (x.shinba ? 0 : 1) - (y.shinba ? 0 : 1) : 0)) || (x.tier - y.tier) || ((x.sw||0) - (y.sw||0)) || (x.distDiff - y.distDiff) || (x.abs - y.abs) || (y.prize - x.prize); /* v3.6：未出走馬は新馬戦を最優先（Terai要望）。次いで格→適距離→早い週→賞金 */
     const gradedCands = cands.filter(c=>c.graded).sort(byScore);
     const ordCands = cands.filter(c=>!c.graded).sort(byScore);
+    /* v5.6：馬場適性の優先（Terai指摘・POST_SIM 120）— 重賞候補の中に○の馬場があれば、−の馬場の重賞は使わない
+       （重賞候補が無い週は条件戦候補の中で同じ絞り込み。○の条件戦が−の重賞を止めることはない＝格が先）。
+       −は「出ても勝負になるが本命ではない」位置づけで、自動出走では代替扱いにする（✕は surfBlocked で除外済み） */
+    const surfTrim = list => { if(list.some(c => surfMarkOf(h, c.race.surface) === "○")) for(let j=list.length-1;j>=0;j--) if(surfMarkOf(h, list[j].race.surface) !== "○") list.splice(j,1); };
+    surfTrim(gradedCands); if(!gradedCands.length) surfTrim(ordCands);
     const big = autoUpcomingBig(h);
     let pick = null;
     if(gradedCands.length){
@@ -3208,7 +3261,8 @@ function rotationPass(){
       const memoDone = !!(memo && memo.abs === raceAbs && memo.done);
       if(!existing){
         entryWeekAhead = ahead;                            /* eligibility の対象週をレース週に合わせる（手動登録と同一判定） */
-        const reason = eligibility(h, race);
+        let reason = eligibility(h, race, raceAbs);
+        if(reason && reason.startsWith("賞金不足") && rollLineLottery(h, race, raceAbs)) reason = eligibility(h, race, raceAbs); /* v5.6：ライン抽選 */
         entryWeekAhead = savedAhead;
         if(!reason){
           if(!h.entries) h.entries = {};
@@ -3841,9 +3895,9 @@ function viewEntry(){
   return html;
 }
 const GRADE_RANK = {"GI":0,"G1":0,"JpnI":0,"GII":1,"G2":1,"JpnII":1,"J-GI":1,"GIII":2,"G3":2,"JpnIII":2,"J-GII":2,"L":3,"J-GIII":3,"オープン":4};
-function sortedRacesFor(h, wk){
+function sortedRacesFor(h, wk, abs){
   const mid = (h.distMin + h.distMax) / 2;
-  const arr = wk.map(r => ({ r, reason: eligibility(h, r), apt: aptitudeFactor(h, r) }));
+  const arr = wk.map(r => ({ r, reason: eligibility(h, r, abs), apt: aptitudeFactor(h, r) }));
   const gr = x => (GRADE_RANK[x.r.grade] != null ? GRADE_RANK[x.r.grade] : (x.r.general ? 6 : 5));
   const dist = x => (x.r.distance_m == null ? 99999 : x.r.distance_m);
   if(entrySort==="recommend") arr.sort((a,b)=> ((a.reason?1:0)-(b.reason?1:0)) || (b.apt-a.apt) || (gr(a)-gr(b)));
@@ -3861,7 +3915,7 @@ function drawEntryList(){
   const [ty, tm, tw] = shiftWeek(S.year, S.month, S.week, entryWeekAhead);
   const targetAbs = absWeek() + entryWeekAhead;
   const wk = racesThisWeek(ty, tm, tw);
-  let arr = sortedRacesFor(h, wk).filter(x=>raceMatchesFilters(x.r));
+  let arr = sortedRacesFor(h, wk, targetAbs).filter(x=>raceMatchesFilters(x.r));
   const okCount = arr.filter(x=>!x.reason).length;
   if(entryOnlyOk) arr = arr.filter(x=>!x.reason);
   const rows = arr.map(({r, reason, apt}) => {
@@ -3869,7 +3923,7 @@ function drawEntryList(){
     const mark = !reason && apt>=0.99 ? "◎" : !reason && apt>=0.93 ? "○" : "";
     const ent = h.entries ? h.entries[targetAbs] : null;
     const entered = !!(ent && ent.key===key);
-    const btn = reason ? "<span class='bad'>"+reason+"</span>"
+    const btn = reason ? "<span class='bad'>"+reason+"</span>" + (reason.startsWith("賞金不足") ? (h.lineLottery && (key in h.lineLottery) ? " <span class='sub'>（この開催の抽選には外れました）</span>" : " <button data-lottery='"+h.id+"' data-key='"+key+"'>🎲 抽選に申し込む</button>") : "")
       : entered ? "<button data-unenter='"+h.id+"'>登録取消</button>"
       : ent ? "<button data-enter='"+h.id+"' data-key='"+key+"'>この週の登録を差し替え</button>"
       : "<button data-enter='"+h.id+"' data-key='"+key+"'>出走登録</button>";
@@ -3905,6 +3959,7 @@ function drawEntryList(){
     save(); render();
   });
   document.querySelectorAll("[data-unenter]").forEach(btn => btn.onclick = () => { if(h.entries) delete h.entries[targetAbs]; save(); render(); });
+  document.querySelectorAll("[data-lottery]").forEach(btn => btn.onclick = () => { const key = btn.getAttribute("data-key"); const rr = wk.find(x => raceKeyOf(targetAbs, x) === key); if(rr) rollLineLottery(h, rr, targetAbs); save(); render(); });
   document.querySelectorAll("[data-trials]").forEach(btn => btn.onclick = () => { trialsFor = btn.getAttribute("data-trials"); drawEntryList(); });
   const tc = document.querySelector("[data-trials-close]"); if(tc) tc.onclick = () => { trialsFor = null; drawEntryList(); };
 }
@@ -4276,10 +4331,12 @@ function viewManual(){
     "レースは中央（JRA）・地方（Jpn重賞のみ）・海外（G1〜G3）があります。出走登録は3週先まで先行登録できます。<br>・未勝利の馬は新馬・未勝利戦だけに出られます<br>・海外の重賞に出るには、国内の重賞かリステッドで勝つか3着以内に入る必要があります<br>・クラスは勝ち数で上がり、4勝以上か重賞勝ちでオープン入りです<br>・疲労が高い（70以上）上に調子が悪い（40以下）と、レースで故障することがあります。故障中は出走できず、軽症で4〜8週、重症で12〜24週かかります<br>・輸送でも疲労します。遠くの競馬場ほど大きく、2歳馬は1.5倍です<br>・カレンダータブでは、過去に勝ったことのある重賞に「🏆制覇」の印が付きます（勝ち数と、最近勝った年・馬名も表示）。まだ勝っていない重賞探しに使えます");
   h += sec("🐴 障害競走",
     "平地とは別のキャリアとして、障害競走があります。舞台は中山・東京・京都・阪神・新潟・小倉・福島・中京で、障害未勝利（月に2〜3週だけ開催、週1〜2鞍）→ 障害オープン（年に20本ほど＋実名のOP特別）→ 障害重賞（J-GIII〜J-GI）の順に上がっていきます。<br>障害に出られるのは<b>距離適性の上限が3000m以上</b>の馬だけです（素質『稀代のジャンパー』の馬は例外で、距離適性に関係なく転向できます）。各馬には隠れた「障害適性」（○／−／✕）があり、相性欄にスタッフ予想が出て、障害を走ると確定します。障害ではスタミナと根性がものを言います。落馬・競走中止もあり、確率は適性で変わります（○1%／−3%／✕7%）。落馬した馬は半分の確率で故障します。<br>障害の賞金・勝ち数は平地と合算され、平地のクラスも上がります（平地の未勝利戦は、平地で勝っていなければ出られます）。J-GI（中山大障害・中山グランドジャンプ）はG1級として数え、殿堂入りの条件や制覇マークの対象になります。通常の自動出走は障害を対象にしませんが、馬ごとに「障害のみ出走」をONにした馬は障害レースだけを年4〜5戦（J-GI・J-GII中心）で自動出走します（この設定の馬は未勝利のまま4歳を迎えても引退しません。ONの間は平地のローテーション指定も、自動・手動を問わず登録されません）。それ以外の馬の障害出走は手動登録かローテーション指定で。");
+  h += sec("💰 国内G1の出走ライン",
+    "国内のG1（2歳G1と障害G1を除く）には「出走ライン」があります。本物の収得賞金の仕組みを読み替えたもので、各馬の「出走ライン賞金」＝全戦績の本賞金×0.5＋直近1年の分×0.5上乗せ＋直近2年のG1級の分×0.5上乗せ、で測ります。通算ではなく近況で「今の格」を表す数字で、馬のページの成績欄に表示されます。ラインは古馬G1が1億円、3歳限定G1（クラシックなど）が1,000万円。届かない馬は手動・自動・ローテーションのどれでも登録できず、理由は「賞金不足」と表示されます（ローテーション指定が見送られた場合は通知でも知らされます）。ライン未達の馬はG2・G3などの前哨戦で稼ぐのが仕事になり、ラインを超えた実績馬はG1へ直行する、という本物に近い振る舞いになります。海外のG1にはラインはなく、従来どおり国内重賞での勝利か3着以内が関門です。ラインに届かない馬にも、その開催1回限りの「抽選」があります（当選率20%）。当選すると通知が出て、その開催に限り出走できます。外れた開催には再挑戦できません。手動登録では出走登録タブの「🎲 抽選に申し込む」ボタンから、自動出走とローテーションでは登録判定のときに自動で抽選します。");
   h += sec("✈️ 海外遠征の行きやすさと欧州適性",
     "海外のG1には「行きやすさ」が付いています（S／A／B／C／D）。日本馬の参戦・好走の実績が軸で、香港国際競走やドバイワールドカップデー、凱旋門賞などがS、ほとんど日本馬の行かないレースがC・Dです。出走登録タブとローテーション指定のリストに表示されます。自動遠征の設定が「普通」のとき、自動で遠征するのは行きやすさA以上のG1だけです（G2・G3は対象外、「積極的」では制限なし）。<br>各馬には隠れた「欧州適性」があります（相性欄にスタッフ予想が出ます）。欧州（イギリス・フランス・アイルランド・ドイツ・イタリア）の芝でだけ効き、○は割り引かれず、−は×0.95、✕は×0.85になります。欧州の芝を走ると確定し、✕が確定した馬は自動出走では欧州の芝を避けます。重馬場適性や障害適性と同じく、父母から受け継ぎます。");
   h += sec("🤖 自動出走とローテーション",
-    "自動出走をONにした馬は、適性・クラス・体調を見て毎週自動でレースに登録されます（年間6戦ペース目標・上限7戦）。方針は「積極／慎重」、適性距離の±200m許容のON/OFFも選べます。海外遠征は設定（消極的／普通／積極的）で自動化の範囲が変わり、既定では手動のみです。<br>ローテーションは「どのレースに出すか」の指定です。指定した馬は指定レースにだけ自動登録され、毎年繰り返されます（各馬のページから設定）。<br>指定には「1回限り」も選べます（直近の開催1回だけで、終わると自動で外れます）。<br>トライアル（弥生賞→皐月賞、青葉賞→日本ダービーなど）を勝つと、本番が自動で指定されます（1回限り・適性内の馬だけ）。海外の前哨戦（サウジダービー→UAEダービー→ケンタッキーダービー、フォワ賞／ニエル賞→凱旋門賞）も同じ仕組みで、こちらは適性内に加えて通算賞金1億円以上の馬だけが対象です。");
+    "自動出走をONにした馬は、適性・クラス・体調を見て毎週自動でレースに登録されます（年間6戦ペース目標・上限7戦）。方針は「積極／慎重」、適性距離の±200m許容のON/OFFも選べます。海外遠征は設定（消極的／普通／積極的）で自動化の範囲が変わり、既定では手動のみです。<br>ローテーションは「どのレースに出すか」の指定です。指定した馬は指定レースにだけ自動登録され、毎年繰り返されます（各馬のページから設定）。<br>指定には「1回限り」も選べます（直近の開催1回だけで、終わると自動で外れます）。<br>トライアル（弥生賞→皐月賞、青葉賞→日本ダービーなど）を勝つと、本番が自動で指定されます（1回限り・適性内の馬だけ）。海外の前哨戦（サウジダービー→UAEダービー→ケンタッキーダービー、フォワ賞／ニエル賞→凱旋門賞）も同じ仕組みで、こちらは適性内に加えて通算賞金1億円以上の馬だけが対象です。<br>G1については、残っている適性内のG1全部のぶんの出走枠を確保するように前哨戦を間引きます（G1自身は枠の確保では止まらず、年間上限だけが効きます）。馬場については、○の馬場のレースがある週は−の馬場のレースには自動で入れません（−は代替扱い）。また、前走と違う馬場のレースは少し後回しになるので、芝・ダートを行き来するローテにはなりにくくなっています。");
   h += sec("💕 繁殖と配合",
     "種付けは2〜6月だけ。繁殖牝馬は4〜16歳が対象で、受胎率は9歳まで85%、その後下がって16歳で45%。14歳から出産のリスクが上がり、17歳で繁殖を引退します（死亡はありません）。子は年始に生まれます。<br>配合では相性（系統の特性の重なりなど）が産駒に影響します。種牡馬は世代交代していき（引退年齢は個体ごとに決まっていて、産駒が活躍すると延長されます）、引退した分は架空の新種牡馬が補充されます。");
   h += sec("🌳 系統と牝系",
@@ -4308,12 +4365,22 @@ function viewChron(){
   if(hof.length){
     const rows = hof.map(h => {
       const wins = h.results.filter(r=>r.finish===1);
+      /* v5.6（Terai指示）：G1級の勝ち鞍は全部並べ、順序は ダービー＞有馬記念＞あとは賞金順。
+         同じレースの複数勝ちは ×N にまとめ、そのレースの最高賞金で順位付けする */
+      /* v5.6（Terai指示）：代表勝ち鞍は1つだけ選ぶ。優先順は ダービー＞有馬記念＞あとは賞金順（G1級の中で）。
+         G1級の勝ちが無い馬は、従来どおりグレード→賞金の順で一番の勝ち鞍を出す */
       let best = null;
-      for(const r of wins){ const rk = (GRADE_RANK[r.grade]!=null ? GRADE_RANK[r.grade] : 9); if(!best || rk<best.rk || (rk===best.rk && r.prize>best.r.prize)) best = { rk, r }; }
+      const g1wins = wins.filter(r => G1_GRADES.includes(r.grade));
+      if(g1wins.length){
+        const pin = name => name === "日本ダービー" ? 0 : name === "有馬記念" ? 1 : 2;
+        best = { r: [...g1wins].sort((a, b) => (pin(a.race) - pin(b.race)) || ((b.prize||0) - (a.prize||0)))[0] };
+      } else {
+        for(const r of wins){ const rk = (GRADE_RANK[r.grade]!=null ? GRADE_RANK[r.grade] : 9); if(!best || rk<best.rk || (rk===best.rk && (r.prize||0) > (best.r.prize||0))) best = { rk, r }; }
+      }
       const yrs = h.results.map(r=>parseInt(r.when,10)).filter(y=>!isNaN(y));
       const span = yrs.length ? Math.min(...yrs)+"〜"+Math.max(...yrs)+"年" : "";
       const now = h.status==="broodmare" ? "繁殖牝馬" : h.status==="stallion" ? "種牡馬" : "引退";
-      return "<tr><td><span class='horse-link' data-horse='"+h.id+"'>"+h.name+"</span>" + legendBadgeHtml(h) + titleBadgeHtml(h) + talentBadgeHtml(h) + (h.hofManual && !hofEligible(h) && !h.hofLegend ? " <span class='sub'>（任意）</span>" : "") + "</td><td>"+h.sex+"</td><td>"+span+"</td><td>"+(h.results.length+(h.preStarts||0))+"戦"+h.wins+"勝</td><td>"+man(h.earnings)+"</td><td>"+(best?best.r.race+"（"+best.r.grade+"）":"―")+"</td><td>"+now+"</td></tr>";
+      return "<tr><td><span class='horse-link' data-horse='"+h.id+"'>"+h.name+"</span><br><span class='sub'>父 "+(h.sire||"―")+"</span>" + legendBadgeHtml(h) + titleBadgeHtml(h) + talentBadgeHtml(h) + (h.hofManual && !hofEligible(h) && !h.hofLegend ? " <span class='sub'>（任意）</span>" : "") + "</td><td>"+h.sex+"</td><td>"+span+"</td><td>"+(h.results.length+(h.preStarts||0))+"戦"+h.wins+"勝</td><td>"+man(h.earnings)+"</td><td>"+(best?best.r.race+"（"+best.r.grade+"）":"―")+"</td><td>"+now+"</td></tr>";
     }).join("");
     html += "<table><tr><th>馬名</th><th>性</th><th>現役期間</th><th>成績</th><th>獲得賞金</th><th>代表勝ち鞍</th><th>現在</th></tr>"+rows+"</table>";
   } else {
@@ -5239,7 +5306,7 @@ function openHorse(id){
     + "<dt>成長</dt><dd>"+growthStage(h)+" <span style='display:inline-block;vertical-align:middle;width:130px;height:9px;background:#10160f;border:1px solid var(--line);border-radius:5px;'><span style='display:block;height:100%;width:"+Math.round(maturity(h)*100)+"%;background:var(--acc);border-radius:5px;'></span></span> <span class='sub'>成熟度"+Math.round(maturity(h)*100)+"%</span></dd>"
     + ((!hasDebuted(h) && (h.status==="yearling" || h.status==="racehorse")) ? "<dt>デビュー</dt><dd>" + (absWeek() >= debutReadyAbs(h) ? "デビュー可能（仕上がり済み）" : fromAbs(debutReadyAbs(h))[1] + "月頃からデビュー可能（仕上がり待ち）") + "</dd>" : "")
     + "<dt>スタッフ評価</dt><dd>"+evalComment(h)+"</dd>"
-    + "<dt>成績</dt><dd>"+(h.results.length+(h.preStarts||0))+"戦"+h.wins+"勝"+finishBreakdownText(h)+"・獲得賞金 "+man(h.earnings)+"</dd>"
+    + "<dt>成績</dt><dd>"+(h.results.length+(h.preStarts||0))+"戦"+h.wins+"勝"+finishBreakdownText(h)+"・獲得賞金 "+man(h.earnings)+"・出走ライン賞金 "+man(lineMoney(h))+"</dd>"
     + (gw.length ? "<dt>重賞勝ち</dt><dd>"+gradedWinSummary(h)+"</dd>" : "")
     + "<dt>コンディション</dt><dd>状態"+Math.round(h.condition)+"／疲労"+Math.round(h.fatigue)+"</dd>"
     + (entryListText(h) ? "<dt>登録中</dt><dd>"+entryListText(h)+"</dd>" : "")
@@ -5413,6 +5480,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v5.5</footer>
+<footer>競馬シミュレーター（趣味） v5.6</footer>
 </body>
 </html>
