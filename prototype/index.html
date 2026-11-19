@@ -1926,7 +1926,7 @@ function isFarCourse(h, race){
   return region !== stableHomeRegion(h);
 }
 function transportBase(h, race){
-  if(race.sector === "overseas") return 0; // 海外は遠征週の仕組み側で扱う
+  if(race.sector === "overseas") return 20; // 海外は出発週の+10とは別に輸送疲労20（オーナー想定。POST_SIM 128：従来は0で未実装だった）
   if(!h.stable) return 0;
   const region = courseRegion(race.racecourse);
   if(!region) return 12;
@@ -1947,7 +1947,7 @@ function transportFatigue(h, race){
   if(h.talent === "iron") base = Math.round(base / 2); /* v4.2：鉄馬は輸送の疲れも半分 */
   return base;
 }
-/* 海外遠征：レース前週＝出発・検疫週（レース・調教不可、疲労+10）、翌週＝帰国・検疫週（レース・調教不可、休養同率で回復）。
+/* 海外遠征：レース前週＝出発・検疫週（レース・調教不可、疲労+10）、レース当日に輸送疲労+20（transportBase 経由：2歳は重め、輸送○・鉄馬で半減。POST_SIM 128）、翌週＝帰国・検疫週（レース・調教不可、休養同率で回復）。
    遠征費は1レース一律1,000万円（v0.51。従来の800万円は実際には未徴収だった） */
 const EXPEDITION_FEE = 1000;
 function hasOverseasEntryAt(h, a){ const e = h.entries && h.entries[a]; return !!(e && e.sector === "overseas"); }
@@ -4001,8 +4001,8 @@ function drawEntryList(){
     const wt = weightTypeOf(r);
     const wnote = (wt==="ハンデ" || wt==="別定") ? "<br><span class='sub'>"+wt+"戦：この馬の斤量 "+assignedWeight(r,h).toFixed(1)+"kg（登録前に確認できます。重ければ見送る判断も）</span>" : "";
     /* 輸送・遠征の見込み（v0.51） */
-    const tf = r.sector==="overseas" ? 0 : transportFatigue(h, r);
-    const wnote2 = r.sector==="overseas" ? "<br><span class='sub'>✈️ 海外遠征：前週が出発・検疫週（疲労+10）、翌週が帰国・検疫週。遠征費 "+man(EXPEDITION_FEE)+"／1レース</span>"
+    const tf = transportFatigue(h, r);
+    const wnote2 = r.sector==="overseas" ? "<br><span class='sub'>✈️ 海外遠征：前週が出発・検疫週（疲労+10）、レース当日に輸送疲労+"+tf+"、翌週が帰国・検疫週。遠征費 "+man(EXPEDITION_FEE)+"／1レース</span>"
       : tf>0 ? "<br><span class='sub'>🚚 輸送疲れ見込み +"+tf+"（"+(h.stable ? h.stable+"所属" : "所属未定")+(h.stayRegion && courseRegion(r.racecourse)===h.stayRegion ? "・滞在中" : "")+(ageOf(h)===2 ? "・2歳は重め" : "")+"）</span>" : "";
     const trialsBtn = (r.grade==="GI" || r.grade==="JpnI") ? " <button data-trials='"+r.name+"' class='ghost'>トライアル一覧</button>" : "";
     const goingTxt = (() => { const gt = r.racecourse ? goingLabelFor(absWeek() + entryWeekAhead, r.racecourse, r.surface) : ""; return gt ? " <span class='sub'>馬場：" + gt + "</span>" : ""; })();
@@ -5563,6 +5563,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v5.8</footer>
+<footer>競馬シミュレーター（趣味） v5.8.1</footer>
 </body>
 </html>
