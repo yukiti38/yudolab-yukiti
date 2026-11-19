@@ -22916,5 +22916,25 @@
   "prize_first_jpy": 13500,
   "prize_source": "racedb_2025",
   "weight_type": "定量"
+ },
+ {
+  "name": "UAEダービー",
+  "grade": "G2",
+  "country": "アラブ首長国連邦",
+  "racecourse": "メイダン競馬場",
+  "date_2025": "2025-04-05",
+  "month": 4,
+  "week_of_month": 1,
+  "surface": "ダート",
+  "conditions_raw": "サラ北半球産３歳ダート1900メートル",
+  "distance_raw": "1900メートル",
+  "race_page_url": null,
+  "source_url": "https://www.racedb.com/grade/2025/g2-uae.htm",
+  "detail_source": "manual_v55",
+  "prize_first_local": 580000,
+  "prize_currency": "USD",
+  "prize_first_jpy": 8700,
+  "prize_source": "manual_v55",
+  "weight_type": "定量"
  }
 ]

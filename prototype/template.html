@@ -439,7 +439,7 @@ function foalName(){
 function stallionPower(st){ return st.fee_tier==="S"?79 : st.fee_tier==="A"?74 : st.fee_tier==="B"?69 : 64; } /* v0.50 新スケール */
 function newHorse(o){
   return Object.assign({ id: Math.random().toString(36).slice(2,10), wins:0, earnings:0, results:[], fatigue:0,
-    condition:80, policy:"train", pregnant:null, entries:{}, lastRaceAbs:-9, retired:false, autoEntry:false, autoRot:null, autoPolicy:null, autoRangePlus:null, rotation:[], rotMemo:{} }, o);
+    condition:80, policy:"train", pregnant:null, entries:{}, lastRaceAbs:-9, retired:false, autoEntry:false, autoRot:null, autoPolicy:null, autoRangePlus:null, rotation:[], rotMemo:{}, rotationOnce:[], rotAutoOnce:[], rotOnceAbs:{} }, o);
 }
 function absWeek(){ return absOf(S.year, S.month, S.week); }
 /* 登録キー（v3.7.1）：馬場・距離まで含める。同名・同場・同グレードでも馬場や距離が違う
@@ -1637,7 +1637,7 @@ function migrateV029(){
   if(S.autoPolicyDefault !== "慎重") S.autoPolicyDefault = "積極";
   for(const h of S.horses){ if(h.autoPolicy !== "慎重" && h.autoPolicy !== "積極") h.autoPolicy = null; }
   /* v2.2 移行：ローテーション（出走指定）。旧セーブには無いので空リストで補う */
-  for(const h of S.horses){ if(!Array.isArray(h.rotation)) h.rotation = []; if(!Array.isArray(h.rotAuto)) h.rotAuto = []; if(!h.rotMemo || typeof h.rotMemo !== "object") h.rotMemo = {}; }
+  for(const h of S.horses){ if(!Array.isArray(h.rotation)) h.rotation = []; if(!Array.isArray(h.rotAuto)) h.rotAuto = []; if(!h.rotMemo || typeof h.rotMemo !== "object") h.rotMemo = {}; if(!Array.isArray(h.rotationOnce)) h.rotationOnce = []; if(!Array.isArray(h.rotAutoOnce)) h.rotAutoOnce = []; if(!h.rotOnceAbs || typeof h.rotOnceAbs !== "object") h.rotOnceAbs = {}; }
   /* v2.4 移行：自動出走の一括設定パネルの開閉状態。既定は閉じた状態（false） */
   if(typeof S.autoBulkOpen !== "boolean") S.autoBulkOpen = false;
   /* v2.4 移行：引退馬リスト・殿堂リストの開閉状態。既定は閉じた状態（false） */
@@ -2076,6 +2076,17 @@ function goingBlocked(h, race, abs){
   const g = abs === absWeek() ? goingOf(abs, race.racecourse, race.surface) : goingForecastOf(abs, race.racecourse, race.surface);
   return g >= 2;
 }
+/* 欧州適性（v5.5・オーナー発案）：欧州（英・仏・愛・独・伊）の芝にだけ効く隠し適性。
+   ○は割り引かれず、−は軽く（×0.95）、✕は大きく（×0.85）割り引かれる。重馬場・障害と
+   同じ流儀で予測・判明・継承する。アメリカダート適性は見送り（オーナー判断） */
+const EU_COUNTRIES = ["イギリス", "フランス", "アイルランド", "ドイツ", "イタリア"];
+const EU_FACTOR = { "○": 1.00, "-": 0.95, "✕": 0.85 };
+function isEuTurf(race){ return !!race && race.sector === "overseas" && race.surface === "芝" && EU_COUNTRIES.includes(race.country); }
+function euMarkOf(h){ return (h.aff && h.aff.euAff) || "-"; }
+function euFactor(h, race){ if(!isEuTurf(race)) return 1; const f = EU_FACTOR[euMarkOf(h)]; return f != null ? f : 1; }
+function euBlocked(h, race){ return isEuTurf(race) && !!(h.aff && h.aff.known && h.aff.known.eu && h.aff.euAff === "✕"); }
+const ACCESS_LABEL = { 5: "S", 4: "A", 3: "B", 2: "C", 1: "D" }; /* v5.5：行きやすさスコアの表示 */
+function accessLabelOf(race){ return race && race.access ? (ACCESS_LABEL[race.access] || "") : ""; }
 function surfMarkOf(x, surface){
   const m = surface === "芝" ? x.surfT : x.surfD;
   if(m === "○" || m === "-" || m === "✕") return m;
@@ -2150,7 +2161,7 @@ const AFF_BANDS = [1000,1200,1400,1600,1800,2000,2200,2400,2600,2800,3000,3200,3
 const COURSES10 = ["札幌","函館","福島","新潟","東京","中山","中京","京都","阪神","小倉"];
 function rollMark(pO, pX){ const r = Math.random(); return r < pO ? "○" : r < pO + pX ? "✕" : "-"; }
 function genAffinities(h){
-  const aff = { distAff:{}, distKnown:{}, courseAff:{}, courseKnown:{}, known:{ root:false, nonRoot:false, yuso:false, jump:false } };
+  const aff = { distAff:{}, distKnown:{}, courseAff:{}, courseKnown:{}, known:{ root:false, nonRoot:false, yuso:false, jump:false, eu:false } };
   /* 根幹距離（v1.1〜）：400で割り切れる距離すべてへのカテゴリ適性。非根幹と同率（○20%／✕12%／−68%）で生成する */
   aff.rootAff = rollMark(0.20, 0.12);
   /* 非根幹距離（400で割り切れない距離すべて）：根幹と同方向（○同士・✕同士）は重ねて生成しない */
@@ -2175,6 +2186,7 @@ function genAffinities(h){
   aff.yuso = Math.random() < 0.20; // 輸送○（輸送疲労が半分になる）
   aff.goAff = rollMark(0.25, 0.15); // 重馬場適性（v3.11）：○25%／✕15%／−60%
   aff.jumpAff = rollMark(0.20, 0.15); // 障害適性（v5.0）：○20%／✕15%／−65%
+  aff.euAff = rollMark(0.20, 0.15); // 欧州適性（v5.5）：○20%／✕15%／−65%
   return aff;
 }
 function predictMark(t){
@@ -2186,13 +2198,15 @@ function predictMark(t){
 }
 function ensureAffinities(h, centre){
   if(!h.aff) h.aff = genAffinities(h);
+  if(h.aff.euAff == null) h.aff.euAff = rollMark(0.20, 0.15); /* v5.5：旧セーブの馬にも欧州適性を割り当てる */
   if(ageOf(h) >= 2 && !h.aff.pred){
     const a = h.aff;
-    const pred = { root: predictMark(a.rootAff), nonRoot: predictMark(a.nonRoot), yuso: predictMark(a.yuso ? "○" : "-"), go: predictMark(a.goAff || "-"), jump: predictMark(a.jumpAff || "-"), dist:{}, course:{} };
+    const pred = { root: predictMark(a.rootAff), nonRoot: predictMark(a.nonRoot), yuso: predictMark(a.yuso ? "○" : "-"), go: predictMark(a.goAff || "-"), jump: predictMark(a.jumpAff || "-"), eu: predictMark(a.euAff || "-"), dist:{}, course:{} };
     for(const b of AFF_BANDS) if(b >= h.distMin && b <= h.distMax) pred.dist[b] = predictMark(a.distAff[b] || "-");
     for(const c of COURSES10) pred.course[c] = predictMark(a.courseAff[c] || "-");
     a.pred = pred;
   }
+  if(h.aff.pred && h.aff.pred.eu == null) h.aff.pred.eu = predictMark(h.aff.euAff || "-"); /* v5.5：予測の後付け */
   return h.aff;
 }
 function affinityFactor(h, race){
@@ -2222,7 +2236,8 @@ function revealAffinities(h, race, tf){
   if(course) a.courseKnown[course] = true;
   if((tf || 0) > 0 || race.sector === "overseas") a.known.yuso = true;
   if(goingOf(absWeek(), race.racecourse, race.surface) >= 1) a.known.go = true; /* v3.11：稍重以上で走ると重馬場適性が確定 */
-  if(race.surface === "障害") a.known.jump = true; /* v5.0：障害を走ると障害適性が確定 */
+  if(race.surface === "障害") a.known.jump = true;
+  if(isEuTurf(race)) a.known.eu = true; /* v5.5：欧州の芝を走ると欧州適性が確定 */ /* v5.0：障害を走ると障害適性が確定 */
 }
 /* 馬ページの相性欄：確定値は太字、未確定はスタッフ予測を薄く出す */
 function affShown(trueVal, predVal, known){
@@ -2252,6 +2267,7 @@ function affinitySection(h){
     + " ／ 輸送：" + affShown(a.yuso ? "○" : "-", p.yuso, a.known.yuso)
     + " ／ 重馬場：" + affShown(a.goAff || "-", p.go, !!(a.known && a.known.go))
     + " ／ 障害：" + affShown(a.jumpAff || "-", p.jump, !!(a.known && a.known.jump)) /* v5.0 */
+    + " ／ 欧州：" + affShown(a.euAff || "-", p.eu, !!(a.known && a.known.eu)) /* v5.5 */
     + (distParts.length ? "<br>距離別：" + distParts.join("、") : "")
     + (courseParts.length ? "<br>競馬場別：" + courseParts.join("、") : "")
     + "</dd>";
@@ -2373,7 +2389,7 @@ function runRace(race, entries){
     const spread = 0.10 * (1 - clamp((gut-40)/60, 0, 1) * 0.5) * (STYLE_VAR[styleOf(h)] || 1) * tempSpreadMul(h);
     const wall = assignedWeight(race, h);
     const w = wtActive ? wall : null;
-    runners.push({ horse:h, weight:w, wall, score: (isJumpRace(race) ? jumpBase(h, race) : raceBase(h,race))*aptitudeFactor(h,race) /* v5.0：障害はスタミナ・根性寄りのブレンドで */*affinityFactor(h,race)*goingFactor(h, race, absWeek())*styleFactor(h,pace)*(w!=null ? weightFactor(w) : 1)*(h.talent === "longshot" ? 1.03 : 1)*(1 + rnd(-1,1)*spread) /* v4.2：大駆けは人気薄で底上げ */, gut });
+    runners.push({ horse:h, weight:w, wall, score: (isJumpRace(race) ? jumpBase(h, race) : raceBase(h,race))*aptitudeFactor(h,race) /* v5.0：障害はスタミナ・根性寄りのブレンドで */*affinityFactor(h,race)*goingFactor(h, race, absWeek())*euFactor(h, race) /* v5.5：欧州適性 */*styleFactor(h,pace)*(w!=null ? weightFactor(w) : 1)*(h.talent === "longshot" ? 1.03 : 1)*(1 + rnd(-1,1)*spread) /* v4.2：大駆けは人気薄で底上げ */, gut });
   }
   const nRivals = fs - entries.length;
   for(let i=0;i<nRivals;i++){
@@ -2418,7 +2434,7 @@ function runRace(race, entries){
     if(prize > 0 && finish!==1) topic(payoutText(h, pay)); /* v3.7：勝利時は勝利トピックに一本化（賞金の内訳は戦績・資金で確認できる）。2着以下の賞金は従来どおり（勝利系フィルタで落ちるため実質表示されない） */
     revealAffinities(h, race, tfMap.get(h) || 0); /* 相性は走って初めて確定する（v0.52） */
     if(finish===1){ h.wins++; if(["GI","GII","GIII","JpnI","JpnII","JpnIII","J-GI","J-GII","J-GIII","L"].includes(race.grade)) h.gradedWin = true; }
-    if(finish===1 && GRADED_SET.includes(race.grade)) maybeAutoRotation(h, race); /* v3.1：自動ローテーション（重賞勝ちで翌年の指定を自動で付ける） */
+    if(finish===1 && GRADED_SET.includes(race.grade)) maybeAutoRotation(h, race); if(finish===1) maybeTrialRotation(h, race); /* v5.5：トライアル・前哨戦を勝つと本番を1回限りで自動指定 */ /* v3.1：自動ローテーション（重賞勝ちで翌年の指定を自動で付ける） */
     h.fatigue = clamp(h.fatigue + Math.round((irnd(34,52) + weightBurden(r.wall)) * (h.talent === "tireless" ? 0.7 : 1)), 0, 100); /* v4.2：タフガイは疲れにくい */
     h.condition = clamp(h.condition - Math.round(irnd(6,16) * (h.talent === "tireless" ? 0.7 : 1)), 5, 100); /* v4.2：タフガイは状態を崩しにくい */
     /* 滞在の更新（v0.51）：遠方の競馬場で走ったら約2か月は現地滞在。ホーム側に戻れば滞在は解消 */
@@ -2596,6 +2612,12 @@ function onNewYear(){
         let pOj = 0.20, pXj = 0.15;
         for(const pv of [sj, dj]){ if(pv === "○") pOj += 0.12; else if(pv === "✕") pXj += 0.10; }
         foal.aff.jumpAff = rollMark(Math.min(pOj, 0.55), Math.min(pXj, 0.45));
+      }
+      { /* 欧州適性も父母から継承（v5.5・障害適性と同じ寄せ） */
+        const se = (st.aff && st.aff.euAff) || "-", de = (h.aff && h.aff.euAff) || "-";
+        let pOe = 0.20, pXe = 0.15;
+        for(const pv of [se, de]){ if(pv === "○") pOe += 0.12; else if(pv === "✕") pXe += 0.10; }
+        foal.aff.euAff = rollMark(Math.min(pOe, 0.55), Math.min(pXe, 0.45));
       }
       { /* 馬体重（v0.53・フレーバーのみ）：両親の成熟体重の平均±三角ブレ20kg */
         const sireHorseW = S.horses.find(x => x.status === "stallion" && x.name === st.name);
@@ -2949,9 +2971,11 @@ function autoEntryPass(){
           const pol = S.autoOverseasPolicy;
           if(pol!=="普通" && pol!=="積極的") continue; /* 消極的＝自動では行かない */
           if(S.funds < EXPEDITION_FEE || overseasTripsThisYear(h) >= (pol==="積極的" ? 3 : 2)) continue; /* 遠征費を払える資金があること／年の上限は普通2回・積極的3回 */
+          if(pol==="普通" && race.grade==="GI" && (race.access || 2) < 4) continue; /* v5.5：普通の自動遠征は行きやすさA以上のG1だけ（G2/G3はスコア対象外） */
         }
         if(race.surface && surfBlocked(h, race.surface)) continue; /* v3.9：✕の馬場には自動で入れない */
         if(race.racecourse && goingBlocked(h, race, a)) continue; /* v3.11：重馬場✕確定の馬は重・不良（来週は予想）で自動登録しない */
+        if(euBlocked(h, race)) continue; /* v5.5：欧州✕確定の馬は欧州の芝に自動で行かない */
         /* v3.7（オーナー案）：新馬・未勝利に限り、未勝利馬は距離が適性範囲外でも候補に残す（far）。
            範囲内の候補が1つでもあれば far は捨てるので、通常の馬の動きは変わらない。
            範囲内の受け皿が無い長距離馬が、最も近い未勝利戦でデビューできるようにする門戸開放 */
@@ -3012,6 +3036,24 @@ function autoEntryPass(){
    遠征費はレース実施時に runRace が徴収する（手動登録と同形の entries を作るため）。
    登録できなかった指定は、レース週の到来時点で1回だけ理由つきで知らせる */
 function rotationKeyOf(race){ return [race.sector, race.name, race.racecourse || "", race.grade || "", race.month, race.wom].join("|"); }
+/* 1回限り指定（v5.5・オーナー発案）：指定は通常「毎年繰り返し」だが、1回限りは直近の開催
+   1回だけを狙い、その週が過ぎたら自動で外れる。内部表現は対象キーを持つ平行配列
+   （h.rotationOnce / h.rotAutoOnce）＋対象開催の絶対週（h.rotOnceAbs）で、既存の
+   キー配列の形式は変えない（旧セーブ互換）。トライアル・前哨戦の自動指定は必ず1回限り */
+function isRotOnce(h, key){ return (h.rotationOnce || []).includes(key) || (h.rotAutoOnce || []).includes(key); }
+function rotNextAbs(race){ const a = absOf(S.year, race.month, race.wom); return a >= absWeek() ? a : a + 52; }
+function markRotOnce(h, key, auto){
+  const race = rotationRaceOf(key); if(!race) return;
+  if(auto){ if(!Array.isArray(h.rotAutoOnce)) h.rotAutoOnce = []; if(!h.rotAutoOnce.includes(key)) h.rotAutoOnce.push(key); }
+  else { if(!Array.isArray(h.rotationOnce)) h.rotationOnce = []; if(!h.rotationOnce.includes(key)) h.rotationOnce.push(key); }
+  if(!h.rotOnceAbs || typeof h.rotOnceAbs !== "object") h.rotOnceAbs = {};
+  h.rotOnceAbs[key] = rotNextAbs(race);
+}
+function clearRotOnce(h, key){
+  if(Array.isArray(h.rotationOnce)) h.rotationOnce = h.rotationOnce.filter(x => x !== key);
+  if(Array.isArray(h.rotAutoOnce)) h.rotAutoOnce = h.rotAutoOnce.filter(x => x !== key);
+  if(h.rotOnceAbs) delete h.rotOnceAbs[key];
+}
 /* 自動ローテーション（v3.1・まったりモード＋自動ローテーショトグルON）：重賞を勝った馬に、
    翌年から「同じレース」＋「適性に合う国内G1を1つ（馬場一致・距離中心が最も近いもの。
    勝ったレース自体がG1なら追加しない）」を自動指定する。指定キーはプレイヤー指定と
@@ -3027,7 +3069,7 @@ function maybeAutoRotation(h, race){
   if(!Array.isArray(h.rotation)) h.rotation = [];
   const added = [];
   const k1 = rotationKeyOf(race);
-  if(!h.rotAuto.includes(k1) && !h.rotation.includes(k1)){ h.rotAuto.push(k1); added.push(race.name); }
+  if(autoCondOk(h, race, S.year + 1) && !h.rotAuto.includes(k1) && !h.rotation.includes(k1)){ /* v5.5：翌年の開催で年齢条件に合わない指定（3歳限定戦など）は付けない */ h.rotAuto.push(k1); added.push(race.name); }
   if(!G1_GRADES.includes(race.grade)){
     /* v5.3（オーナー指摘）：G1ルートは「勝った戦場の中」で探す。障害の重賞勝ちで平地G1
        （大阪杯）が指定され、障害専業馬が平地GIを勝ってしまった穴の修正（2世・3世で発生） */
@@ -3036,7 +3078,8 @@ function maybeAutoRotation(h, race){
     let best = null;
     for(const r of DATA.domestic){
       if(!G1_GRADES.includes(r.grade) || r.distance_m == null) continue;
-      if(isJumpRace(r) !== jumpWin) continue; /* v5.3：平地と障害を混ぜない */
+      if(isJumpRace(r) !== jumpWin) continue;
+      if(!autoCondOk(h, r, absOf(S.year, r.month, r.wom) >= absWeek() ? S.year : S.year + 1)) continue; /* v5.5：性別・年齢条件に合わないG1は指定しない（牡馬にオークス、古馬に3歳限定戦など） */ /* v5.3：平地と障害を混ぜない */
       if(!jumpWin && r.surface && surfBlocked(h, r.surface)) continue; /* v5.3：馬場✕ガードは平地だけ（障害にsurfMarkOfを当てると常に✕になる） */
       const d = Math.abs(r.distance_m - mid);
       if(!best || d < best.d) best = { r, d };
@@ -3044,6 +3087,30 @@ function maybeAutoRotation(h, race){
     if(best){ const k2 = rotationKeyOf(best.r); if(!h.rotAuto.includes(k2) && !h.rotation.includes(k2)){ h.rotAuto.push(k2); added.push(best.r.name); } }
   }
   if(added.length) topic("🎯 ローテーション自動指定：" + h.name + " に " + added.join("・") + " を指定しました（重賞勝ちによる）");
+}
+/* トライアル・前哨戦の自動指定（v5.5・オーナー設計）：「トライアル：X」ラベルの付いたレースを
+   勝つと、本番 X が自動指定（h.rotAuto・1回限り）に入る。国内は適性内のみ（本番の距離が
+   適性範囲内・馬場✕でない）。海外は適性内に加えて通算賞金1億円以上の馬だけ（遠征の連鎖は
+   格のある馬に限る。オーナー：新馬→ヒヤシンスS→UAEダービーと積めば1億に乗る物差し）。
+   自動ローテーションのトグルに従う（maybeAutoRotation と同じ関門） */
+function maybeTrialRotation(h, race){
+  if(!autoActive() || !S.mattari.auto.rotation) return;
+  const targets = (race.labels || []).filter(l => l.startsWith("トライアル：")).map(l => l.slice(6));
+  if(!targets.length) return;
+  if(!Array.isArray(h.rotAuto)) h.rotAuto = [];
+  if(!Array.isArray(h.rotation)) h.rotation = [];
+  for(const tname of targets){
+    const target = [...DATA.domestic, ...DATA.overseas].find(r => r.name === tname);
+    if(!target) continue;
+    if(target.distance_m == null || target.distance_m < h.distMin || target.distance_m > h.distMax) continue; /* 適性内のみ */
+    if(target.surface && surfBlocked(h, target.surface)) continue; /* 馬場✕の本番は入れない */
+    if(target.sector === "overseas" && (h.earnings || 0) < 10000) continue; /* 海外：通算賞金1億円以上（万円単位） */
+    const k = rotationKeyOf(target);
+    if(h.rotAuto.includes(k) || h.rotation.includes(k)) continue;
+    h.rotAuto.push(k);
+    markRotOnce(h, k, true);
+    topic("🎯 ローテーション自動指定：" + h.name + " に " + target.name + " を指定しました（トライアル勝ちによる・1回限り）");
+  }
 }
 /* プレイヤー指定＋自動指定の全キー（登録・表示用）。自動出走の対象外判定に使うのはプレイヤー指定だけ */
 function allRotationKeys(h){ return [...(h.rotation || []), ...(h.rotAuto || [])]; }
@@ -3109,6 +3176,19 @@ function rotationPass(){
   const savedAhead = entryWeekAhead;
   const now = absWeek();
   for(const h of S.horses){
+    /* v5.5：1回限り指定の失効。対象開催の週が過ぎたら、現役でない馬も含めて自動で外す */
+    if((h.rotationOnce && h.rotationOnce.length) || (h.rotAutoOnce && h.rotAutoOnce.length)){
+      for(const key of [...(h.rotationOnce || []), ...(h.rotAutoOnce || [])]){
+        const r0 = rotationRaceOf(key);
+        const target = (h.rotOnceAbs && h.rotOnceAbs[key] != null) ? h.rotOnceAbs[key] : (r0 ? absOf(S.year, r0.month, r0.wom) : null);
+        if(target != null && target < now){
+          if(Array.isArray(h.rotation)) h.rotation = h.rotation.filter(x => x !== key);
+          if(Array.isArray(h.rotAuto)) h.rotAuto = h.rotAuto.filter(x => x !== key);
+          if(h.rotMemo) delete h.rotMemo[key];
+          clearRotOnce(h, key);
+        }
+      }
+    }
     if(h.status!=="racehorse" || h.retired) continue;      /* 現役馬だけ。若馬・繁殖馬などの指定は時期が来るまで待つ */
     if(!allRotationKeys(h).length) continue;
     if(!h.rotMemo) h.rotMemo = {};
@@ -3116,8 +3196,9 @@ function rotationPass(){
       const race = rotationRaceOf(key);
       if(!race) continue;
       if(h.jumpAuto && !isJumpRace(race)) continue;        /* v5.4（オーナー指示）：障害のみONの間は平地指定（自動・手動とも）を登録しない。指定自体は残し、OFFに戻せば再開する */                                  /* データに無い指定は静かに無効（馬ページで外せる） */
-      let raceAbs = absOf(S.year, race.month, race.wom);
-      if(raceAbs < now) raceAbs = absOf(S.year + 1, race.month, race.wom); /* 今年分が過ぎていれば来年分を狙う */
+      let raceAbs;
+      if(isRotOnce(h, key) && h.rotOnceAbs && h.rotOnceAbs[key] != null) raceAbs = h.rotOnceAbs[key]; /* v5.5：1回限りは記録した対象開催を狙う */
+      else { raceAbs = absOf(S.year, race.month, race.wom); if(raceAbs < now) raceAbs = absOf(S.year + 1, race.month, race.wom); } /* 今年分が過ぎていれば来年分を狙う */
       const ahead = raceAbs - now;
       if(ahead > 3) continue;                              /* 登録ウィンドウ（3週前〜当日）の外 */
       const entryKey = raceKeyOf(raceAbs, race);
@@ -3651,7 +3732,7 @@ function autoBulkHtml(){
     + "<button data-auto-allpolicy='積極'>全馬 積極</button> <button data-auto-allpolicy='慎重' class='ghost'>全馬 慎重</button> "
     + "<label>既定の適性±200：<select data-auto-defrangeplus><option value='on'"+(autoDefRangePlus()?" selected":"")+">許容する</option><option value='off'"+(!autoDefRangePlus()?" selected":"")+">適性内のみ</option></select></label> "
     + "<button data-auto-allrangeplus='on'>全馬 ±200許容</button> <button data-auto-allrangeplus='off' class='ghost'>全馬 適性内のみ</button> "
-    + "<label>海外遠征（自動）：<select data-auto-overseas>" + ["消極的","普通","積極的"].map(pol=>"<option value='" + pol + "'" + ((S.autoOverseasPolicy || "消極的")===pol ? " selected" : "") + ">" + pol + "</option>").join("") + "</select></label> <span class='sub'>国内重賞で勝利か3着以内の実績がある馬が対象。消極的＝自動では行かない／普通＝年2回まで、通常の絞り込み（格・ペース）通り／積極的＝年3回まで、格の地板と国内G1リザーブを海外に適用しない。いずれも資金が遠征費（1,000万円）以上あることが条件で、検疫週の確保などは手動遠征と同一です</span> "
+    + "<label>海外遠征（自動）：<select data-auto-overseas>" + ["消極的","普通","積極的"].map(pol=>"<option value='" + pol + "'" + ((S.autoOverseasPolicy || "消極的")===pol ? " selected" : "") + ">" + pol + "</option>").join("") + "</select></label> <span class='sub'>国内重賞で勝利か3着以内の実績がある馬が対象。消極的＝自動では行かない／普通＝年2回まで、通常の絞り込み（格・ペース）通り＋G1は行きやすさA以上のみ／積極的＝年3回まで、格の地板と国内G1リザーブを海外に適用しない。いずれも資金が遠征費（1,000万円）以上あることが条件で、検疫週の確保などは手動遠征と同一です</span> "
     + "<span class='sub'>馬ごとのON/OFF・出走間隔・方針・適性±200は下の自動出走設定か、各馬のページで変更できます</span></div></details>";
 }
 function autoHorseRowsHtml(){
@@ -3674,14 +3755,14 @@ function autoHorsePanelHtml(){ return "<details class='autobulk' data-autohorses
    国内／海外の2グループから選ぶ追加セレクト。対象は国内の重賞・リステッド・OP特別と海外G1〜G3 */
 function rotationSectionHtml(h){
   const rot = h.rotation || [];
-  const label = r => r.month + "月第" + r.wom + "週 " + r.name + "（" + (r.grade||"") + "・" + (r.racecourse||"") + " " + (r.surface||"") + (r.distance_m||"") + "m）";
+  const label = r => r.month + "月第" + r.wom + "週 " + r.name + "（" + (r.grade||"") + "・" + (r.racecourse||"") + " " + (r.surface||"") + (r.distance_m||"") + "m" + (r.access ? "・行きやすさ" + accessLabelOf(r) : "") + "）";
   const items = rot.map(k => {
     const r = rotationRaceOf(k);
-    return "<div class='flex' style='margin:2px 0;'><span>🎯 " + (r ? label(r) : "（データに無いレース）") + "</span><button data-rot-remove='" + k + "' class='ghost'>外す</button></div>";
+    return "<div class='flex' style='margin:2px 0;'><span>🎯 " + (r ? label(r) : "（データに無いレース）") + (isRotOnce(h, k) ? " <span class='sub'>（1回限り）</span>" : "") + "</span><button data-rot-remove='" + k + "' class='ghost'>外す</button></div>";
   }).join("");
   const autoItems = (h.rotAuto || []).map(k => {
     const r = rotationRaceOf(k);
-    return "<div class='flex' style='margin:2px 0;'><span>🤖🎯 " + (r ? label(r) : "（データに無いレース）") + " <span class='sub'>自動指定（重賞勝ち）</span></span><button data-rot-auto-remove='" + k + "' class='ghost'>外す</button></div>";
+    return "<div class='flex' style='margin:2px 0;'><span>🤖🎯 " + (r ? label(r) : "（データに無いレース）") + " <span class='sub'>" + (isRotOnce(h, k) ? "自動指定（1回限り）" : "自動指定（重賞勝ち）") + "</span></span><button data-rot-auto-remove='" + k + "' class='ghost'>外す</button></div>";
   }).join("");
   const sortR = (a, b) => (a.month - b.month) || (a.wom - b.wom) || ((GRADE_RANK[a.grade] != null ? GRADE_RANK[a.grade] : 9) - (GRADE_RANK[b.grade] != null ? GRADE_RANK[b.grade] : 9)) || a.name.localeCompare(b.name, "ja");
   const opt = r => { const k = rotationKeyOf(r); return "<option value='" + k + "'" + ((rot.includes(k) || (h.rotAuto || []).includes(k)) ? " disabled" : "") + ">" + label(r) + "</option>"; };
@@ -3689,8 +3770,8 @@ function rotationSectionHtml(h){
   const ovs = DATA.overseas.filter(rotationPickable).sort(sortR).map(opt).join("");
   return "<div style='margin:8px 0;'><label>🎯 ローテーション（出走指定）：</label>"
     + (items || (autoItems ? "" : "<span class='sub'>指定なし</span>")) + autoItems
-    + "<div class='flex' style='margin-top:4px;'><select id='rotAddSel'><optgroup label='国内'>" + dom + "</optgroup><optgroup label='海外'>" + ovs + "</optgroup></select><button id='rotAddBtn'>指定する</button></div>"
-    + "<span class='sub'>指定したレースには、登録できる期間（3週前〜当日）になると手動登録と同じ条件で自動登録されます。条件を満たさない・故障・疲労のときは見送り、週のトピックで理由を知らせます。指定は毎年繰り返し効きます。<b>自分で付けた指定がある馬は自動出走（オート）の対象外になり、指定レースだけを走ります</b>。🤖自動指定（重賞を勝つと付く）は対象外にはならず、指定レースが優先登録され、他の週は通常の自動出走も入ります</span></div>";
+    + "<div class='flex' style='margin-top:4px;'><select id='rotAddSel'><optgroup label='国内'>" + dom + "</optgroup><optgroup label='海外'>" + ovs + "</optgroup></select><button id='rotAddBtn'>指定する</button><label style='margin-left:6px;'><input type='checkbox' id='rotOnceChk'> 1回限り</label></div>"
+    + "<span class='sub'>指定したレースには、登録できる期間（3週前〜当日）になると手動登録と同じ条件で自動登録されます。条件を満たさない・故障・疲労のときは見送り、週のトピックで理由を知らせます。指定は毎年繰り返し効きます（「1回限り」を付けた指定は直近の開催1回だけで、終わると自動で外れます）。<b>自分で付けた指定がある馬は自動出走（オート）の対象外になり、指定レースだけを走ります</b>。🤖自動指定（重賞を勝つと付く）は対象外にはならず、指定レースが優先登録され、他の週は通常の自動出走も入ります</span></div>";
 }
 function bindAutoEntryControls(){
   /* 一括設定パネルの開閉状態を保存する（v2.4）。開閉そのものは details の標準動作なので再描画はしない */
@@ -3801,11 +3882,11 @@ function drawEntryList(){
       : tf>0 ? "<br><span class='sub'>🚚 輸送疲れ見込み +"+tf+"（"+(h.stable ? h.stable+"所属" : "所属未定")+(h.stayRegion && courseRegion(r.racecourse)===h.stayRegion ? "・滞在中" : "")+(ageOf(h)===2 ? "・2歳は重め" : "")+"）</span>" : "";
     const trialsBtn = (r.grade==="GI" || r.grade==="JpnI") ? " <button data-trials='"+r.name+"' class='ghost'>トライアル一覧</button>" : "";
     const goingTxt = (() => { const gt = r.racecourse ? goingLabelFor(absWeek() + entryWeekAhead, r.racecourse, r.surface) : ""; return gt ? " <span class='sub'>馬場：" + gt + "</span>" : ""; })();
-    return "<tr"+(reason?" style='opacity:.45'":"")+"><td>"+mark+"</td><td>"+raceLabel(r)+goingTxt+(chips?"<br>"+chips:"")+wnote+wnote2+affinityPredHint(h, r)+trialsBtn+"</td><td>"+(r.sector==="overseas"?"海外・WHC":r.sector==="regional"?"地方・TKC":"中央・NKC")+"</td><td>1着賞金 "+man(prizeTable(r)[0])+"</td><td>"+btn+"</td></tr>";
+    return "<tr"+(reason?" style='opacity:.45'":"")+"><td>"+mark+"</td><td>"+raceLabel(r)+(r.access ? " <span class='sub'>行きやすさ" + accessLabelOf(r) + "</span>" : "")+goingTxt+(chips?"<br>"+chips:"")+wnote+wnote2+affinityPredHint(h, r)+trialsBtn+"</td><td>"+(r.sector==="overseas"?"海外・WHC":r.sector==="regional"?"地方・TKC":"中央・NKC")+"</td><td>1着賞金 "+man(prizeTable(r)[0])+"</td><td>"+btn+"</td></tr>";
   }).join("");
   let trialsHtml = "";
   if(trialsFor){
-    const trs = DATA.domestic.filter(r=>(r.labels||[]).includes("トライアル："+trialsFor));
+    const trs = [...DATA.domestic, ...DATA.overseas].filter(r=>(r.labels||[]).includes("トライアル："+trialsFor));
     trialsHtml = "<div class='topic'><b>"+trialsFor+" のトライアル</b>（ローテ設計用の情報です）："
       + (trs.length ? trs.map(r=>r.name+"（"+r.grade+"・"+r.month+"月第"+r.wom+"週・"+r.racecourse+" "+r.surface+r.distance_m+"m）").join("／") : "登録されたトライアルはありません")
       + " <button data-trials-close='1' class='ghost'>閉じる</button></div>";
@@ -4195,8 +4276,10 @@ function viewManual(){
     "レースは中央（JRA）・地方（Jpn重賞のみ）・海外（G1〜G3）があります。出走登録は3週先まで先行登録できます。<br>・未勝利の馬は新馬・未勝利戦だけに出られます<br>・海外の重賞に出るには、国内の重賞かリステッドで勝つか3着以内に入る必要があります<br>・クラスは勝ち数で上がり、4勝以上か重賞勝ちでオープン入りです<br>・疲労が高い（70以上）上に調子が悪い（40以下）と、レースで故障することがあります。故障中は出走できず、軽症で4〜8週、重症で12〜24週かかります<br>・輸送でも疲労します。遠くの競馬場ほど大きく、2歳馬は1.5倍です<br>・カレンダータブでは、過去に勝ったことのある重賞に「🏆制覇」の印が付きます（勝ち数と、最近勝った年・馬名も表示）。まだ勝っていない重賞探しに使えます");
   h += sec("🐴 障害競走",
     "平地とは別のキャリアとして、障害競走があります。舞台は中山・東京・京都・阪神・新潟・小倉・福島・中京で、障害未勝利（月に2〜3週だけ開催、週1〜2鞍）→ 障害オープン（年に20本ほど＋実名のOP特別）→ 障害重賞（J-GIII〜J-GI）の順に上がっていきます。<br>障害に出られるのは<b>距離適性の上限が3000m以上</b>の馬だけです（素質『稀代のジャンパー』の馬は例外で、距離適性に関係なく転向できます）。各馬には隠れた「障害適性」（○／−／✕）があり、相性欄にスタッフ予想が出て、障害を走ると確定します。障害ではスタミナと根性がものを言います。落馬・競走中止もあり、確率は適性で変わります（○1%／−3%／✕7%）。落馬した馬は半分の確率で故障します。<br>障害の賞金・勝ち数は平地と合算され、平地のクラスも上がります（平地の未勝利戦は、平地で勝っていなければ出られます）。J-GI（中山大障害・中山グランドジャンプ）はG1級として数え、殿堂入りの条件や制覇マークの対象になります。通常の自動出走は障害を対象にしませんが、馬ごとに「障害のみ出走」をONにした馬は障害レースだけを年4〜5戦（J-GI・J-GII中心）で自動出走します（この設定の馬は未勝利のまま4歳を迎えても引退しません。ONの間は平地のローテーション指定も、自動・手動を問わず登録されません）。それ以外の馬の障害出走は手動登録かローテーション指定で。");
+  h += sec("✈️ 海外遠征の行きやすさと欧州適性",
+    "海外のG1には「行きやすさ」が付いています（S／A／B／C／D）。日本馬の参戦・好走の実績が軸で、香港国際競走やドバイワールドカップデー、凱旋門賞などがS、ほとんど日本馬の行かないレースがC・Dです。出走登録タブとローテーション指定のリストに表示されます。自動遠征の設定が「普通」のとき、自動で遠征するのは行きやすさA以上のG1だけです（G2・G3は対象外、「積極的」では制限なし）。<br>各馬には隠れた「欧州適性」があります（相性欄にスタッフ予想が出ます）。欧州（イギリス・フランス・アイルランド・ドイツ・イタリア）の芝でだけ効き、○は割り引かれず、−は×0.95、✕は×0.85になります。欧州の芝を走ると確定し、✕が確定した馬は自動出走では欧州の芝を避けます。重馬場適性や障害適性と同じく、父母から受け継ぎます。");
   h += sec("🤖 自動出走とローテーション",
-    "自動出走をONにした馬は、適性・クラス・体調を見て毎週自動でレースに登録されます（年間6戦ペース目標・上限7戦）。方針は「積極／慎重」、適性距離の±200m許容のON/OFFも選べます。海外遠征は設定（消極的／普通／積極的）で自動化の範囲が変わり、既定では手動のみです。<br>ローテーションは「どのレースに出すか」の指定です。指定した馬は指定レースにだけ自動登録され、毎年繰り返されます（各馬のページから設定）。");
+    "自動出走をONにした馬は、適性・クラス・体調を見て毎週自動でレースに登録されます（年間6戦ペース目標・上限7戦）。方針は「積極／慎重」、適性距離の±200m許容のON/OFFも選べます。海外遠征は設定（消極的／普通／積極的）で自動化の範囲が変わり、既定では手動のみです。<br>ローテーションは「どのレースに出すか」の指定です。指定した馬は指定レースにだけ自動登録され、毎年繰り返されます（各馬のページから設定）。<br>指定には「1回限り」も選べます（直近の開催1回だけで、終わると自動で外れます）。<br>トライアル（弥生賞→皐月賞、青葉賞→日本ダービーなど）を勝つと、本番が自動で指定されます（1回限り・適性内の馬だけ）。海外の前哨戦（サウジダービー→UAEダービー→ケンタッキーダービー、フォワ賞／ニエル賞→凱旋門賞）も同じ仕組みで、こちらは適性内に加えて通算賞金1億円以上の馬だけが対象です。");
   h += sec("💕 繁殖と配合",
     "種付けは2〜6月だけ。繁殖牝馬は4〜16歳が対象で、受胎率は9歳まで85%、その後下がって16歳で45%。14歳から出産のリスクが上がり、17歳で繁殖を引退します（死亡はありません）。子は年始に生まれます。<br>配合では相性（系統の特性の重なりなど）が産駒に影響します。種牡馬は世代交代していき（引退年齢は個体ごとに決まっていて、産駒が活躍すると延長されます）、引退した分は架空の新種牡馬が補充されます。");
   h += sec("🌳 系統と牝系",
@@ -5175,9 +5258,9 @@ function openHorse(id){
   const aps = $("#autoPolicySel"); if(aps) aps.onchange = () => { h.autoPolicy = aps.value==="" ? null : aps.value; save(); };
   const arps = $("#autoRangePlusSel"); if(arps) arps.onchange = () => { h.autoRangePlus = arps.value==="" ? null : arps.value==="on"; save(); };
   const jas = $("#jumpAutoSel"); if(jas) jas.onchange = () => { h.jumpAuto = jas.value==="on"; save(); }; /* v5.1 */
-  const rab = $("#rotAddBtn"); if(rab) rab.onclick = () => { const sel = $("#rotAddSel"); const k = sel ? sel.value : ""; if(k && !(h.rotation || []).includes(k)){ h.rotation = h.rotation || []; h.rotation.push(k); const r = rotationRaceOf(k); if(r) topic("🎯 " + h.name + " のローテーションに " + r.name + " を指定しました"); save(); openHorse(h.id); } };
-  document.querySelectorAll("[data-rot-remove]").forEach(btn => btn.onclick = () => { const k = btn.getAttribute("data-rot-remove"); h.rotation = (h.rotation || []).filter(x => x !== k); save(); openHorse(h.id); });
-  document.querySelectorAll("[data-rot-auto-remove]").forEach(btn => btn.onclick = () => { const k = btn.getAttribute("data-rot-auto-remove"); h.rotAuto = (h.rotAuto || []).filter(x => x !== k); save(); openHorse(h.id); });
+  const rab = $("#rotAddBtn"); if(rab) rab.onclick = () => { const sel = $("#rotAddSel"); const k = sel ? sel.value : ""; if(k && !(h.rotation || []).includes(k) && !(h.rotAuto || []).includes(k)){ h.rotation = h.rotation || []; h.rotation.push(k); const onceChk = $("#rotOnceChk"); const once = !!(onceChk && onceChk.checked); if(once) markRotOnce(h, k, false); const r = rotationRaceOf(k); if(r) topic("🎯 " + h.name + " のローテーションに " + r.name + " を指定しました" + (once ? "（1回限り）" : "")); save(); openHorse(h.id); } };
+  document.querySelectorAll("[data-rot-remove]").forEach(btn => btn.onclick = () => { const k = btn.getAttribute("data-rot-remove"); h.rotation = (h.rotation || []).filter(x => x !== k); clearRotOnce(h, k); save(); openHorse(h.id); });
+  document.querySelectorAll("[data-rot-auto-remove]").forEach(btn => btn.onclick = () => { const k = btn.getAttribute("data-rot-auto-remove"); h.rotAuto = (h.rotAuto || []).filter(x => x !== k); clearRotOnce(h, k); save(); openHorse(h.id); });
   const smb = $("#stableMihoBtn"); if(smb) smb.onclick = () => { h.stable = "美浦"; topic("🏠 "+h.name+" の所属は美浦に決まりました"); save(); openHorse(h.id); };
   const srb = $("#stableRittoBtn"); if(srb) srb.onclick = () => { h.stable = "栗東"; topic("🏠 "+h.name+" の所属は栗東に決まりました"); save(); openHorse(h.id); };
   const nsb = $("#nameSuggestBtn"); if(nsb) nsb.onclick = () => { const ni = $("#nameInput"); if(ni) ni.value = nameSuggest; };
@@ -5330,6 +5413,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v5.4</footer>
+<footer>競馬シミュレーター（趣味） v5.5</footer>
 </body>
 </html>
