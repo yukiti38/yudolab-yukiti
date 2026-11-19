@@ -238,12 +238,23 @@ const WEEKS_BEFORE = [0,4,8,13,17,22,26,30,35,39,43,48];
 function absOf(y,m,w){ return (y-2026)*52 + WEEKS_BEFORE[m-1] + (w-1); }
 function fromAbs(a){ const y = 2026 + Math.floor(a/52); let r = a - (y-2026)*52; let m = 1; while(r >= WEEKS_IN_MONTH[m-1]){ r -= WEEKS_IN_MONTH[m-1]; m++; } return [y, m, r+1]; }
 function weekKey(y,m,w){ return y*10000 + m*100 + w; }
+/* v5.8：その週のレース一覧は決定的（DATA＋一般戦生成）なので、現在の週の間だけメモ化する。
+   自動出走などが同じ週の一覧を頭数×週数ぶん作り直していた。呼び出し側が並べ替えても
+   元の一覧が壊れないよう、返すのはコピー */
+let _rtwMemo = new Map(), _rtwBase = null, _rtwDom = null, _rtwOv = null;
 function racesThisWeek(y,m,w){
-  const out = [];
-  for(const r of DATA.domestic) if(r.month===m && r.wom===w) out.push(r);
-  for(const r of DATA.overseas) if(r.month===m && r.wom===w) out.push(r);
-  out.push(...generalRaces(y,m,w));
-  return out;
+  const base = absWeek();
+  if(_rtwBase !== base || _rtwDom !== DATA.domestic || _rtwOv !== DATA.overseas){ _rtwMemo = new Map(); _rtwBase = base; _rtwDom = DATA.domestic; _rtwOv = DATA.overseas; }
+  const key = y * 10000 + m * 100 + w;
+  let out = _rtwMemo.get(key);
+  if(!out){
+    out = [];
+    for(const r of DATA.domestic) if(r.month===m && r.wom===w) out.push(r);
+    for(const r of DATA.overseas) if(r.month===m && r.wom===w) out.push(r);
+    out.push(...generalRaces(y,m,w));
+    _rtwMemo.set(key, out);
+  }
+  return out.slice();
 }
 // 一般競走（新馬・未勝利・条件）は開催フォーマットから自動生成（仕様書の解釈どおり）
 const COURSES = ["東京","中山","京都","阪神","中京","新潟","小倉","福島","函館","札幌"];
@@ -1399,7 +1410,7 @@ function ensureMattariTimer(){
     if(mattariAnyModalOpen()) return;
     const now = Date.now();
     if(!_mattariLast){ _mattariLast = now; return; }
-    if(now - _mattariLast >= (S.mattari.speed || 4) * 1000){ _mattariLast = now; advanceWeek(); }
+    if(now - _mattariLast >= (S.mattari.speed || 4) * 1000){ _mattariLast = now; _inMattariTick = true; try{ advanceWeek(); } finally { _inMattariTick = false; } }
   }, 250);
 }
 function syncMattariHeader(){
@@ -1472,6 +1483,13 @@ let idbActive = false;
 let saveDirty = false;
 let saveWriting = false;
 let saveFailNoted = false;
+/* v5.8：まったり中の保存間引き。まったりのティック（週送り）経由の保存は、最短でも
+   SAVE_THROTTLE_MS に1回だけ実際に書き出し、それ以外は保存待ちを立てて後追いタイマーで
+   書き出す。手動操作からの保存は従来どおり即時。セーブ形式そのものは不変 */
+const SAVE_THROTTLE_MS = 3000;
+let _inMattariTick = false;
+let _lastFlushAt = 0;
+let _trailTimer = null;
 function idbSupported(){ try{ return typeof indexedDB !== "undefined" && !!indexedDB; }catch(e){ return false; } }
 function idbOpen(){ return new Promise(res => { try{
   const rq = indexedDB.open(IDB_NAME, 1);
@@ -1506,7 +1524,7 @@ function noteSaveFailure(){
 }
 function flushSave(){
   if(saveWriting || !saveDirty || !idbDb) return;
-  saveWriting = true; saveDirty = false;
+  saveWriting = true; saveDirty = false; _lastFlushAt = Date.now();
   let str = null;
   try{ str = JSON.stringify(S); }catch(e){ saveWriting = false; noteSaveFailure(); return; }
   idbPut(SAVE_KEY, str).then(ok => {
@@ -1516,10 +1534,26 @@ function flushSave(){
   });
 }
 function save(){
-  if(idbActive && idbDb){ saveDirty = true; flushSave(); return; }
+  if(idbActive && idbDb){
+    saveDirty = true;
+    if(_inMattariTick){
+      const wait = SAVE_THROTTLE_MS - (Date.now() - _lastFlushAt);
+      if(wait > 0){ scheduleTrailFlush(wait); return; }
+    }
+    flushSave(); return;
+  }
   try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S)); saveFailNoted = false; }
   catch(e){ noteSaveFailure(); }
 }
+function scheduleTrailFlush(wait){
+  if(_trailTimer != null) return;
+  _trailTimer = setTimeout(() => { _trailTimer = null; flushSave(); }, Math.max(50, wait));
+}
+/* タブを隠す／閉じる時は、間引きで保留中の保存をその場で書き出す（ベストエフォート） */
+try{
+  document.addEventListener("visibilitychange", () => { if(document.visibilityState === "hidden" && saveDirty) flushSave(); });
+  if(typeof window !== "undefined" && window.addEventListener) window.addEventListener("beforeunload", () => { if(saveDirty) flushSave(); });
+}catch(e){}
 function load(){ /* 互換用：localStorage だけを見る従来読み込み（通常の起動は boot() が担う） */
   try{ const t = localStorage.getItem(SAVE_KEY); if(t){ S = JSON.parse(t); migrateV029(); return true; } }catch(e){} return false;
 }
@@ -3815,7 +3849,7 @@ function autoBulkHtml(){
   /* v2.4：パネルが縦に長くタブを占有するため、年ごとのまとめと同じ details で畳めるようにした。
      開閉状態は S.autoBulkOpen に保存し（既定は閉）、セーブに保存する */
   return "<details class='autobulk' data-autobulk-fold" + (S.autoBulkOpen ? " open" : "") + "><summary>🤖 自動出走の一括設定</summary>"
-    + "<div class='topic'>🤖 <b>自動出走（オート出走決定）</b>：ONの馬は毎週、適性・クラス・体調を見て自動でレースに登録されます（年間6戦ペース目標・上限7戦／重賞優先／G1分の枠を確保／海外遠征は既定（消極的）では手動）。登録は通常の登録と同じで、出走登録タブから取り消せます。方針「積極」の馬は世代限定重賞にも挑戦します（世代G1は実績のある馬だけ）。「慎重」の馬は重賞にはOPになるまで出ません。適性±200を「許容する」の馬は、適性距離の前後200mまでのレースも候補になります（適性下限の長い馬が2歳でデビューするのに必要です）。🎯 ローテーション（出走指定）を設定した馬は自動出走の対象外で、指定レースにだけ自動登録されます（指定は各馬のページから）。未出走馬は新馬戦を優先して選びます。デビューできる時期は成長型でずれます（早い馬は6月、晩成は12月〜3歳の年明け・各馬のページに表示）。<br>"
+    + "<div class='topic'>🤖 <b>自動出走（オート出走決定）</b>：ONの馬は毎週、適性・クラス・体調を見て自動でレースに登録されます（年間6戦ペース目標・上限7戦／重賞優先／G1分の枠を確保／海外遠征は既定（消極的）では手動）。登録は通常の登録と同じで、出走登録タブから取り消せます。方針「積極」の馬は世代限定重賞にも挑戦します（世代G1は実績のある馬だけ）。「慎重」の馬は重賞にはOPになるまで出ません。適性±200を「許容する」の馬は、適性距離の前後200mまでのレースも候補になります（適性下限の長い馬が2歳でデビューするのに必要です）。🎯 ローテーション（出走指定）を設定した馬は自動出走の対象外で、指定レースにだけ自動登録されます（指定は各馬のページから）。指定があっても手動登録は妨げられないので、他のレースに出したい時は出走登録タブからそのまま登録できます。未出走馬は新馬戦を優先して選びます。デビューできる時期は成長型でずれます（早い馬は6月、晩成は12月〜3歳の年明け・各馬のページに表示）。<br>"
     + "<button data-auto-all='on'>全馬ON</button> <button data-auto-all='off' class='ghost'>全馬OFF</button> "
     + "<label>既定の出走間隔：<select data-auto-defrot>" + AUTO_ROT_PRESETS.map(n=>"<option value='"+n+"'"+(autoDefRot()===n?" selected":"")+">中"+n+"週"+(n===8?"（標準）":"")+"</option>").join("") + "</select></label> "
     + "<label>既定方針：<select data-auto-defpolicy>" + ["積極","慎重"].map(p=>"<option value='"+p+"'"+(autoDefPolicy()===p?" selected":"")+">"+p+"</option>").join("") + "</select></label> "
@@ -3861,7 +3895,7 @@ function rotationSectionHtml(h){
   return "<div style='margin:8px 0;'><label>🎯 ローテーション（出走指定）：</label>"
     + (items || (autoItems ? "" : "<span class='sub'>指定なし</span>")) + autoItems
     + "<div class='flex' style='margin-top:4px;'><select id='rotAddSel'><optgroup label='国内'>" + dom + "</optgroup><optgroup label='海外'>" + ovs + "</optgroup></select><button id='rotAddBtn'>指定する</button><label style='margin-left:6px;'><input type='checkbox' id='rotOnceChk'> 1回限り</label></div>"
-    + "<span class='sub'>指定したレースには、登録できる期間（3週前〜当日）になると手動登録と同じ条件で自動登録されます。条件を満たさない・故障・疲労のときは見送り、週のトピックで理由を知らせます。指定は毎年繰り返し効きます（「1回限り」を付けた指定は直近の開催1回だけで、終わると自動で外れます）。<b>自分で付けた指定がある馬は自動出走（オート）の対象外になり、指定レースだけを走ります</b>。🤖自動指定（重賞を勝つと付く）は対象外にはならず、指定レースが優先登録され、他の週は通常の自動出走も入ります</span></div>";
+    + "<span class='sub'>指定したレースには、登録できる期間（3週前〜当日）になると手動登録と同じ条件で自動登録されます。条件を満たさない・故障・疲労のときは見送り、週のトピックで理由を知らせます。指定は毎年繰り返し効きます（「1回限り」を付けた指定は直近の開催1回だけで、終わると自動で外れます）。<b>自分で付けた指定がある馬は自動出走（オート）の対象外になり、指定レースだけを走ります（これは自動出走の話で、手動登録は指定と無関係にいつでもできます）</b>。🤖自動指定（重賞を勝つと付く）は対象外にはならず、指定レースが優先登録され、他の週は通常の自動出走も入ります</span></div>";
 }
 function bindAutoEntryControls(){
   /* 一括設定パネルの開閉状態を保存する（v2.4）。開閉そのものは details の標準動作なので再描画はしない */
@@ -4038,18 +4072,22 @@ function inbreedNote(m, st){
   if(st.sire && st.sire===m.sire) return "父系が近い";
   return "";
 }
+/* v5.8：自動種付けの一巡中は mateWith の保存・描画を抑止し、最後にまとめて保存する
+   （手動種付けは従来どおりその場で保存・描画）。抑止するのは副作用だけで判定は不変 */
+let _mateQuiet = false;
+function mateSettle(){ if(!_mateQuiet){ save(); render(); } }
 function mateWith(m, st){
-  if(st.retired){ topic("⚠️ "+st.name+" は種牡馬を引退しています"); save(); render(); return; }
-  if(m.breedRetired || ageOf(m)<4 || ageOf(m)>16){ topic("⚠️ "+m.name+" は繁殖の対象年齢（4〜16歳）ではありません"); save(); render(); return; }
+  if(st.retired){ topic("⚠️ "+st.name+" は種牡馬を引退しています"); mateSettle(); return; }
+  if(m.breedRetired || ageOf(m)<4 || ageOf(m)>16){ topic("⚠️ "+m.name+" は繁殖の対象年齢（4〜16歳）ではありません"); mateSettle(); return; }
   const f = stallionFee(st);
-  if(f > 0 && S.funds < f){ topic("⚠️ 資金が足りません"); save(); render(); return; } /* v3.2：種付料0（自家製種牡馬）は資金がマイナスでも種付けできる */
+  if(f > 0 && S.funds < f){ topic("⚠️ 資金が足りません"); mateSettle(); return; } /* v3.2：種付料0（自家製種牡馬）は資金がマイナスでも種付けできる */
   S.funds -= f;
   m.lastSire = st.name;
   m.matedYear = S.year; /* v3.1：空胎カウンタ（barrenStreak）の判定用に、種付けした年を記録する */
   const guaranteed = !S.firstMatingDone; // 最初の1回だけ受胎確定（滑り出しで詰まらないための配慮）
   if(guaranteed || Math.random() < conceptionRate(m)){ S.firstMatingDone = true; m.pregnant = { sire: st.name, dueYear: S.year+1 }; topic("🌸 "+m.name+" が "+st.name+" を受胎しました（来年出産予定）"); }
   else { topic(m.name+" は不受胎でした。シーズン中なら再種付けできます"); }
-  save(); render();
+  mateSettle();
 }
 /* ================= 自動種付け（v3.1・まったりモード＋自動種付けトグルON） =================
    2月第1週に繁殖牝馬を一巡し、不受胎で空いた馬は4月第1週にもう一度だけ再挑戦する。
@@ -4070,20 +4108,27 @@ function autoMatePass(retry){
   const targets = retry ? mares.filter(m => m.autoMateFeb === S.year) : mares;
   if(!targets.length) return;
   const capN = Math.max(1, Math.ceil(mares.length / 3)); /* 1頭あたりの上限（その年の自動種付け総数の1/3・切り上げ） */
+  /* v5.8：自家製種牡馬の名前集合を一巡の最初に一度だけ作る。stallionFee は呼ぶたびに
+     全馬を走査する（isHomebredStallion）ので、牝馬×種牡馬の二重ループの中だけ
+     同じ判定の feeOf に置き換える */
+  const homeNames = new Set(S.horses.filter(h => h.status === "stallion").map(h => h.name));
+  const feeOf = st => homeNames.has(st.name) ? 0 : FEE_VAL[st.fee_tier];
   const pickFrom = (m, list) => {
     let best = null;
     for(const st of list){
       const sc = compatScore(m, st);
       const fv = (S.favs || []).includes(st.name) ? 1 : 0; /* v3.4.2（オーナー要望）：☆付き種牡馬を優先する */
-      if(!best || sc > best.sc || (sc === best.sc && (fv > best.fv || (fv === best.fv && stallionFee(st) < stallionFee(best.st))))) best = { st, sc, fv };
+      if(!best || sc > best.sc || (sc === best.sc && (fv > best.fv || (fv === best.fv && feeOf(st) < feeOf(best.st))))) best = { st, sc, fv };
     }
     return best;
   };
-  for(const m of targets){
+  let matedAny = false;
+  _mateQuiet = true;
+  try{ for(const m of targets){
     if(m.pregnant || !mareBreedable(m)) continue;
     if(!retry) m.autoMateFeb = S.year; /* 2月に一巡した印（4月の再挑戦の対象判定に使う） */
     const cap = autoMateBudgetCap();
-    const cands = S.stallions.filter(st => !st.retired && stallionFee(st) <= cap && (stallionFee(st) <= S.funds || stallionFee(st) === 0)); /* v3.2：無料の自家製は資金マイナスでも候補に残す */
+    const cands = S.stallions.filter(st => !st.retired && feeOf(st) <= cap && (feeOf(st) <= S.funds || feeOf(st) === 0)); /* v3.2：無料の自家製は資金マイナスでも候補に残す */
     if(!cands.length) continue; /* 資金が最低料金にも届かず無料候補もいない場合は今シーズン見送り */
     const uncapped = cands.filter(st => (_autoMateCount[st.name] || 0) < capN);
     let chosen = null;
@@ -4094,13 +4139,15 @@ function autoMatePass(retry){
       for(const st of cands){
         const cnt = _autoMateCount[st.name] || 0, sc = compatScore(m, st);
         const fv = (S.favs || []).includes(st.name) ? 1 : 0;
-        if(!chosen || cnt < chosen.cnt || (cnt === chosen.cnt && (sc > chosen.sc || (sc === chosen.sc && (fv > (chosen.fv||0) || (fv === (chosen.fv||0) && stallionFee(st) < stallionFee(chosen.st))))))) chosen = { st, sc, cnt, fv };
+        if(!chosen || cnt < chosen.cnt || (cnt === chosen.cnt && (sc > chosen.sc || (sc === chosen.sc && (fv > (chosen.fv||0) || (fv === (chosen.fv||0) && feeOf(st) < feeOf(chosen.st))))))) chosen = { st, sc, cnt, fv };
       }
     }
     if(!chosen) continue;
     _autoMateCount[chosen.st.name] = (_autoMateCount[chosen.st.name] || 0) + 1;
     mateWith(m, chosen.st);
-  }
+    matedAny = true;
+  } } finally { _mateQuiet = false; }
+  if(matedAny) save();
 }
 function sortedForMating(m){
   const arr = S.stallions.filter(st =>
@@ -4372,7 +4419,7 @@ function viewManual(){
   h += sec("✈️ 海外遠征の行きやすさと欧州適性",
     "海外のG1には「行きやすさ」が付いています（S／A／B／C／D）。日本馬の参戦・好走の実績が軸で、香港国際競走やドバイワールドカップデー、凱旋門賞などがS、ほとんど日本馬の行かないレースがC・Dです。出走登録タブとローテーション指定のリストに表示されます。自動遠征の設定が「普通」のとき、自動で遠征するのは行きやすさA以上のG1だけです（G2・G3は対象外、「積極的」では制限なし）。<br>各馬には隠れた「欧州適性」があります（相性欄にスタッフ予想が出ます）。欧州（イギリス・フランス・アイルランド・ドイツ・イタリア）の芝でだけ効き、○は割り引かれず、−は×0.95、✕は×0.85になります。欧州の芝を走ると確定し、✕が確定した馬は自動出走では欧州の芝を避けます。重馬場適性や障害適性と同じく、父母から受け継ぎます。");
   h += sec("🤖 自動出走とローテーション",
-    "自動出走をONにした馬は、適性・クラス・体調を見て毎週自動でレースに登録されます（年間6戦ペース目標・上限7戦）。方針は「積極／慎重」、適性距離の±200m許容のON/OFFも選べます。海外遠征は設定（消極的／普通／積極的）で自動化の範囲が変わり、既定では手動のみです。<br>ローテーションは「どのレースに出すか」の指定です。指定した馬は指定レースにだけ自動登録され、毎年繰り返されます（各馬のページから設定）。<br>指定には「1回限り」も選べます（直近の開催1回だけで、終わると自動で外れます）。<br>トライアル（弥生賞→皐月賞、青葉賞→日本ダービーなど）を勝つと、本番が自動で指定されます（1回限り・適性内の馬だけ）。海外の前哨戦（サウジダービー→UAEダービー→ケンタッキーダービー、フォワ賞／ニエル賞→凱旋門賞）も同じ仕組みで、こちらは適性内に加えて通算賞金1億円以上の馬だけが対象です。<br>G1については、残っている適性内のG1全部のぶんの出走枠を確保するように前哨戦を間引きます（G1自身は枠の確保では止まらず、年間上限だけが効きます）。馬場については、○の馬場のレースがある週は−の馬場のレースには自動で入れません（−は代替扱い）。また、前走と違う馬場のレースは少し後回しになるので、芝・ダートを行き来するローテにはなりにくくなっています。");
+    "自動出走をONにした馬は、適性・クラス・体調を見て毎週自動でレースに登録されます（年間6戦ペース目標・上限7戦）。方針は「積極／慎重」、適性距離の±200m許容のON/OFFも選べます。海外遠征は設定（消極的／普通／積極的）で自動化の範囲が変わり、既定では手動のみです。<br>ローテーションは「どのレースに出すか」の指定です。指定した馬は指定レースにだけ自動登録され、毎年繰り返されます（各馬のページから設定）。指定がある馬は自動出走の対象外になりますが、手動登録はいつでも可能で、指定以外のレースにも出走できます。<br>指定には「1回限り」も選べます（直近の開催1回だけで、終わると自動で外れます）。<br>トライアル（弥生賞→皐月賞、青葉賞→日本ダービーなど）を勝つと、本番が自動で指定されます（1回限り・適性内の馬だけ）。海外の前哨戦（サウジダービー→UAEダービー→ケンタッキーダービー、フォワ賞／ニエル賞→凱旋門賞）も同じ仕組みで、こちらは適性内に加えて通算賞金1億円以上の馬だけが対象です。<br>G1については、残っている適性内のG1全部のぶんの出走枠を確保するように前哨戦を間引きます（G1自身は枠の確保では止まらず、年間上限だけが効きます）。馬場については、重賞は ○ の馬場のレースだけが自動の対象です（−の馬場の重賞は構想に入りません）。条件戦では ○ の馬場を優先しつつ、− の馬場も代替として使います。また、前走と違う馬場のレースは少し後回しになるので、芝・ダートを行き来するローテにはなりにくくなっています。");
   h += sec("💕 繁殖と配合",
     "種付けは2〜6月だけ。繁殖牝馬は4〜16歳が対象で、受胎率は9歳まで85%、その後下がって16歳で45%。14歳から出産のリスクが上がり、17歳で繁殖を引退します（死亡はありません）。子は年始に生まれます。<br>配合では相性（系統の特性の重なりなど）が産駒に影響します。種牡馬は世代交代していき（引退年齢は個体ごとに決まっていて、産駒が活躍すると延長されます）、引退した分は架空の新種牡馬が補充されます。");
   h += sec("🌳 系統と牝系",
@@ -4386,7 +4433,7 @@ function viewManual(){
   h += sec("🌟 素質馬（二つ名）",
     "生まれた産駒のうち、ごくまれに（1%）生まれつきの二つ名を持つ「素質馬」がいます。誕生時にトピックでお知らせし、馬のページと各リストに 🌟『二つ名』と出ます。馬一覧の絞り込み「素質馬のみ」でも探せます。二つ名ごとに授かる強みが違い、遺伝はしません。<br>・<b>天才</b>：全ての素質に恵まれます<br>・<b>疾風</b>：スピードの素質に恵まれます<br>・<b>千里馬</b>：スタミナの素質に恵まれます<br>・<b>鉄心</b>：根性の素質に恵まれます<br>・<b>重馬場の鬼</b>：重・不良の馬場でこそ真価を発揮します<br>・<b>馬場知らず</b>：馬場状態に左右されません<br>・<b>鉄馬</b>：故障しにくく、輸送の疲れも半分です<br>・<b>豪脚</b>：末脚の切れ味が自慢です<br>・<b>逃げ切り名人</b>：逃げ・先行でしぶとい脚を使えます<br>・<b>万能</b>：どの脚質でも平均以上に走れます<br>・<b>大駆け</b>：人気薄のときにこそ燃えます<br>・<b>タフガイ</b>：疲れにくく、状態も崩しにくいです<br>・<b>仔出しの良さ</b>：繁殖で受胎しやすい体質です<br>・<b>稀代のジャンパー</b>：距離適性に関係なく障害競走で真価を発揮します");
   h += sec("💾 セーブとデータ",
-    "セーブはブラウザに自動保存されます（v4.0から保存先は IndexedDB という大容量の保存領域で、上限は端末の空き容量ベースです）。<br>現在の保存先：" + storageBackendLabel() + "／現在のセーブサイズ：" + saveSizeText() + "<br>旧方式（localStorage）で遊んでいたセーブは、初回起動時に自動で引っ越します（引っ越し前のコピーは保険としてブラウザ内に残ります）。保存に失敗した時は「今週の通知」でお知らせします。「その他」メニューの書き出し／読み込みでJSONファイルとして保存・復元もできます。ブラウザのサイトデータを消すとセーブも消えるため、大事な牧場は時々書き出して手元に残すのがおすすめです。頭数上限（繁殖牝馬・デビュー馬）は「その他」メニューでいつでも変更できます。");
+    "セーブはブラウザに自動保存されます（v4.0から保存先は IndexedDB という大容量の保存領域で、上限は端末の空き容量ベースです）。<br>現在の保存先：" + storageBackendLabel() + "／現在のセーブサイズ：" + saveSizeText() + "<br>旧方式（localStorage）で遊んでいたセーブは、初回起動時に自動で引っ越します（引っ越し前のコピーは保険としてブラウザ内に残ります）。保存に失敗した時は「今週の通知」でお知らせします。まったりモードで自動で週が進む間は、保存を数秒に1回へまとめて書き出します（手動操作の時の保存はその場で書き出します）。「その他」メニューの書き出し／読み込みでJSONファイルとして保存・復元もできます。ブラウザのサイトデータを消すとセーブも消えるため、大事な牧場は時々書き出して手元に残すのがおすすめです。頭数上限（繁殖牝馬・デビュー馬）は「その他」メニューでいつでも変更できます。");
   return h;
 }
 function viewChron(){
@@ -5516,6 +5563,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v5.7</footer>
+<footer>競馬シミュレーター（趣味） v5.8</footer>
 </body>
 </html>
