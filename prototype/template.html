@@ -4659,6 +4659,13 @@ function viewStallions(){
    特別戦〜重賞を月ごとに、中央・NKC／地方・TKC／海外・WHC に分けて一覧する。一般戦（自動生成）は除く */
 let calMonth = 0; // 0 = 現在の月
 let calRecords = false; /* v6.4：コースタイム表示中か */
+let calFilter = { sector: "all", grade: "all", surface: "all", unconquered: false, marked: false }; /* v6.4：カレンダーの絞り込み */
+const CAL_GRADE_GROUPS = { G1: ["GI", "G1"], G2: ["GII", "G2"], G3: ["GIII", "G3"], JpnJ: ["JpnI", "JpnII", "JpnIII", "J-GI", "J-GII", "J-GIII"], L: ["L"] };
+function calGradeOk(grade, sel){
+  if(sel === "all") return true;
+  if(sel === "SP") return !Object.values(CAL_GRADE_GROUPS).flat().includes(grade || "");
+  return (CAL_GRADE_GROUPS[sel] || []).includes(grade || "");
+}
 /* コースタイム専用ビュー（v6.4）：競馬場×馬場×距離のレコードだけを並べる */
 function courseRecordsHtml(){
   const courses = Object.keys(DATA.courseRecords || {});
@@ -4680,7 +4687,12 @@ function courseRecordsHtml(){
 }
 function viewCalendar(){
   const m = calMonth || S.month;
-  setTimeout(()=>{ document.querySelectorAll("[data-calmonth]").forEach(b=>b.onclick=()=>{ calMonth = +b.getAttribute("data-calmonth"); render(); }); document.querySelectorAll("[data-calrecords]").forEach(b=>b.onclick=()=>{ calRecords = !calRecords; render(); }); }, 0);
+  setTimeout(()=>{ document.querySelectorAll("[data-calmonth]").forEach(b=>b.onclick=()=>{ calMonth = +b.getAttribute("data-calmonth"); render(); }); document.querySelectorAll("[data-calrecords]").forEach(b=>b.onclick=()=>{ calRecords = !calRecords; render(); });
+    const bindCal = (id, key) => { const el = document.querySelector(id); if(el) el.onchange = () => { calFilter[key] = el.value; render(); }; };
+    bindCal("#calfSector", "sector"); bindCal("#calfGrade", "grade"); bindCal("#calfSurface", "surface");
+    const cu = document.querySelector("#calfUnconq"); if(cu) cu.onchange = () => { calFilter.unconquered = cu.checked; render(); };
+    const cm = document.querySelector("#calfMarked"); if(cm) cm.onchange = () => { calFilter.marked = cm.checked; render(); };
+  }, 0);
   /* 今月分は登録中の馬を印付けする（登録キーは週番号を含むので当月分だけ照合できる） */
   const entered = {};
   if(m===S.month){
@@ -4706,13 +4718,28 @@ function viewCalendar(){
     + "<button data-calrecords='1'" + (calRecords ? "" : " class='ghost'") + ">⏱ コースタイム</button>"
     + "<span class='sub'>特別戦〜重賞の年間カレンダーです（一般戦は除く）。表示中の月が今月の場合、登録中の馬も表示します。🏆制覇は過去に勝ったことのある重賞です</span></div>";
   if(calRecords) return html + courseRecordsHtml(); /* v6.4：コースタイムだけ見る */
+  const fselC = (id, cur, pairs) => "<select id='" + id + "'>" + pairs.map(pp => "<option value='" + pp[0] + "'" + (cur === pp[0] ? " selected" : "") + ">" + pp[1] + "</option>").join("") + "</select>";
+  html += "<div class='flex' style='margin-bottom:6px;'><span>絞込み：</span>"
+    + fselC("calfSector", calFilter.sector, [["all", "組織すべて"], ["central", "中央"], ["regional", "地方"], ["overseas", "海外"]])
+    + fselC("calfGrade", calFilter.grade, [["all", "格すべて"], ["G1", "G1"], ["G2", "G2"], ["G3", "G3"], ["JpnJ", "Jpn・J級"], ["L", "リステッド"], ["SP", "特別"]])
+    + fselC("calfSurface", calFilter.surface, [["all", "馬場すべて"], ["芝", "芝"], ["ダート", "ダート"], ["障害", "障害"]])
+    + "<label><input type='checkbox' id='calfUnconq'" + (calFilter.unconquered ? " checked" : "") + "> 🏆未制覇だけ</label>"
+    + "<label><input type='checkbox' id='calfMarked'" + (calFilter.marked ? " checked" : "") + "> 登録・🎯指定あり</label></div>";
+  const calRaceOk = r => {
+    if(!calGradeOk(r.grade, calFilter.grade)) return false;
+    if(calFilter.surface !== "all"){ if(calFilter.surface === "障害" ? !isJumpRace(r) : (isJumpRace(r) || r.surface !== calFilter.surface)) return false; }
+    if(calFilter.unconquered){ if(!CONQUEST_GRADES.includes(r.grade)) return false; if(winIdx[r.name + "|" + (r.racecourse || "")]) return false; }
+    if(calFilter.marked){ const key = raceKeyOf(absOf(S.year, m, r.wom), r); if(!entered[key] && !desig[rotationKeyOf(r)]) return false; }
+    return true;
+  };
   /* 自動出走設定（v2.0）：出走登録タブの「自動出走設定」ボタンからここへ来る。今後の日程を見ながら
      馬ごとの自動出走ON/OFFと出走間隔をその場で変更できる。一括設定も同じ部品を使う
      （v2.2 で「ローテ設定」から改称：ローテーションは出走指定の名前になったため） */
   /* v4.4.2：カレンダーは表示専用（自動出走設定は出走登録タブへ集約、Terai指示） */
   for(const [sec, label] of [["central","中央・NKC"],["regional","地方・TKC"],["overseas","海外・WHC"]]){
+    if(calFilter.sector !== "all" && calFilter.sector !== sec) continue; /* v6.4：組織の絞り込み */
     const list = (sec==="overseas" ? DATA.overseas : DATA.domestic.filter(r=>r.sector===sec))
-      .filter(r=>r.month===m)
+      .filter(r=>r.month===m && calRaceOk(r))
       .sort((a,b)=> (a.wom-b.wom) || ((GRADE_RANK[a.grade]!=null?GRADE_RANK[a.grade]:9)-(GRADE_RANK[b.grade]!=null?GRADE_RANK[b.grade]:9)) || ((a.distance_m||0)-(b.distance_m||0)));
     html += "<h3 style='margin-top:14px;'>"+label+"（"+list.length+"レース）</h3>";
     if(!list.length){ html += "<div class='sub'>この月のレースはありません</div>"; continue; }
