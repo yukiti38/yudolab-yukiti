@@ -371,9 +371,13 @@ function prizeTable(race){
 function rivalStrength(race){
   const g = race.grade;
   /* v3.3：100点満点化で自家生産馬の上振れ（能力〜94）が生まれるため、重賞級の上限だけを少し引き上げて釣り合いを取る */
-  if(g==="GI"||g==="JpnI"||g==="J-GI") return race.sector==="overseas" ? [70,88] : [68,87];
-  if(g==="GII"||g==="JpnII"||g==="J-GII") return [65,84];
-  if(g==="GIII"||g==="JpnIII"||g==="J-GIII") return [62,80];
+  /* v6.1（Terai指摘・項目135）：Jpn系は芝の同格より1段下げる（地方交流重賞の層の薄さを反映） */
+  if(g==="JpnI") return [65,84];
+  if(g==="JpnII") return [62,80];
+  if(g==="JpnIII") return [60,78];
+  if(g==="GI"||g==="J-GI") return race.sector==="overseas" ? [70,88] : [68,87];
+  if(g==="GII"||g==="J-GII") return [65,84];
+  if(g==="GIII"||g==="J-GIII") return [62,80];
   if(g==="OP" && race.surface==="障害" && race.general) return [55,72]; /* v5.0：無名の障害オープン */
   if(g==="L"||g==="OP") return [60,78];
   if(g==="3勝クラス") return [57,73];
@@ -559,6 +563,9 @@ function yearsPastPeak(h, a){ return (a != null ? a : ageOf(h) + (S.month-1)/12)
    （天井）だけで決まり、成長型では決まらない */
 /* デビュー後の伸びの底上げ（v5.3）：進み具合の分母に足す年数。早熟系のデビュー直後の張り付きを防ぐ */
 const DEBUT_RISE_SPAN = 2.5;
+/* v6.1（Terai決定 2026-11-20）：早熟系はデビュー後の上がり方を速くする。底上げ（分母への加算）を型ごとに変え、早熟系ほど小さくしてピークへ早く近づける。個体差（pace）は別に残る */
+const G_RISE_SPAN = { "超早熟":0.8, "早熟":1.2, "普通早":1.8 };
+function riseSpanOf(h){ const v = G_RISE_SPAN[gtypeOf(h)]; return v != null ? v : DEBUT_RISE_SPAN; }
 const DEBUT_MATURITY = 0.78;
 /* その馬のデビュー年齢（小数）。debutReadyAbs（絶対週）から逆算する */
 function debutAgeOf(h){
@@ -574,7 +581,7 @@ function maturityA(h, a){
      最後の区間で取り戻す。ピーク前0.25歳から1.0へ直線で寄せる） */
   if(aE > peak) return declineAt(h, aE - peak);
   if(aE > peak - 0.25){
-    const u0 = clamp((peak - 0.25 - debutAgeOf(h)) / Math.max(0.3, (peak - debutAgeOf(h)) + DEBUT_RISE_SPAN), 0, 1);
+    const u0 = clamp((peak - 0.25 - debutAgeOf(h)) / Math.max(0.3, (peak - debutAgeOf(h)) + riseSpanOf(h)), 0, 1);
     const e0 = G_RISE_EXP[gtypeOf(h)] || 0.55;
     const m0 = DEBUT_MATURITY + (1 - DEBUT_MATURITY) * Math.pow(u0, e0);
     const f = (aE - (peak - 0.25)) / 0.25;
@@ -592,7 +599,7 @@ function maturityA(h, a){
     const t = clamp((aE - 1.5) / Math.max(0.3, dAge - 1.5), 0, 1);
     base = 0.40 + (DEBUT_MATURITY - 0.40) * t;
   } else {
-    const u = clamp((aE - dAge) / Math.max(0.3, (peak - dAge) + DEBUT_RISE_SPAN), 0, 1);
+    const u = clamp((aE - dAge) / Math.max(0.3, (peak - dAge) + riseSpanOf(h)), 0, 1);
     const e = G_RISE_EXP[gtypeOf(h)] || 0.55;
     base = DEBUT_MATURITY + (1 - DEBUT_MATURITY) * Math.pow(u, e);
   }
@@ -1161,6 +1168,7 @@ function initStallionRoster(){
     }
     if(st.retired == null) st.retired = false;
     if(st.fictional == null) st.fictional = false;
+    if(st.fictional && st.dist){ const dd = clampStallionDist(st.surface, st.dist[0], st.dist[1]); st.dist[0] = dd[0]; st.dist[1] = dd[1]; } /* v6.1：既存の架空種牡馬の距離帯も番組内に寄せる */
     if(!st.bmsLine) st.bmsLine = deriveBmsLine(st);
   }
 }
@@ -1259,6 +1267,13 @@ function fictionalStallionName(){
   if(used.has(n)){ let k = 2; while(used.has(n + k)) k++; n = (n + k).length <= 9 ? n + k : n.slice(0, 9 - String(k).length) + k; } /* 9文字以内（v3.0） */
   return n;
 }
+/* v6.1（Terai決定 2026-11-20）：架空種牡馬の距離帯は番組のある範囲に収める。ダートは長距離型でも下限2200・上限2600（ダート3400m級のような「走るレースが無い」種牡馬を作らない）。芝・両刀も芝番組の上限3600に収める（下限3200・上限3600） */
+function clampStallionDist(surface, d0, d1){
+  /* Terai決定：芝ダート共通で、最長でも 2200-3600 に収める（ダート馬から芝の産駒が出る可能性もあるため上限も共通） */
+  d0 = Math.min(d0, 2200); d1 = Math.min(d1, 3600);
+  if(d1 - d0 < 400){ d1 = Math.min(3600, d0 + 400); if(d1 - d0 < 400) d0 = d1 - 400; }
+  return [d0, d1];
+}
 /* 架空種牡馬の生成：父は出生年の供用プールから（地域を揃え、ティア重みで抽選）、
    母父は約10年前・母母父は約20年前のプールから引いて世代の階段を作る */
 function makeFictionalStallion(){
@@ -1293,6 +1308,7 @@ function makeFictionalStallion(){
   let d0 = r50(sire.dist[0] + cShift), d1 = r50(sire.dist[1] + cShift + wShift);
   if(d1 - d0 < 400) d1 = r50(Math.min(4000, d0 + 400));
   if(d1 <= d0) d0 = r50(Math.max(1000, d1 - 400));
+  const dd61 = clampStallionDist(surface, d0, d1); d0 = dd61[0]; d1 = dd61[1]; /* v6.1：番組のある距離帯に収める */
   const gt = inheritGrowth(stGtype(sire), stGtype(sire)); /* 父の内部型を継承し、15%で隣へ1段ずれる */
   const st = {
     name: fictionalStallionName(),
@@ -1908,12 +1924,16 @@ function absLabel(a){ const t = fromAbs(a); return t[1] + "月第" + t[2] + "週
 const COURSES_EAST = ["東京","中山","福島","新潟"];
 const COURSES_WEST = ["京都","阪神","中京","小倉"];
 const COURSES_HOKKAIDO = ["札幌","函館"];
+/* v6.1：地方（NAR）の競馬場にも地域を持たせ、輸送・滞在が中央と同じルールで効くようにする（従来は地域なし＝常時中距離12・滞在割引なし） */
+const COURSES_NAR_EAST = ["大井","川崎","船橋","浦和","盛岡","水沢"];
+const COURSES_NAR_WEST = ["金沢","名古屋","笠松","園田","姫路","高知","佐賀"];
+const COURSES_NAR_HOKKAIDO = ["門別"];
 function courseRegion(course){
   if(!course) return null;
-  if(COURSES_HOKKAIDO.some(c => course.includes(c))) return "hokkaido";
-  if(COURSES_EAST.some(c => course.includes(c))) return "east";
-  if(COURSES_WEST.some(c => course.includes(c))) return "west";
-  return null; // 地方競馬場など：中距離扱い
+  if(COURSES_HOKKAIDO.some(c => course.includes(c)) || COURSES_NAR_HOKKAIDO.some(c => course.includes(c))) return "hokkaido";
+  if(COURSES_EAST.some(c => course.includes(c)) || COURSES_NAR_EAST.some(c => course.includes(c))) return "east";
+  if(COURSES_WEST.some(c => course.includes(c)) || COURSES_NAR_WEST.some(c => course.includes(c))) return "west";
+  return null; // 地域不明のコース：中距離扱い
 }
 function stableHomeRegion(h){ return h.stable === "美浦" ? "east" : h.stable === "栗東" ? "west" : null; }
 function ensureStable(h){
@@ -5755,6 +5775,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v6.0</footer>
+<footer>競馬シミュレーター（趣味） v6.1</footer>
 </body>
 </html>
