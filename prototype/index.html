@@ -637,6 +637,7 @@ function ensureParams(){
     if(h.temp == null){ h.temp = newTemp(); h.quirk = rollQuirk(h.temp); }
     if(!h.rankBase) h.rankBase = { spd: effRank(h,"spd"), sta: effRank(h,"sta"), gut: effRank(h,"gut") };
     ensureAffinities(h);
+    ensureTraits(h); /* v6.0：馬特性（旧セーブの馬にも割り当てる） */
     ensureWeight(h);
   }
   for(const st of S.stallions){ stallionGen(st); if(!st.coat) st.coat = randomCoat(); }
@@ -2320,6 +2321,118 @@ function affShown(trueVal, predVal, known){
   if(predVal != null) return "<span class='sub'>予想" + predVal + "</span>";
   return "<span class='sub'>？</span>";
 }
+/* ================= 馬特性（v6.0・オーナー決定／POST_SIM 127・131） =================
+   素質（1%の二つ名）とは別の、全馬が静かに持つ個性の層。同タイプ（スロット）は1つまでで、
+   各スロットは ○側／×側／なし のロール。同時発現は5つまで（季節・左右回りは常時で数えない）。
+   継承する（体質・回復系：親が持つと発現率+12pt）＝放牧・故障しやすい・疲労の抜け・状態の波・季節・左右回り。
+   継承しない（運び・メンタル系）＝休み明け型・使い詰め・大舞台・ムラ安定・ゲート。
+   表示は2層：最初から見せる層（左右・季節・放牧・ゲート・故障リスク・疲労の抜け・状態の波）と、
+   スタッフ予想→実走で確定する層（休み明け型・使い詰め・大舞台・ムラ安定）。 */
+const TRAIT_FRESH_GAP = 10;   /* 休み明け判定（週） */
+const TRAIT_TSUME_GAP = 6;    /* 使い詰めが積み上がる間隔の上限（週） */
+const TRAIT_TSUME_CAP = 0.02; /* 使い詰めの上限（+0.005ずつ） */
+const SEASON_NAMES = ["春", "夏", "秋", "冬"];
+function seasonOfMonth(m){ return m >= 3 && m <= 5 ? 0 : m >= 6 && m <= 8 ? 1 : m >= 9 && m <= 11 ? 2 : 3; } /* 3月起点の3か月ずつ */
+const LEFT_COURSES = ["東京", "新潟", "中京"];
+function courseHand(race){ /* 国内（中央10場）のみ：左回り＝東京・新潟・中京、他は右回り。海外・地方は対象外 */
+  if(!race || race.sector === "overseas") return null;
+  const c = COURSES10.find(x => (race.racecourse || "").includes(x));
+  if(!c) return null;
+  return LEFT_COURSES.includes(c) ? "L" : "R";
+}
+function rollTraitSide(pPlus, pMinus){ const r = Math.random(); return r < pPlus ? "plus" : r < pPlus + pMinus ? "minus" : null; }
+function rollInheritSlot(slot, plusVal, minusVal, sireT, damT){
+  let pP = 0.10, pM = 0.10;
+  for(const pt of [sireT, damT]){ if(!pt) continue; if(pt[slot] === plusVal) pP += 0.12; else if(pt[slot] === minusVal) pM += 0.12; }
+  const r = rollTraitSide(Math.min(pP, 0.55), Math.min(pM, 0.55));
+  return r === "plus" ? plusVal : r === "minus" ? minusVal : null;
+}
+function rollPlainSlot(plusVal, minusVal){ const r = rollTraitSide(0.10, 0.10); return r === "plus" ? plusVal : r === "minus" ? minusVal : null; }
+function genTraits(h, sireT, damT){
+  const t = { fresh:null, tsume:false, big:false, spread:null, pasture:null, gate:null, fragile:false, recovery:null, cond:null,
+    seasonGood:0, seasonBad:1, hand:"L", pred:null, known:{ fresh:false, tsume:false, big:false, spread:false } };
+  /* 継承する（体質・回復系） */
+  t.pasture = rollInheritSlot("pasture", "refresh", "lax", sireT, damT);
+  t.recovery = rollInheritSlot("recovery", "fast", "slow", sireT, damT);
+  t.cond = rollInheritSlot("cond", "up", "down", sireT, damT);
+  { let pF = 0.10; for(const pt of [sireT, damT]) if(pt && pt.fragile) pF += 0.12; t.fragile = Math.random() < Math.min(pF, 0.55); }
+  { const wg = [0,1,2,3].map(s => 1 + (sireT && sireT.seasonGood === s ? 0.5 : 0) + (damT && damT.seasonGood === s ? 0.5 : 0));
+    let sum = wg.reduce((a,b)=>a+b,0), r = Math.random() * sum; t.seasonGood = 0;
+    for(let s = 0; s < 4; s++){ r -= wg[s]; if(r < 0){ t.seasonGood = s; break; } }
+    const rest = [0,1,2,3].filter(s => s !== t.seasonGood);
+    const wb = rest.map(s => 1 + (sireT && sireT.seasonBad === s ? 0.5 : 0) + (damT && damT.seasonBad === s ? 0.5 : 0));
+    sum = wb.reduce((a,b)=>a+b,0); r = Math.random() * sum; t.seasonBad = rest[rest.length - 1];
+    for(let i = 0; i < rest.length; i++){ r -= wb[i]; if(r < 0){ t.seasonBad = rest[i]; break; } } }
+  { const wL = 1 + (sireT && sireT.hand === "L" ? 0.5 : 0) + (damT && damT.hand === "L" ? 0.5 : 0);
+    const wR = 1 + (sireT && sireT.hand === "R" ? 0.5 : 0) + (damT && damT.hand === "R" ? 0.5 : 0);
+    t.hand = Math.random() * (wL + wR) < wL ? "L" : "R"; }
+  /* 継承しない（運び・メンタル系） */
+  t.fresh = rollPlainSlot("teppo", "tataki");
+  t.spread = rollPlainSlot("mura", "stable");
+  t.gate = rollPlainSlot("good", "bad");
+  t.tsume = Math.random() < 0.10;
+  t.big = Math.random() < 0.10;
+  /* 同時発現は5つまで（季節・左右回りは数えない） */
+  const rolledKeys = ["fresh", "tsume", "big", "spread", "pasture", "gate", "fragile", "recovery", "cond"];
+  const expressed = rolledKeys.filter(k => t[k]);
+  while(expressed.length > 5){ const drop = expressed.splice(irnd(0, expressed.length - 1), 1)[0]; t[drop] = (drop === "tsume" || drop === "big" || drop === "fragile") ? false : null; }
+  return t;
+}
+function predictTraitVal(trueVal, others){ const r = Math.random(); if(r < 0.70) return trueVal; if(r < 0.92) return null; return others.length ? others[irnd(0, others.length - 1)] : null; }
+function buildTraitPred(t){
+  return { fresh: predictTraitVal(t.fresh, ["teppo", "tataki"].filter(v => v !== t.fresh)),
+    spread: predictTraitVal(t.spread, ["mura", "stable"].filter(v => v !== t.spread)),
+    tsume: Math.random() < 0.70 ? t.tsume : !t.tsume,
+    big: Math.random() < 0.70 ? t.big : !t.big };
+}
+function ensureTraits(h){
+  if(!h.traits) h.traits = genTraits(h, null, null);
+  const t = h.traits;
+  if(t.seasonGood == null){ t.seasonGood = irnd(0, 3); do { t.seasonBad = irnd(0, 3); } while(t.seasonBad === t.seasonGood); }
+  if(t.seasonBad == null || t.seasonBad === t.seasonGood){ do { t.seasonBad = irnd(0, 3); } while(t.seasonBad === t.seasonGood); }
+  if(!t.hand) t.hand = Math.random() < 0.5 ? "L" : "R";
+  if(!t.known) t.known = { fresh:false, tsume:false, big:false, spread:false };
+  if(ageOf(h) >= 2 && !t.pred) t.pred = buildTraitPred(t);
+  return t;
+}
+function traitFragile(h){ return !!(h.traits && h.traits.fragile); }
+function traitRecoveryMul(h){ const r = h.traits && h.traits.recovery; return r === "fast" ? 1.25 : r === "slow" ? 0.75 : 1; }
+function traitSpreadMul(h){ const s = h.traits && h.traits.spread; return s === "mura" ? 1.25 : s === "stable" ? 0.85 : 1; }
+function traitCondGain(h, n){ return h.traits && h.traits.cond === "up" ? Math.round(n * 1.25) : n; }
+/* レース当日の特性補正（v6.0）。戻り値：factor（スコア倍率）／late（出遅れ）／gap（前走間隔）／streak（使い詰めの連戦数）／tatakiStage（叩き良化の段階） */
+function traitRaceMods(h, race){
+  const out = { factor:1, late:false, gap:null, streak:0, tatakiStage:0 };
+  const t = h.traits; if(!t) return out;
+  let f = 1;
+  const gap = h.lastRaceAbs != null ? absWeek() - h.lastRaceAbs : null; out.gap = gap;
+  if(gap != null && gap >= TRAIT_FRESH_GAP){
+    if(t.fresh === "teppo") f *= 1.01;
+    else if(t.fresh === "tataki"){ f *= 0.99; out.tatakiStage = 1; }
+  } else if(t.fresh === "tataki" && h._tatakiNext){ f *= 1.01; out.tatakiStage = 2; }
+  if(t.tsume && h.results && h.results.length){
+    let prev = absWeek(), n = 0;
+    for(let i = h.results.length - 1; i >= 0; i--){ const ra = resultAbsOf(h.results[i]); if(ra < 0 || prev - ra > TRAIT_TSUME_GAP) break; n++; prev = ra; }
+    out.streak = n;
+    if(n > 0) f *= 1 + Math.min(TRAIT_TSUME_CAP, 0.005 * n);
+  }
+  if(t.big && G1_GRADES.includes(race.grade)) f *= 1.01;
+  const seas = seasonOfMonth(S.month);
+  if(seas === t.seasonGood) f *= 1.01; else if(seas === t.seasonBad) f *= 0.99;
+  const hd = courseHand(race);
+  if(hd) f *= hd === t.hand ? 1.01 : 0.99;
+  const lateP = t.gate === "good" ? 0.01 : t.gate === "bad" ? 0.20 : 0.05;
+  if(Math.random() < lateP){ f *= 0.96; out.late = true; }
+  out.factor = f;
+  return out;
+}
+function revealTraits(h, race, mods){
+  const t = h.traits; if(!t || !mods) return;
+  if(mods.gap != null && mods.gap >= TRAIT_FRESH_GAP) t.known.fresh = true;
+  if(mods.tatakiStage === 2) t.known.fresh = true;
+  if(mods.streak >= 1) t.known.tsume = true;
+  if(G1_GRADES.includes(race.grade)) t.known.big = true;
+  if((h.results || []).length >= 3) t.known.spread = true;
+}
 function affinitySection(h){
   if(!(h.status === "racehorse" || h.status === "yearling" || h.status === "foal")) return "";
   const a = h.aff;
@@ -2346,6 +2459,38 @@ function affinitySection(h){
     + (distParts.length ? "<br>距離別：" + distParts.join("、") : "")
     + (courseParts.length ? "<br>競馬場別：" + courseParts.join("、") : "")
     + "</dd>";
+}
+/* 馬特性の表示（v6.0）：見える層は最初から、隠し層はスタッフ予想→実走で確定（太字） */
+function traitSection(h){
+  if(!(h.status === "racehorse" || h.status === "yearling" || h.status === "foal")) return "";
+  const t = h.traits;
+  if(!t) return "";
+  const vis = [];
+  vis.push(t.hand === "L" ? "左回り巧者" : "右回り巧者");
+  vis.push("季節：得意" + SEASON_NAMES[t.seasonGood] + "／苦手" + SEASON_NAMES[t.seasonBad]);
+  if(t.pasture === "refresh") vis.push("放牧リフレッシュ型");
+  else if(t.pasture === "lax") vis.push("放牧で緩む型");
+  if(t.gate === "good") vis.push("スタート巧者");
+  else if(t.gate === "bad") vis.push("ゲート難");
+  if(t.recovery === "fast") vis.push("疲労の抜け早い");
+  else if(t.recovery === "slow") vis.push("疲労の抜け遅い");
+  if(t.cond === "up") vis.push("状態が上がりやすい");
+  else if(t.cond === "down") vis.push("状態を維持しにくい");
+  vis.push(t.fragile ? "<b>故障リスク高</b>（通常の約2倍）" : "故障リスク普通");
+  let s = "<dt>馬特性</dt><dd>" + vis.join(" ／ ");
+  if(ageOf(h) >= 2 && t.pred){
+    const p = t.pred, k = t.known || {};
+    const shown = (known, trueLabel, predLabel) => known ? "<b>" + (trueLabel || "―") + "</b>" : predLabel ? "<span class='sub'>予想：" + predLabel + "</span>" : "―";
+    const freshL = v => v === "teppo" ? "鉄砲" : v === "tataki" ? "叩き良化" : null;
+    const spreadL = v => v === "mura" ? "ムラ" : v === "stable" ? "安定型" : null;
+    s += "<br>休み明け：" + shown(k.fresh, freshL(t.fresh), freshL(p.fresh))
+      + " ／ 使い詰め：" + shown(k.tsume, t.tsume ? "あり" : null, p.tsume ? "あり" : null)
+      + " ／ 大舞台：" + shown(k.big, t.big ? "大舞台型" : null, p.big ? "大舞台型" : null)
+      + " ／ レースのブレ：" + shown(k.spread, spreadL(t.spread), spreadL(p.spread));
+  } else {
+    s += "<br><span class='sub'>休み明けの型・使い詰め・大舞台・ブレは2歳になるとスタッフの予測が出ます。実際に走ることで確定していきます</span>";
+  }
+  return s + "</dd>";
 }
 /* 登録画面の相性ヒント（見えるのは予測と確定値だけ。真値は出さない） */
 function affinityPredHint(h, r){
@@ -2459,12 +2604,14 @@ function runRace(race, entries){
     tfMap.set(h, tf);
   }
   const runners = [];
+  const traitMap = new Map(); /* v6.0：馬特性の当日補正（結果処理で確定判定・叩き良化の段階更新に使う） */
   for(const h of entries){
     const gut = paramNow(h,"gut");
-    const spread = 0.10 * (1 - clamp((gut-40)/60, 0, 1) * 0.5) * (STYLE_VAR[styleOf(h)] || 1) * tempSpreadMul(h);
+    const spread = 0.10 * (1 - clamp((gut-40)/60, 0, 1) * 0.5) * (STYLE_VAR[styleOf(h)] || 1) * tempSpreadMul(h) * traitSpreadMul(h); /* v6.0：ムラ／安定は気性とは別軸でブレ幅に掛かる */
     const wall = assignedWeight(race, h);
     const w = wtActive ? wall : null;
-    runners.push({ horse:h, weight:w, wall, score: (isJumpRace(race) ? jumpBase(h, race) : raceBase(h,race))*aptitudeFactor(h,race) /* v5.0：障害はスタミナ・根性寄りのブレンドで */*affinityFactor(h,race)*goingFactor(h, race, absWeek())*euFactor(h, race) /* v5.5：欧州適性 */*styleFactor(h,pace)*(w!=null ? weightFactor(w) : 1)*(h.talent === "longshot" ? 1.03 : 1)*(1 + rnd(-1,1)*spread) /* v4.2：大駆けは人気薄で底上げ */, gut });
+    const tmods = traitRaceMods(h, race); traitMap.set(h, tmods);
+    runners.push({ horse:h, weight:w, wall, score: (isJumpRace(race) ? jumpBase(h, race) : raceBase(h,race))*aptitudeFactor(h,race) /* v5.0：障害はスタミナ・根性寄りのブレンドで */*affinityFactor(h,race)*goingFactor(h, race, absWeek())*euFactor(h, race) /* v5.5：欧州適性 */*styleFactor(h,pace)*(w!=null ? weightFactor(w) : 1)*(h.talent === "longshot" ? 1.03 : 1)*tmods.factor /* v6.0：馬特性 */*(1 + rnd(-1,1)*spread) /* v4.2：大駆けは人気薄で底上げ */, gut });
   }
   const nRivals = fs - entries.length;
   for(let i=0;i<nRivals;i++){
@@ -2501,17 +2648,18 @@ function runRace(race, entries){
     const prevBw = h.results.length ? h.results[h.results.length-1].bodyWeight : null;
     const rec = { when: S.year+"年"+S.month+"月第"+S.week+"週", race: race.name, grade: race.grade||"", course: race.racecourse||"",
       surface: race.surface||"", dist: race.distance_m||null, finish, field: fs, pace, style: styleOf(h),
-      pass: passPositions(styleOf(h), finish, fs, h.quirk), comment: dnfSet.has(h) ? "競走中止（落馬）" : raceComment(styleOf(h), pace, finish, h.quirk), /* v5.0 */ dnf: dnfSet.has(h) ? true : undefined,
+      pass: passPositions(styleOf(h), finish, fs, h.quirk), comment: dnfSet.has(h) ? "競走中止（落馬）" : raceComment(styleOf(h), pace, finish, h.quirk) + ((traitMap.get(h) || {}).late ? "（出遅れ）" : ""), /* v5.0／v6.0：出遅れ */ dnf: dnfSet.has(h) ? true : undefined,
       weight: r.wall, transport: tfMap.get(h) || 0, bodyWeight: bw, weightDiff: (bw != null && prevBw != null) ? bw - prevBw : null,
       time: race.distance_m ? (baseTime + idx*0.35 + rnd(0,0.5)).toFixed(1) : "", agari: (rnd(33.2,36.8)).toFixed(1), prize };
     const pay = prizePayout(prize); /* v0.56：記録は総額、資金に入るのは進上金・源泉徴収を引いた手取り */
     h.results.push(rec); h.earnings += prize; S.funds += pay.net;
     if(prize > 0 && finish!==1) topic(payoutText(h, pay)); /* v3.7：勝利時は勝利トピックに一本化（賞金の内訳は戦績・資金で確認できる）。2着以下の賞金は従来どおり（勝利系フィルタで落ちるため実質表示されない） */
     revealAffinities(h, race, tfMap.get(h) || 0); /* 相性は走って初めて確定する（v0.52） */
+    { const tm = traitMap.get(h); revealTraits(h, race, tm); if(h.traits && h.traits.fresh === "tataki") h._tatakiNext = !!(tm && tm.tatakiStage === 1); } /* v6.0：特性の確定＋叩き良化の段階（次走が2戦目） */
     if(finish===1){ h.wins++; if(["GI","GII","GIII","JpnI","JpnII","JpnIII","J-GI","J-GII","J-GIII","L"].includes(race.grade)) h.gradedWin = true; }
     if(finish===1 && GRADED_SET.includes(race.grade)) maybeAutoRotation(h, race); if(finish===1) maybeTrialRotation(h, race); /* v5.5：トライアル・前哨戦を勝つと本番を1回限りで自動指定 */ /* v3.1：自動ローテーション（重賞勝ちで翌年の指定を自動で付ける） */
     h.fatigue = clamp(h.fatigue + Math.round((irnd(34,52) + weightBurden(r.wall)) * (h.talent === "tireless" ? 0.7 : 1)), 0, 100); /* v4.2：タフガイは疲れにくい */
-    h.condition = clamp(h.condition - Math.round(irnd(6,16) * (h.talent === "tireless" ? 0.7 : 1)), 5, 100); /* v4.2：タフガイは状態を崩しにくい */
+    h.condition = clamp(h.condition - Math.round(irnd(6,16) * (h.talent === "tireless" ? 0.7 : 1) * (h.traits && h.traits.cond === "down" ? 1.25 : 1)), 5, 100); /* v4.2：タフガイは状態を崩しにくい／v6.0：状態の波（維持しにくい）は落ちが大きい */
     /* 滞在の更新（v0.51）：遠方の競馬場で走ったら約2か月は現地滞在。ホーム側に戻れば滞在は解消 */
     if(race.sector!=="overseas"){
       const region = courseRegion(race.racecourse);
@@ -2526,7 +2674,7 @@ function runRace(race, entries){
     if(finish===1) topic("🏆 "+h.name+" が "+race.name+" を勝ちました");
     raceMilestones(h, race, finish, prize);
     /* 故障（v0.40）：疲労と状態が両方悪いまま走らせると故障することがある（管理の帰結） */
-    if(!h.retired && !dnfSet.has(h) && preFat>=70 && preCon<=40 && Math.random()<injuryChance(r.wall) * (h.talent === "iron" ? 0.5 : 1) /* v4.2：鉄馬は故障しにくい */){
+    if(!h.retired && !dnfSet.has(h) && preFat>=70 && preCon<=40 && Math.random()<Math.min(0.95, injuryChance(r.wall) * (h.talent === "iron" ? 0.5 : 1) * (traitFragile(h) ? 2 : 1)) /* v4.2：鉄馬は故障しにくい／v6.0：故障しやすいは故障率2倍 */){
       const heavy = Math.random()<0.4;
       const weeks = heavy ? irnd(12,24) : irnd(4,8);
       h.injuredUntil = absWeek() + weeks;
@@ -2575,13 +2723,13 @@ function advanceWeek(){
     if(h.retired) continue;
     if(h.expedReturnAbs != null && absWeek() > h.expedReturnAbs) h.expedReturnAbs = null;
     if(h.status==="racehorse"){
-      const rf = recoveryFactor(h); /* v0.50：ピーク後は疲労回復が衰える（-20%/-40%）。状態回復は不変 */
+      const rf = recoveryFactor(h) * traitRecoveryMul(h); /* v0.50：ピーク後は疲労回復が衰える（-20%/-40%）。状態回復は不変／v6.0：疲労の抜け（早い×1.25／遅い×0.75） */
       if(isTravelWeek(h, absWeek())){ h.fatigue = clamp(h.fatigue+10,0,100); } /* v0.51：出発・検疫週（レース・調教不可） */
-      else if(isReturnWeek(h, absWeek())){ h.fatigue = clamp(h.fatigue-40,0,100); h.condition = clamp(h.condition+10,5,100); } /* v0.51：帰国・検疫週（休養同率） */
-      else if(isInjured(h)){ h.fatigue = clamp(h.fatigue-Math.round(40*rf),0,100); h.condition = clamp(h.condition+10,5,100); }
-      else if(h.policy==="pasture"){ h.fatigue = clamp(h.fatigue-Math.round(30*rf),0,100); h.condition = clamp(h.condition+12,5,100); }
-      else if(h.policy==="rest"){ h.fatigue = clamp(h.fatigue-Math.round(40*rf),0,100); h.condition = clamp(h.condition+10,5,100); }
-      else { h.fatigue = clamp(h.fatigue-Math.round(20*rf),0,100); h.condition = clamp(h.condition+5,5,100); }
+      else if(isReturnWeek(h, absWeek())){ h.fatigue = clamp(h.fatigue-40,0,100); h.condition = clamp(h.condition+traitCondGain(h, 10),5,100); } /* v0.51：帰国・検疫週（休養同率） */
+      else if(isInjured(h)){ h.fatigue = clamp(h.fatigue-Math.round(40*rf),0,100); h.condition = clamp(h.condition+traitCondGain(h, 10),5,100); }
+      else if(h.policy==="pasture"){ const pm = h.traits && h.traits.pasture === "refresh" ? 1.25 : h.traits && h.traits.pasture === "lax" ? 0.75 : 1; h.fatigue = clamp(h.fatigue-Math.round(30*rf*pm),0,100); h.condition = clamp(h.condition+traitCondGain(h, h.traits && h.traits.pasture === "refresh" ? 18 : h.traits && h.traits.pasture === "lax" ? 8 : 12),5,100); } /* v6.0：放牧リフレッシュ型は放牧の回復が大きい／緩む型は小さい */
+      else if(h.policy==="rest"){ h.fatigue = clamp(h.fatigue-Math.round(40*rf),0,100); h.condition = clamp(h.condition+traitCondGain(h, 10),5,100); }
+      else { h.fatigue = clamp(h.fatigue-Math.round(20*rf),0,100); h.condition = clamp(h.condition+traitCondGain(h, 5),5,100); } /* v6.0：状態の波（上がりやすい）は状態の上昇が大きい */
     }
   }
   // 3) カレンダーを進める
@@ -2676,6 +2824,10 @@ function onNewYear(){
       foal.unnamed = true;
       setParams(foal, fp(sg.spd, h.spd, lb.spd), fp(sg.sta, h.sta, lb.sta), fp(sg.gut, h.gut, lb.gut));
       foal.aff = genAffinities(foal); /* 相性（v0.52〜）：根幹は400区切りのカテゴリ適性（v1.1〜） */
+      { /* 馬特性（v6.0）：体質・回復系は父母から継承（発現率+12pt）。父は自家製種牡馬（馬オブジェクト）か種牡馬レコード側の traits から取る */
+        const sireHorseT = (S.horses.find(x => x.status === "stallion" && x.name === st.name) || {}).traits || st.traits || null;
+        foal.traits = genTraits(foal, sireHorseT, h.traits || null);
+      }
       { /* 重馬場適性は父母から継承（v3.11） */
         const sg = (st.aff && st.aff.goAff) || "-", dg = (h.aff && h.aff.goAff) || "-";
         let pO = 0.25, pX = 0.15;
@@ -2957,7 +3109,7 @@ function autoFitsLite(h, race, year){
 /* ペース由来の間隔：その年の残り週数を「目標まであと何戦か」で割り、前走（今年まだ走っていなければ年始の前週）を起点に測る */
 function autoPaceGap(h, year){
   const used = autoStartsInYear(h, year);
-  const left = AUTO_TARGET - used;
+  const left = ((traitFragile(h) && S.fragileCare !== false) ? 4 : AUTO_TARGET) - used; /* v6.0：故障リスク高の馬は目標戦数を4に落とす（設定で通常どおりにもできる） */
   if(left <= 0) return Infinity; /* 目標戦数に到達したら通常レースは打ち止め（重賞はハードガードのみで可） */
   const yStart = absOf(year, 1, 1), yEnd = yStart + 52;
   const anchor = (h.lastRaceAbs != null && h.lastRaceAbs >= yStart) ? h.lastRaceAbs : yStart - 1;
@@ -2981,6 +3133,7 @@ function autoDueAbs(h, year, graded){
     const anchor = (h.lastRaceAbs != null && h.lastRaceAbs >= yStart) ? h.lastRaceAbs : yStart - 1;
     due = Math.max(due, anchor + pg);
   }
+  if(traitFragile(h) && S.fragileCare !== false) due = Math.max(due, last + 9); /* v6.0：故障リスク高の馬は間隔を最低でも中8週（差9週）に広げる */
   return due;
 }
 /* 年内に残っているフィットする国内G1の数（リザーブ用、上限3）。今週以降・対象年内だけを数える */
@@ -3288,7 +3441,7 @@ function jumpAutoPass(){
     const pick = cands[0], race = pick.race, a = pick.abs;
     if(!h.entries) h.entries = {};
     h.entries[a] = { key: raceKeyOf(a, race), style: h.stylePref || bestStyle(h), sector: race.sector, course: race.racecourse || "", dist: race.distance_m || null, name: race.name };
-    h.jumpNextAbs = a + JUMP_AUTO_GAP;
+    h.jumpNextAbs = a + JUMP_AUTO_GAP + ((traitFragile(h) && S.fragileCare !== false) ? 4 : 0); /* v6.0：故障リスク高の馬は障害でも間隔を広げる */
     const t = fromAbs(a);
     topic("🤖🐴 自動出走（障害）：" + h.name + " を " + t[1] + "月第" + t[2] + "週 の " + race.name + "（" + (race.grade || "") + "・" + (race.racecourse || "") + " 障害" + (race.distance_m || "") + "m）に登録しました");
   }
@@ -3569,6 +3722,14 @@ function buildDebugHorse(o){
     else if(tKey === "jumper") aff.jumpAff = "○"; /* v5.0 */
     h.ability = Math.round((h.spd + h.sta + h.gut) / 3); }
   ensureAffinities(h); /* 2歳以上はスタッフ予測まで付けて、作成直後から馬ページに相性欄が出るようにする */
+  /* v6.0：馬特性。土台は通常生成し、明示指定（o.traits）があれば上書きする */
+  h.traits = genTraits(h, null, null);
+  if(o.traits){ const ot = o.traits;
+    for(const k of ["fresh", "spread", "pasture", "gate", "recovery", "cond", "hand"]) if(ot[k] !== undefined) h.traits[k] = ot[k];
+    for(const k of ["tsume", "big", "fragile"]) if(ot[k] !== undefined) h.traits[k] = !!ot[k];
+    if(ot.seasonGood != null){ h.traits.seasonGood = ot.seasonGood; if(h.traits.seasonBad === h.traits.seasonGood) h.traits.seasonBad = (h.traits.seasonGood + 1) % 4; }
+    if(ot.seasonBad != null && ot.seasonBad !== h.traits.seasonGood) h.traits.seasonBad = ot.seasonBad; }
+  ensureTraits(h); /* 予測は上書き後の値から作る */
   if(o.weight != null && o.weight !== "") h.matureWeight = clamp(Math.round(o.weight), 250, 800);
   else ensureWeight(h); /* 未指定なら通常の生成（両親からの推定）に任せる */
   h.rankBase = { spd: effRank(h,"spd"), sta: effRank(h,"sta"), gut: effRank(h,"gut") };
@@ -3618,6 +3779,20 @@ function debugPanel(){
     + "<label>距離別 " + sel("dbgDistBulk", bulkOpts, "") + "</label>"
     + "<label>競馬場別 " + sel("dbgCourseBulk", bulkOpts, "") + "</label>"
     + "</div>"
+    + "<div class='flex' style='flex-wrap:wrap;gap:8px;margin-top:6px;'><span class='sub'>馬特性（v6.0）：</span>"
+    + "<label>休み明け " + sel("dbgTrFresh", [["","ランダム"],["none","なし"],["teppo","鉄砲"],["tataki","叩き良化"]], "") + "</label>"
+    + "<label>使い詰め " + sel("dbgTrTsume", [["","ランダム"],["no","なし"],["yes","あり"]], "") + "</label>"
+    + "<label>大舞台 " + sel("dbgTrBig", [["","ランダム"],["no","なし"],["yes","あり"]], "") + "</label>"
+    + "<label>ブレ " + sel("dbgTrSpread", [["","ランダム"],["none","なし"],["mura","ムラ"],["stable","安定型"]], "") + "</label>"
+    + "<label>放牧 " + sel("dbgTrPasture", [["","ランダム"],["none","なし"],["refresh","リフレッシュ型"],["lax","緩む型"]], "") + "</label>"
+    + "<label>ゲート " + sel("dbgTrGate", [["","ランダム"],["none","なし"],["good","スタート巧者"],["bad","ゲート難"]], "") + "</label>"
+    + "<label>故障 " + sel("dbgTrFragile", [["","ランダム"],["no","通常"],["yes","故障しやすい"]], "") + "</label>"
+    + "<label>疲労の抜け " + sel("dbgTrRecovery", [["","ランダム"],["none","普通"],["fast","早い"],["slow","遅い"]], "") + "</label>"
+    + "<label>状態の波 " + sel("dbgTrCond", [["","ランダム"],["none","普通"],["up","上がりやすい"],["down","維持しにくい"]], "") + "</label>"
+    + "<label>得意季節 " + sel("dbgTrSeasonG", [["","ランダム"],["0","春"],["1","夏"],["2","秋"],["3","冬"]], "") + "</label>"
+    + "<label>苦手季節 " + sel("dbgTrSeasonB", [["","ランダム"],["0","春"],["1","夏"],["2","秋"],["3","冬"]], "") + "</label>"
+    + "<label>回り " + sel("dbgTrHand", [["","ランダム"],["L","左巧者"],["R","右巧者"]], "") + "</label>"
+    + "</div>"
     + "<div style='margin-top:8px;'><button data-debug-create='1'>この内容で作成</button> <button data-debug-cancel='1' class='ghost'>閉じる</button></div></div>";
 }
 function createDebugHorse(){
@@ -3645,7 +3820,15 @@ function createDebugHorse(){
     nonRoot: gv("#dbgNonRoot", "") || null,
     yuso: yusoSel === "" ? null : yusoSel === "○",
     distBulk: gv("#dbgDistBulk", "") || null,
-    courseBulk: gv("#dbgCourseBulk", "") || null
+    courseBulk: gv("#dbgCourseBulk", "") || null,
+    traits: (() => { /* v6.0：空欄＝ランダム（undefinedで渡し、生成値を残す） */
+      const slot = id => { const v = gv(id, ""); return v === "" ? undefined : v === "none" ? null : v; };
+      const yn = id => { const v = gv(id, ""); return v === "" ? undefined : v === "yes"; };
+      const si = id => { const v = gv(id, ""); return v === "" ? undefined : parseInt(v, 10); };
+      return { fresh: slot("#dbgTrFresh"), tsume: yn("#dbgTrTsume"), big: yn("#dbgTrBig"), spread: slot("#dbgTrSpread"),
+        pasture: slot("#dbgTrPasture"), gate: slot("#dbgTrGate"), fragile: yn("#dbgTrFragile"), recovery: slot("#dbgTrRecovery"),
+        cond: slot("#dbgTrCond"), seasonGood: si("#dbgTrSeasonG"), seasonBad: si("#dbgTrSeasonB"), hand: gv("#dbgTrHand", "") || undefined };
+    })()
   });
   S.horses.push(h);
   topic("🐛 デバッグ馬「"+h.name+"」を作成しました");
@@ -3857,13 +4040,14 @@ function autoBulkHtml(){
     + "<label>既定の適性±200：<select data-auto-defrangeplus><option value='on'"+(autoDefRangePlus()?" selected":"")+">許容する</option><option value='off'"+(!autoDefRangePlus()?" selected":"")+">適性内のみ</option></select></label> "
     + "<button data-auto-allrangeplus='on'>全馬 ±200許容</button> <button data-auto-allrangeplus='off' class='ghost'>全馬 適性内のみ</button> "
     + "<label>海外遠征（自動）：<select data-auto-overseas>" + ["消極的","普通","積極的"].map(pol=>"<option value='" + pol + "'" + ((S.autoOverseasPolicy || "消極的")===pol ? " selected" : "") + ">" + pol + "</option>").join("") + "</select></label> <span class='sub'>国内重賞で勝利か3着以内の実績がある馬が対象。消極的＝自動では行かない／普通＝年2回まで、通常の絞り込み（格・ペース）通り＋G1は行きやすさA以上のみ／積極的＝年3回まで、格の地板と国内G1リザーブを海外に適用しない。いずれも資金が遠征費（1,000万円）以上あることが条件で、検疫週の確保などは手動遠征と同一です</span> "
+    + "<label>故障リスク高の馬（自動出走）：<select data-auto-fragilecare><option value='on'" + (S.fragileCare !== false ? " selected" : "") + ">間隔を広げる</option><option value='off'" + (S.fragileCare === false ? " selected" : "") + ">通常どおり</option></select></label> <span class='sub'>特性「故障しやすい」の馬は故障率が通常の約2倍。広げる＝一般レースは最低中8週・年間目標4戦（障害のみ自動も間隔+4週）。重賞の下限（中2週）は変わりません</span> "
     + "<span class='sub'>馬ごとのON/OFF・出走間隔・方針・適性±200は下の自動出走設定か、各馬のページで変更できます</span></div></details>";
 }
 function autoHorseRowsHtml(){
   const racers = S.horses.filter(h=>h.status==="racehorse" && !h.retired);
   if(!racers.length) return "<div class='sub'>現役馬がいません</div>";
   const rows = racers.map(h =>
-    "<tr><td><span class='horse-link' data-horse='"+h.id+"'>"+h.name+"</span>" + talentBadgeHtml(h)+((h.rotation||[]).some(k=>rotationRaceOf(k)) ? " <span class='ok'>🎯指定あり</span>" : ((h.rotAuto||[]).some(k=>rotationRaceOf(k)) ? " <span class='ok'>🤖🎯自動指定あり</span>" : ""))+"</td><td>"+ageOf(h)+"歳"+h.sex+"・"+horseClass(h)+"・"+surfText(h)+" "+h.distMin+"-"+h.distMax+"m</td>" /* v3.9：馬場適性マークを明示 */
+    "<tr><td><span class='horse-link' data-horse='"+h.id+"'>"+h.name+"</span>" + talentBadgeHtml(h) + (traitFragile(h) ? " <span class='sub'>⚠故障リスク高</span>" : "") /* v6.0 */ + ((h.rotation||[]).some(k=>rotationRaceOf(k)) ? " <span class='ok'>🎯指定あり</span>" : ((h.rotAuto||[]).some(k=>rotationRaceOf(k)) ? " <span class='ok'>🤖🎯自動指定あり</span>" : ""))+"</td><td>"+ageOf(h)+"歳"+h.sex+"・"+horseClass(h)+"・"+surfText(h)+" "+h.distMin+"-"+h.distMax+"m</td>" /* v3.9：馬場適性マークを明示 */
     + "<td><select data-auto-on='"+h.id+"'><option value='off'"+(!h.autoEntry?" selected":"")+">OFF</option><option value='on'"+(h.autoEntry?" selected":"")+">ON</option></select></td>"
     + "<td><select data-auto-rot='"+h.id+"'><option value=''"+(h.autoRot==null?" selected":"")+">既定（中"+autoDefRot()+"週）</option>"
     + AUTO_ROT_PRESETS.map(n=>"<option value='"+n+"'"+(h.autoRot===n?" selected":"")+">中"+n+"週</option>").join("") + "</select></td>"
@@ -3910,6 +4094,7 @@ function bindAutoEntryControls(){
   document.querySelectorAll("[data-auto-policy]").forEach(sel=>sel.onchange=()=>{ const h = S.horses.find(x=>x.id===sel.getAttribute("data-auto-policy")); if(h){ h.autoPolicy = sel.value==="" ? null : sel.value; save(); render(); } });
   document.querySelectorAll("[data-auto-defrangeplus]").forEach(sel=>sel.onchange=()=>{ S.autoRangePlusDefault = sel.value!=="off"; save(); render(); });
   document.querySelectorAll("[data-auto-overseas]").forEach(sel=>sel.onchange=()=>{ S.autoOverseasPolicy = sel.value; save(); render(); });
+  document.querySelectorAll("[data-auto-fragilecare]").forEach(sel=>sel.onchange=()=>{ S.fragileCare = sel.value === "on"; save(); render(); }); /* v6.0 */
   document.querySelectorAll("[data-auto-allrangeplus]").forEach(b=>b.onclick=()=>{ setAllAutoRangePlus(b.getAttribute("data-auto-allrangeplus")==="on"); save(); render(); });
   document.querySelectorAll("[data-auto-rangeplus]").forEach(sel=>sel.onchange=()=>{ const h = S.horses.find(x=>x.id===sel.getAttribute("data-auto-rangeplus")); if(h){ h.autoRangePlus = sel.value==="" ? null : sel.value==="on"; save(); render(); } });
   document.querySelectorAll("[data-auto-jump]").forEach(sel=>sel.onchange=()=>{ const h = S.horses.find(x=>x.id===sel.getAttribute("data-auto-jump")); if(h){ h.jumpAuto = sel.value==="on"; save(); render(); } }); /* v5.1 */
@@ -4432,6 +4617,12 @@ function viewManual(){
     "週がタイマーで自動的に進む観賞モードです。速度は4段階（ゆっくり10秒／ふつう4秒／はやい1.5秒／かなり早い0.5秒、1週あたり）。自動の仕組みは9種類（出走／引退／種付け／売却（間引き）／調教／ローテーション／贈呈の受け取り／売却（超過分）／購入）あり、個別にON/OFFできます。オート調教は「調教（バランス）」で統一されます。期間指定のスキップ中も、まったりの設定に沿って自動処理が働きます。");
   h += sec("🌟 素質馬（二つ名）",
     "生まれた産駒のうち、ごくまれに（1%）生まれつきの二つ名を持つ「素質馬」がいます。誕生時にトピックでお知らせし、馬のページと各リストに 🌟『二つ名』と出ます。馬一覧の絞り込み「素質馬のみ」でも探せます。二つ名ごとに授かる強みが違い、遺伝はしません。<br>・<b>天才</b>：全ての素質に恵まれます<br>・<b>疾風</b>：スピードの素質に恵まれます<br>・<b>千里馬</b>：スタミナの素質に恵まれます<br>・<b>鉄心</b>：根性の素質に恵まれます<br>・<b>重馬場の鬼</b>：重・不良の馬場でこそ真価を発揮します<br>・<b>馬場知らず</b>：馬場状態に左右されません<br>・<b>鉄馬</b>：故障しにくく、輸送の疲れも半分です<br>・<b>豪脚</b>：末脚の切れ味が自慢です<br>・<b>逃げ切り名人</b>：逃げ・先行でしぶとい脚を使えます<br>・<b>万能</b>：どの脚質でも平均以上に走れます<br>・<b>大駆け</b>：人気薄のときにこそ燃えます<br>・<b>タフガイ</b>：疲れにくく、状態も崩しにくいです<br>・<b>仔出しの良さ</b>：繁殖で受胎しやすい体質です<br>・<b>稀代のジャンパー</b>：距離適性に関係なく障害競走で真価を発揮します");
+  h += sec("🧬 馬特性（v6.0）",
+    "素質馬とは別に、全ての馬が静かに持っている個性です。同タイプは1つまで、同時に表れるのは5つまで。<br>"
+    + "・<b>最初から見えるもの</b>：左右回りの巧拙（左＝東京・新潟・中京。得意な回りで+1%、逆は−1%）、季節の得意・苦手（3月起点の3か月ごと。得意+1%／苦手−1%）、放牧の型（リフレッシュ型／緩む型）、ゲート（スタート巧者／ゲート難。出遅れの起こりやすさが変わり、出遅れると−4%）、疲労の抜けの早さ、状態の波、故障リスク（「故障しやすい」は故障率が通常の約2倍）。<br>"
+    + "・<b>走って分かるもの</b>（スタッフ予想→実走で確定）：休み明けの型（鉄砲＝10週以上空けた初戦で+1%／叩き良化＝休み明け初戦−1%・2戦目+1%）、使い詰め（間隔を空けずに走るほど+0.5%ずつ、上限+2%）、大舞台型（G1級でのみ+1%）、レースのブレ（ムラ／安定型）。<br>"
+    + "・<b>継承</b>：体質・回復系（放牧・故障しやすい・疲労の抜け・状態の波・季節・左右回り）は、親が持っていると子に表れやすくなります。運び・メンタル系（休み明け・使い詰め・大舞台・ブレ・ゲート）は継承しません。<br>"
+    + "・<b>故障リスク高の馬と自動出走</b>：一括設定で「間隔を広げる」を選ぶと（初期設定）、自動出走では一般レースの間隔が最低中8週・年間目標4戦になります。馬ごとの設定表でも ⚠故障リスク高 と表示されます。");
   h += sec("💾 セーブとデータ",
     "セーブはブラウザに自動保存されます（v4.0から保存先は IndexedDB という大容量の保存領域で、上限は端末の空き容量ベースです）。<br>現在の保存先：" + storageBackendLabel() + "／現在のセーブサイズ：" + saveSizeText() + "<br>旧方式（localStorage）で遊んでいたセーブは、初回起動時に自動で引っ越します（引っ越し前のコピーは保険としてブラウザ内に残ります）。保存に失敗した時は「今週の通知」でお知らせします。まったりモードで自動で週が進む間は、保存を数秒に1回へまとめて書き出します（手動操作の時の保存はその場で書き出します）。「その他」メニューの書き出し／読み込みでJSONファイルとして保存・復元もできます。ブラウザのサイトデータを消すとセーブも消えるため、大事な牧場は時々書き出して手元に残すのがおすすめです。頭数上限（繁殖牝馬・デビュー馬）は「その他」メニューでいつでも変更できます。");
   return h;
@@ -5383,6 +5574,7 @@ function openHorse(id){
     + "<dt>適性</dt><dd>"+surfText(h)+"（"+h.surface+"） "+h.distMin+"-"+h.distMax+"m・"+h.growth+"</dd>" /* v3.9：馬場適性は面ごとのマークを明示 */
     + ((h.status==="yearling" || h.status==="racehorse") ? "<dt>所属</dt><dd>"+(h.stable ? h.stable+"トレーニングセンター（変更できません）"+(h.stayRegion ? "／現在は遠征先に滞在中" : "") : "未定です <button id='stableMihoBtn'>美浦にする</button> <button id='stableRittoBtn'>栗東にする</button> <span class='sub'>一度決めると現役の間は変更できません</span>")+"</dd>" : "")
     + affinitySection(h)
+    + traitSection(h) /* v6.0 */
     + (h.spd != null ? "<dt>パラメータ</dt><dd>スピード <b>"+effRank(h,"spd")+"</b>"+trendMark(h,"spd")+" ／ スタミナ <b>"+effRank(h,"sta")+"</b>"+trendMark(h,"sta")+" ／ 根性 <b>"+effRank(h,"gut")+"</b>"+trendMark(h,"gut")+"（総合 <b>"+rankOf(Math.round(effAvg(h)))+"</b>）<br><span class='sub'>素質（上限）：スピード "+rankOf(h.spd)+" ／ スタミナ "+rankOf(h.sta)+" ／ 根性 "+rankOf(h.gut)+"（総合 "+rankOf(Math.round((h.spd+h.sta+h.gut)/3))+"）</span></dd>" : "")
     + jizokuRow(h)
     + (h.temp != null ? "<dt>気性</dt><dd>"+tempBand(h.temp)+(h.quirk ? "<span class='sub'> ― スタッフ談："+QUIRK_HINT[h.quirk]+"</span>" : "")+"</dd>" : "")
@@ -5563,6 +5755,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v5.8.1</footer>
+<footer>競馬シミュレーター（趣味） v6.0</footer>
 </body>
 </html>
