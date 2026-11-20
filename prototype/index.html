@@ -1357,7 +1357,7 @@ function initState(){
         chronicle:[], statsBirths:{}, topics:[], notices:[], yearEndDone:false, phase:"choose", candidates:[], salePool:[], saleYear:2026, usedTemplates:[], firstMatingDone:false,
         giftQueue:[], giftAprDone:false, giftDecDone:false, giftSet:null, favs:[], mile:null, farmWins:0, farmPrize:0, kanmuri:"", soldHorses:[], autoRotDefault:8, autoPolicyDefault:"積極", autoRangePlusDefault:true, autoBulkOpen:false, retiredOpen:false, hofOpen:false, topicsOpen:false, noticesOpen:false, autoOverseasPolicy:"消極的",
         mattari: mattariDefault(), retirePolicyDefault:"logic", retireQueue:[], mareLimit:20, debutLimit:20,
-        lineState:{}, lineGf:false, hofGf:true, hofGf2:true }; /* v4.2.1：新規セーブは殿堂の経過措置スタンプの対象外（最初から移行済みにしておく） */ /* v3.4：牝系の確立状態（始祖ID→{streak, estYear, decline}）。lineGf は旧セーブの経過措置フラグ */ /* v3.1：まったりモード（自動運転）と引退方針・年末確認キュー。頭数上限（繁殖牝馬／1世代のデビュー馬）はプレイヤー設定可・既定20・最小値なし */
+        lineState:{}, lineGf:false, hofGf:true, hofGf2:true, meltNickUsed:false, nicks:{}, nickCand:{}, nickRecord:{}, lineNickStat:{} }; /* v6.2：ニックス成立（個体）／候補／実績／初期ニックスの+2対象（セーブ別ランダム） */ /* v6.2：特別ニックス（メルトスイート×カルストンライトオ）の初回使用フラグ */ /* v4.2.1：新規セーブは殿堂の経過措置スタンプの対象外（最初から移行済みにしておく） */ /* v3.4：牝系の確立状態（始祖ID→{streak, estYear, decline}）。lineGf は旧セーブの経過措置フラグ */ /* v3.1：まったりモード（自動運転）と引退方針・年末確認キュー。頭数上限（繁殖牝馬／1世代のデビュー馬）はプレイヤー設定可・既定20・最小値なし */
   initStallionRoster(); /* v3.0：各エントリに birthYear／retireAge／retired／fictional と bmsLine を用意する */
   for(const st of S.stallions) surfMarksFromLabel(st, st.surface, false); /* v3.9：新規ゲームの種牡馬にも馬場適性マークを用意 */
   const sts = S.stallions;
@@ -1465,6 +1465,8 @@ const TALENTS = {
 };
 function talentName(h){ return h.talent && TALENTS[h.talent] ? TALENTS[h.talent].name : null; }
 function talentBadgeHtml(h){ const t = talentName(h); return t ? " <span class='ok'>🌟『" + t + "』</span>" : ""; }
+/* v6.2（オーナー 指示）：素質によるステータス向上はパラメータ上限（100）を超える（上限110まで） */
+function talentParams(h, spd, sta, gut){ const cp = (v)=>clamp(Math.round(v),1,110); h.spd = cp(spd); h.sta = cp(sta); h.gut = cp(gut); h.ability = Math.round((h.spd+h.sta+h.gut)/3); }
 function rollTalent(foal){
   if(Math.random() >= 0.01) return;
   const keys = Object.keys(TALENTS);
@@ -1472,10 +1474,10 @@ function rollTalent(foal){
   let r = Math.random() * total, key = keys[keys.length - 1];
   for(const k of keys){ r -= TALENTS[k].w; if(r < 0){ key = k; break; } }
   foal.talent = key;
-  if(key === "genius") setParams(foal, foal.spd + 4, foal.sta + 4, foal.gut + 4);
-  else if(key === "speed") setParams(foal, foal.spd + 8, foal.sta, foal.gut);
-  else if(key === "stamina") setParams(foal, foal.spd, foal.sta + 8, foal.gut);
-  else if(key === "guts") setParams(foal, foal.spd, foal.sta, foal.gut + 8);
+  if(key === "genius") talentParams(foal, foal.spd + 4, foal.sta + 4, foal.gut + 4);
+  else if(key === "speed") talentParams(foal, foal.spd + 8, foal.sta, foal.gut);
+  else if(key === "stamina") talentParams(foal, foal.spd, foal.sta + 8, foal.gut);
+  else if(key === "guts") talentParams(foal, foal.spd, foal.sta, foal.gut + 8);
   else if(key === "oni" || key === "baba"){ if(foal.aff) foal.aff.goAff = "○"; }
   else if(key === "jumper"){ if(foal.aff) foal.aff.jumpAff = "○"; } /* v5.0：稀代のジャンパーは障害適性○ */
 }
@@ -1883,6 +1885,7 @@ function raceMilestones(h, race, finish, prize){
   if(finish!==1) return;
   S.farmWins++;
   for(const t of WIN_MARKS) if(S.farmWins>=t && M.winsMark<t){ M.winsMark = t; topic("🎉 牧場の通算 "+t+" 勝に到達しました"); }
+  nickRecordWin(h, race); /* v6.2：ニックス実績の記録（重賞以上の勝ち） */
   /* 重賞初制覇（v0.37・オーナー要望）：その馬にとって初めての重賞勝ちは年表に残す（結果は更新済みなので、重賞勝ちがちょうど1つなら今回が初） */
   if(GRADED_SET.includes(race.grade) && gradedWinList(h).length===1){
     topic("🏆 "+h.name+" が "+race.name+" で重賞初制覇です");
@@ -2784,6 +2787,7 @@ function inheritGrowth(a, b){
 }
 function onNewYear(){
   snapshotRanks();
+  nickYearEnd(); /* v6.2：ニックス候補の昇格（約5%）・消滅の年末判定 */
   /* 空胎カウンタ（v3.1）：前年に種付けしたのに受胎しなかった繁殖牝馬は空胎+1。
      受胎中の馬は出産処理側で0に戻す。出産処理より前に数える（出産で pregnant が外れた
      馬を誤って数えないため）。種付けしていない年は据え置き */
@@ -2816,6 +2820,9 @@ function onNewYear(){
       const spN = inbreedNote(h, st) ? 17 : 13;
       /* 系統の個性（v0.54）：父系フル＋母父系×0.5 の寄せ（父系は種牡馬の系、母父系は母の父の系） */
       const lb = lineBlend(stallionMajorLine(st), majorLineOfName(h.sire), h.bms);
+      /* v6.2：成立済みの個体ニックスは系統デメリットを打ち消す（初期ニックス分は lineBlend 内で処理済みなので二重に足さない） */
+      if(!(LINE_NICKS.some(nk => nk.sire === stallionMajorLine(st) && nk.bms === majorLineOfName(h.sire))) && S.nicks && S.nicks[nickKeyOf(st.name, h.sire)])
+        for(const p of ["spd","sta","gut"]) lb[p] += lb.minus[p];
       /* 成長型は内部7型で継承し、出生パラメータには内部型ごとの偏り（中心シフト＋ブレ倍率）を付ける。
          系統の成長寄せは継承の後に薄く乗せる（目標型の方向へ確率で1段） */
       let foalGt = inheritGrowth(stGtype(st), gtypeOf(h));
@@ -2843,6 +2850,8 @@ function onNewYear(){
       foal.saleNoise = rnd(0.85, 1.15);
       foal.unnamed = true;
       setParams(foal, fp(sg.spd, h.spd, lb.spd), fp(sg.sta, h.sta, lb.sta), fp(sg.gut, h.gut, lb.gut));
+      const npsF = nickPlusStatFor(st, h); /* v6.2：ニックスの+2（上限100の内側で効く） */
+      if(npsF){ foal[npsF] = Math.min(100, foal[npsF] + 2); foal.ability = Math.round((foal.spd + foal.sta + foal.gut) / 3); }
       foal.aff = genAffinities(foal); /* 相性（v0.52〜）：根幹は400区切りのカテゴリ適性（v1.1〜） */
       { /* 馬特性（v6.0）：体質・回復系は父母から継承（発現率+12pt）。父は自家製種牡馬（馬オブジェクト）か種牡馬レコード側の traits から取る */
         const sireHorseT = (S.horses.find(x => x.status === "stallion" && x.name === st.name) || {}).traits || st.traits || null;
@@ -2896,6 +2905,19 @@ function onNewYear(){
         topic("🧬 "+foal.name+" に大きな変異が現れました");
       }
       rollTalent(foal); /* v4.2：素質馬（二つ名）は産駒の1%。変異とは独立に抽選する */
+      /* v6.2 特別ニックス（オーナー 指示 2026-11-20）：父メルトスイート×母父カルストンライトオは表向き最悪の組み合わせだが、
+         セーブ初回だけクラシック三冠級の大物（牡・普通遅・芝1800〜3200・二つ名『天才』）が生まれる */
+      if(!S.meltNickUsed && st.name === "メルトスイート" && h.sire === "カルストンライトオ"){
+        S.meltNickUsed = true;
+        foal.sex = "牡";
+        foal.gtype = "普通遅"; foal.growth = G_DISP[foal.gtype];
+        setSurfMarks(foal, "○", "✕"); foal.surface = "芝";
+        foal.distMin = 1800; foal.distMax = 3200;
+        foal.talent = "genius";
+        setParams(foal, 100, 100, 100);
+        talentParams(foal, foal.spd + 4, foal.sta + 4, foal.gut + 4); /* v6.2：天才の底上げは上限を超える → 104/104/104 */
+        notice("🐴 特別な産駒が誕生しました（父メルトスイート×母父カルストンライトオ）");
+      }
       S.horses.push(foal);
       S.statsBirths = S.statsBirths || {}; S.statsBirths[S.year] = (S.statsBirths[S.year]||0)+1; /* 誕生は年表に残さない（v0.48）。年別頭数は牧場の歩み用に別途数える */
       ensureMile();
@@ -4411,7 +4433,7 @@ function broodmareTable(){
     for(const st of list){
       const note = inbreedNote(m, st);
       const hotNote = isHotCross(stallionGen(st).temp, m.temp) ? "気性が荒くなりやすい配合（確変）" : "";
-      html += "<tr><td><button data-fav='"+st.name+"' class='ghost' title='お気に入り'>"+((S.favs||[]).includes(st.name)?"★":"☆")+"</button></td><td>"+st.name+(isHomebredStallion(st)?" <span class='ok'>自家製</span>":"")+(st.sire?" <span class='sub'>父 "+st.sire+"</span>":"")+"<br><span class='sub'>配合の色："+lineColourText(lineBlend(stallionMajorLine(st), mareBmsLine, m.bms))+"</span></td><td>"+(st.region==="overseas"?"海外":"国内")+"</td><td>"+st.surface+"</td><td>"+st.dist[0]+"-"+st.dist[1]+"m</td><td>"+st.growth+"</td><td>"+st.fee_tier+"</td><td>"+stallionTendency(st)+"</td><td>"+(stallionFee(st)===0 ? "無料" : man(stallionFee(st)))+"</td><td>"+compatMark(m, st)+(note?" <span class='bad'>"+note+"</span>":"")+(hotNote?" <span class='bad'>"+hotNote+"</span>":"")+"</td><td><button data-matewith='"+st.name+"'>種付け</button></td></tr>";
+      html += "<tr><td><button data-fav='"+st.name+"' class='ghost' title='お気に入り'>"+((S.favs||[]).includes(st.name)?"★":"☆")+"</button></td><td>"+st.name+(isHomebredStallion(st)?" <span class='ok'>自家製</span>":"")+(st.sire?" <span class='sub'>父 "+st.sire+"</span>":"")+"<br><span class='sub'>配合の色："+lineColourText(lineBlend(stallionMajorLine(st), mareBmsLine, m.bms))+"</span></td><td>"+(st.region==="overseas"?"海外":"国内")+"</td><td>"+st.surface+"</td><td>"+st.dist[0]+"-"+st.dist[1]+"m</td><td>"+st.growth+"</td><td>"+st.fee_tier+"</td><td>"+stallionTendency(st)+"</td><td>"+(stallionFee(st)===0 ? "無料" : man(stallionFee(st)))+"</td><td>"+compatMark(m, st)+(isNickPair(st, m, mareBmsLine)?" <span class=\'ok\'>✨ニックス</span>":"")+(nickHintFor(st, m)?" <span class=\'sub\'>"+nickHintFor(st, m)+"</span>":"")+(note?" <span class='bad'>"+note+"</span>":"")+(hotNote?" <span class='bad'>"+hotNote+"</span>":"")+"</td><td><button data-matewith='"+st.name+"'>種付け</button></td></tr>";
     }
     html += "</table>";
   }
@@ -4845,14 +4867,107 @@ const LINE_TRAITS = {
    母父が彼の場合だけ、母父の通常ウェイト（×0.5）でスタミナに +1.5×0.5 の寄せを付ける。
    「メジロだし」というフレーバー上の例外で、系統判定（null）は変えず、
    距離・馬場・成長型の寄せには一切触らない */
+/* ニックス（オーナー 決定 2026-11-20）：指定の組み合わせではステータスが向上する形。
+   初期ニックス（系統×系統・最初から成立済み扱い）：lineBlend のデメリット全打消し＋1ステータス+2（+2の対象はセーブごとにランダムで固定）。
+   個体ニックス（父×母父の個体）の成立条件・効果は nickRecordWin / nickYearEnd / 配合時の処理を参照（DESIGN_SIRELINE_DRAFT §5） */
+const LINE_NICKS = [
+  { sire:"ノーザンダンサー系", bms:"キングマンボ系" },
+  { sire:"マンノウォー系", bms:"シアトルスルー系" },
+  { sire:"サンデーサイレンス系", bms:"ロベルト系" },
+  { sire:"ミスタープロスペクター系", bms:"シアトルスルー系" },
+  { sire:"サンデーサイレンス系", bms:"ノーザンダンサー系" },
+];
+/* 配合画面のニックス表示（v6.2、オーナー 指示）：中身（効果）は表に出さず、その組み合わせがニックスであることだけを示す */
+function isNickPair(st, mare, mareBmsLine){
+  if(st.name === "メルトスイート" && mare.sire === "カルストンライトオ") return true; /* 特別ニックス */
+  if(S.nicks && S.nicks[st.name + "|" + mare.sire]) return true; /* 成立済みの個体ニックス */
+  const sl = stallionMajorLine(st);
+  return LINE_NICKS.some(nk => nk.sire === sl && nk.bms === mareBmsLine);
+}
+/* 成立前の手がかり表示（オーナー 許可 2026-11-20）：候補／可能性だけを出し、中身は出さない */
+function nickHintFor(st, mare){
+  const key = st.name + "|" + mare.sire;
+  if(S.nicks && S.nicks[key]) return null;
+  if(S.nickCand && S.nickCand[key]) return "ニックス候補";
+  const rec = S.nickRecord && S.nickRecord[key];
+  if(rec && (Object.keys(rec.dams || {}).length >= 1 || rec.graded)) return "ニックスの可能性";
+  return null;
+}
 function lineBlend(sireLine, bmsLine, damBmsName){
-  const bl = { spd:0, sta:0, gut:0, dist:0, surf:0, nudges:[] };
-  const add = (ln, w, np) => { const t = ln && LINE_TRAITS[ln]; if(!t) return; bl[t.plus] += 1.5*w; bl[t.minus] -= 1.5*w; bl.dist += t.dist*w; bl.surf += t.surf*w; bl.nudges.push([t.growth, np]); };
+  const bl = { spd:0, sta:0, gut:0, dist:0, surf:0, nudges:[], minus:{ spd:0, sta:0, gut:0 } }; /* v6.2：minus は系統デメリットの内訳（ニックスの打消し用） */
+  const add = (ln, w, np) => { const t = ln && LINE_TRAITS[ln]; if(!t) return; bl[t.plus] += 1.5*w; bl[t.minus] -= 1.5*w; bl.minus[t.minus] += 1.5*w; bl.dist += t.dist*w; bl.surf += t.surf*w; bl.nudges.push([t.growth, np]); };
   add(sireLine, 1, 0.10); add(bmsLine, 0.5, 0.05);
   if(damBmsName === "メジロマックイーン"){ bl.sta += 1.5 * 0.5; bl.mejiroSta = true; }
+  if(LINE_NICKS.some(nk => nk.sire === sireLine && nk.bms === bmsLine)) for(const p of ["spd","sta","gut"]) bl[p] += bl.minus[p]; /* v6.2：初期ニックスはデメリット全打消し */
   return bl;
 }
 /* 合成結果を言葉だけで表す（数字・記号は一切出さない） */
+/* ================= ニックス成立システム（v6.2、オーナー 決定 2026-11-20） =================
+   単位は父（種牡馬個体）×母父（個体）。その組み合わせの産駒から、別々の牝馬を母とする
+   G1級勝ち馬が3頭出たら成立。2頭で「候補」になり、年末に約5%で昇格する（他牧場でも
+   実績が積まれる想定）。候補は、その配合がもう組めなくなったら消滅する（父が供用を
+   終えた／母父の娘が牧場に居らずセール見込みも無い）。成立済みは失効しない。
+   効果：以後の産駒は系統デメリット全打消し＋ランダムな1ステータス+2（上限100の内側、
+   対象は成立・昇格時に決まって固定）。中身は配合画面に出さない（✨と候補表示のみ） */
+function nickKeyOf(sireName, bmsName){ return sireName + "|" + bmsName; }
+function nickRandomStat(){ return ["spd","sta","gut"][irnd(0,2)]; }
+function nickEstablish(key, via){
+  if(!S.nicks) S.nicks = {};
+  S.nicks[key] = { stat: nickRandomStat(), year: S.year, via };
+  if(S.nickCand) delete S.nickCand[key];
+}
+function nickRecordWin(h, race){
+  if(!h.sire || !h.bms) return;
+  if(!GRADED_SET.includes(race.grade)) return; /* 手がかり表示は重賞から。勝ち上がりだけでは記録しない */
+  if(!S.nickRecord) S.nickRecord = {};
+  const key = nickKeyOf(h.sire, h.bms);
+  const rec = S.nickRecord[key] || (S.nickRecord[key] = { dams:{}, graded:false });
+  rec.graded = true;
+  if(!G1_GRADES.includes(race.grade)) return;
+  const dk = h.damId ? "id:" + h.damId : "name:" + (h.dam || "");
+  if(rec.dams[dk]) return; /* 同じ牝馬からのG1勝ちは1枠（同じ馬の複数勝ちも同じ） */
+  rec.dams[dk] = true;
+  if(S.nicks && S.nicks[key]) return;
+  const n = Object.keys(rec.dams).length;
+  if(n >= 3){
+    nickEstablish(key, "record");
+    notice("✨ 父" + h.sire + "×母父" + h.bms + " のニックスが成立しました");
+  } else if(n === 2){
+    if(!S.nickCand) S.nickCand = {};
+    if(!S.nickCand[key]){ S.nickCand[key] = true; notice("🏇 父" + h.sire + "×母父" + h.bms + " がニックス候補になりました"); }
+  }
+}
+function nickSaleProspect(bmsName){
+  if((DATA.mareTemplates || []).some(t => t.sire === bmsName && !(S.usedTemplates || []).includes(t.name))) return true;
+  return activeStallions().some(s => s.name === bmsName); /* テンプレ枯渇後のランダム生成は供用中の種牡馬から父を引く */
+}
+function nickCanBreed(sireName, bmsName){
+  if(!activeStallions().some(s => s.name === sireName)) return false;
+  if(S.horses.some(x => x.status === "broodmare" && !x.retired && x.sire === bmsName)) return true;
+  return nickSaleProspect(bmsName);
+}
+function nickYearEnd(){
+  if(!S.nickCand) return;
+  for(const key of Object.keys(S.nickCand)){
+    const parts = key.split("|");
+    if(!nickCanBreed(parts[0], parts[1])){ delete S.nickCand[key]; continue; } /* 配合が組めなくなった候補は消滅 */
+    if(Math.random() < 0.05){
+      nickEstablish(key, "promotion");
+      notice("✨ 父" + parts[0] + "×母父" + parts[1] + " がニックスに昇格しました");
+    }
+  }
+}
+/* 配合時の+2対象：個体ニックス優先、次に初期ニックス（セーブ別ランダム・初回に決定して固定） */
+function nickPlusStatFor(st, mare){
+  if(S.nicks && S.nicks[nickKeyOf(st.name, mare.sire)]) return S.nicks[nickKeyOf(st.name, mare.sire)].stat;
+  const lk = stallionMajorLine(st) + "|" + majorLineOfName(mare.sire);
+  if(LINE_NICKS.some(nk => nk.sire + "|" + nk.bms === lk)){
+    if(!S.lineNickStat) S.lineNickStat = {};
+    if(!S.lineNickStat[lk]) S.lineNickStat[lk] = nickRandomStat();
+    return S.lineNickStat[lk];
+  }
+  return null;
+}
 function lineColourText(bl){
   const parts = [];
   const ps = [["スピード", bl.spd], ["スタミナ", bl.sta], ["根性", bl.gut]].filter(x=>x[1] > 0).sort((a,b)=>b[1]-a[1]);
@@ -5775,6 +5890,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v6.1</footer>
+<footer>競馬シミュレーター（趣味） v6.2</footer>
 </body>
 </html>
