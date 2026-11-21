@@ -1353,7 +1353,7 @@ function substituteAncestor(name, year, group){
   return got && got.name !== name ? got.name : null;
 }
 function initState(){
-  S = { year:2026, month:1, week:1, calVer:2, ver:3, funds:30000, horses:[], stallions: JSON.parse(JSON.stringify(DATA.stallions)),
+  S = { year:2026, month:1, week:1, calVer:2, ver:3, funds:50000, horses:[], stallions: JSON.parse(JSON.stringify(DATA.stallions)),
         courseRecords:{}, chronicle:[], statsBirths:{}, topics:[], notices:[], yearEndDone:false, phase:"choose", candidates:[], salePool:[], saleYear:2026, usedTemplates:[], firstMatingDone:false,
         giftQueue:[], giftAprDone:false, giftDecDone:false, giftSet:null, favs:[], mile:null, farmWins:0, farmPrize:0, kanmuri:"", soldHorses:[], autoRotDefault:8, autoPolicyDefault:"積極", autoRangePlusDefault:true, autoBulkOpen:false, retiredOpen:false, hofOpen:false, topicsOpen:false, noticesOpen:false, autoOverseasPolicy:"消極的",
         mattari: mattariDefault(), retirePolicyDefault:"logic", retireQueue:[], mareLimit:20, debutLimit:20,
@@ -1436,6 +1436,49 @@ function syncMattariHeader(){
   const ctl = $("#mattariCtl"); if(ctl) ctl.style.display = on ? "" : "none";
   const pb = $("#mattariPauseBtn"); if(pb) pb.textContent = (S.mattari && S.mattari.paused) ? "▶ 再開" : "⏸ 一時停止";
   const ss = $("#mattariSpeed"); if(ss && S.mattari) ss.value = String(S.mattari.speed);
+}
+/* ================= 牧場施設（v6.7・Terai発案 2026-11-21） =================
+   資金の出口として3施設を建設できる（維持費なし・建設は約3ヶ月）。効果は既存システムへの
+   薄い係数に留める：温泉＝疲労回復+25%、診療所＝故障期間×0.7＋重症の能力低下を50%回避、
+   分娩舎＝12歳以上の受胎率+10pt。完成は牧場年表に残る */
+const FACILITIES = {
+  onsen: { name: "温泉・馬プール", cost: 10000, desc: "疲労の回復が25%速くなります" },
+  clinic: { name: "診療所", cost: 15000, desc: "故障の期間が3割短くなり、重い故障の能力低下を半分の確率で防ぎます" },
+  foaling: { name: "分娩舎・繁殖施設", cost: 6000, desc: "12歳以上の繁殖牝馬の受胎率が10ポイント上がります" }
+};
+const FACILITY_BUILD_WEEKS = 12;
+function facilityReady(key){ const f = S.facilities && S.facilities[key]; return !!f && absWeek() >= f.readyAbs; }
+function buildFacility(key){
+  const def = FACILITIES[key]; if(!def) return;
+  if(!S.facilities) S.facilities = {};
+  if(S.facilities[key]) return;
+  if(S.funds < def.cost){ notice("資金が足りず、" + def.name + " を建設できません"); return; }
+  S.funds -= def.cost;
+  S.facilities[key] = { startAbs: absWeek(), readyAbs: absWeek() + FACILITY_BUILD_WEEKS, done: false };
+  chron("🏗️ " + def.name + " の建設を始めた");
+  notice("🏗️ " + def.name + " の建設を始めました（完成は約3ヶ月後です）");
+  save(); render();
+}
+function facilityCompletions(){
+  if(!S.facilities) return;
+  for(const key of Object.keys(FACILITIES)){
+    const f = S.facilities[key];
+    if(f && !f.done && absWeek() >= f.readyAbs){ f.done = true; chron("🏗️ " + FACILITIES[key].name + " が完成した"); notice("🏗️ " + FACILITIES[key].name + " が完成しました"); }
+  }
+}
+function clinicWeeks(weeks){ return facilityReady("clinic") ? Math.max(2, Math.round(weeks * 0.7)) : weeks; }
+function clinicSavesDamage(){ return facilityReady("clinic") && Math.random() < 0.5; }
+function facilitiesHtml(){
+  const rows = Object.keys(FACILITIES).map(key => {
+    const def = FACILITIES[key];
+    const f = S.facilities && S.facilities[key];
+    let st, btn = "";
+    if(!f){ st = "未建設"; btn = "<button data-facility-build='" + key + "'" + (S.funds < def.cost ? " disabled" : "") + ">建設する（" + man(def.cost) + "）</button>"; }
+    else if(!facilityReady(key)){ const fa = fromAbs(f.readyAbs); st = "建設中（" + fa[0] + "年" + fa[1] + "月完成予定）"; }
+    else st = "完成";
+    return "<tr><td>" + def.name + "</td><td>" + def.desc + "</td><td>" + st + "</td><td>" + btn + "</td></tr>";
+  }).join("");
+  return "<h3>🏠 牧場施設</h3><table><tr><th>施設</th><th>効果</th><th>状態</th><th></th></tr>" + rows + "</table>";
 }
 function chron(text){
   S.chronicle.push({ y:S.year, m:S.month, w:S.week, text });
@@ -2762,21 +2805,21 @@ function runRace(race, entries){
     /* 故障（v0.40）：疲労と状態が両方悪いまま走らせると故障することがある（管理の帰結） */
     if(!h.retired && !dnfSet.has(h) && preFat>=70 && preCon<=40 && Math.random()<Math.min(0.95, injuryChance(r.wall) * (h.talent === "iron" ? 0.5 : 1) * (traitFragile(h) ? 2 : 1)) /* v4.2：鉄馬は故障しにくい／v6.0：故障しやすいは故障率2倍 */){
       const heavy = Math.random()<0.4;
-      const weeks = heavy ? irnd(12,24) : irnd(4,8);
+      const weeks = clinicWeeks(heavy ? irnd(12,24) : irnd(4,8)); /* v6.7：診療所で期間×0.7 */
       h.injuredUntil = absWeek() + weeks;
       (h.injuries = h.injuries || []).push({ when: S.year + "年" + S.month + "月第" + S.week + "週", race: race.name, kind: heavy ? "重症" : "軽症", weeks }); /* v3.6：故障歴（馬ページに表示） */
       let dmg = "";
-      if(heavy){ const ps = ["spd","sta","gut"][irnd(0,2)]; const vals = { spd:h.spd, sta:h.sta, gut:h.gut }; vals[ps] = Math.max(35, vals[ps]-3); setParams(h, vals.spd, vals.sta, vals.gut); dmg = "能力にも影響が残りました"; } /* v0.50：重症の能力低下は-3（下限35） */
+      if(heavy && !clinicSavesDamage()){ const ps = ["spd","sta","gut"][irnd(0,2)]; const vals = { spd:h.spd, sta:h.sta, gut:h.gut }; vals[ps] = Math.max(35, vals[ps]-3); setParams(h, vals.spd, vals.sta, vals.gut); dmg = "能力にも影響が残りました"; } /* v0.50：重症の能力低下は-3（下限35）／v6.7：診療所が半分の確率で防ぐ */
       notice("🚑 "+h.name+" が故障しました（約"+weeks+"週間休養）"); /* v3.7：故障は通知枠へ */
     }
     /* v5.0：落馬した馬は半分の確率で故障する（重症は1/4）。無事でも競走中止は通知する */
     if(dnfSet.has(h) && !h.retired){
       if(!isInjured(h) && Math.random() < 0.5){
         const heavyF = Math.random() < 0.25;
-        const weeksF = heavyF ? irnd(12,24) : irnd(4,8);
+        const weeksF = clinicWeeks(heavyF ? irnd(12,24) : irnd(4,8)); /* v6.7：診療所 */
         h.injuredUntil = absWeek() + weeksF;
         (h.injuries = h.injuries || []).push({ when: S.year + "年" + S.month + "月第" + S.week + "週", race: race.name, kind: heavyF ? "重症" : "軽症", weeks: weeksF });
-        if(heavyF){ const ps = ["spd","sta","gut"][irnd(0,2)]; const vals = { spd:h.spd, sta:h.sta, gut:h.gut }; vals[ps] = Math.max(35, vals[ps]-3); setParams(h, vals.spd, vals.sta, vals.gut); }
+        if(heavyF && !clinicSavesDamage()){ const ps = ["spd","sta","gut"][irnd(0,2)]; const vals = { spd:h.spd, sta:h.sta, gut:h.gut }; vals[ps] = Math.max(35, vals[ps]-3); setParams(h, vals.spd, vals.sta, vals.gut); }
         notice("🚑 " + h.name + " が " + race.name + " で落馬し故障しました（約" + weeksF + "週間休養）");
       } else notice("🐴 " + h.name + " は " + race.name + " で競走中止（落馬）しました");
     }
@@ -2809,7 +2852,7 @@ function advanceWeek(){
     if(h.retired) continue;
     if(h.expedReturnAbs != null && absWeek() > h.expedReturnAbs) h.expedReturnAbs = null;
     if(h.status==="racehorse"){
-      const rf = recoveryFactor(h) * traitRecoveryMul(h); /* v0.50：ピーク後は疲労回復が衰える（-20%/-40%）。状態回復は不変／v6.0：疲労の抜け（早い×1.25／遅い×0.75） */
+      const rf = recoveryFactor(h) * traitRecoveryMul(h) * (facilityReady("onsen") ? 1.25 : 1); /* v0.50：ピーク後は疲労回復が衰える（-20%/-40%）。状態回復は不変／v6.0：疲労の抜け（早い×1.25／遅い×0.75）／v6.7：温泉・馬プールで+25% */
       if(isTravelWeek(h, absWeek())){ h.fatigue = clamp(h.fatigue+10,0,100); } /* v0.51：出発・検疫週（レース・調教不可） */
       else if(isReturnWeek(h, absWeek())){ h.fatigue = clamp(h.fatigue-40,0,100); h.condition = clamp(h.condition+traitCondGain(h, 10),5,100); } /* v0.51：帰国・検疫週（休養同率） */
       else if(isInjured(h)){ h.fatigue = clamp(h.fatigue-Math.round(40*rf),0,100); h.condition = clamp(h.condition+traitCondGain(h, 10),5,100); }
@@ -2824,6 +2867,7 @@ function advanceWeek(){
   if(S.month>12){ S.month=1; S.year++; onNewYear(); }
   if(S.month !== prevMonth){ monthlyCosts(prevMonth); monthlyTraining(); processMonthlyRetirements(); } /* v0.56：月替わりで前月分の経費を精算 */
   // 4) 新しい週のイベント
+  facilityCompletions(); /* v6.7：施設の完成判定 */
   weeklyEvents();
   /* 贈呈馬の自動受け入れ（v3.1・まったりモード）：届いた贈呈馬は辞退せず全て迎える */
   if(autoActive() && S.mattari.auto.gift){ while(S.giftQueue && S.giftQueue.length) acceptGift(S.giftQueue[0].name); }
@@ -4092,6 +4136,7 @@ function render(){
     if(acc) acc.onclick = () => acceptGift(document.querySelector("#giftName") ? document.querySelector("#giftName").value : "");
     if(ref) ref.onclick = () => refuseGift();
   }
+  document.querySelectorAll("[data-facility-build]").forEach(btn => btn.onclick = () => buildFacility(btn.getAttribute("data-facility-build"))); /* v6.7 */
   wrapTables(b);
   bindTab();
   syncMattariHeader(); /* v3.1：まったりモードのヘッダー表示を同期 */
@@ -4144,7 +4189,8 @@ function viewHorses(){
   } else {
     bodyHtml = "<table>"+tableHead+sorted.map(rowOf).join("")+"</table>";
   }
-  return "<div class='flex listtools' style='margin-bottom:8px;'><label>表示：</label><select id='horseFilterSel'>"+opts+"</select><label>並び替え：</label><select id='horseSortSel'>"+sortOpts+"</select><span class='sub'>"+list.length+"頭（全 "+S.horses.length+" 頭）。繁殖牝馬・種牡馬は「繁殖」「種牡馬」タブでも見られます。引退馬は「牧場年表」タブの引退馬リストにいます</span></div>"
+  return facilitiesHtml()
+    + "<div class='flex listtools' style='margin-bottom:8px;'><label>表示：</label><select id='horseFilterSel'>"+opts+"</select><label>並び替え：</label><select id='horseSortSel'>"+sortOpts+"</select><span class='sub'>"+list.length+"頭（全 "+S.horses.length+" 頭）。繁殖牝馬・種牡馬は「繁殖」「種牡馬」タブでも見られます。引退馬は「牧場年表」タブの引退馬リストにいます</span></div>"
     + bodyHtml + "<div class='sub'>馬名を押すと履歴ページが開きます。</div>";
 }
 let entryHorseId = null, entrySort = "recommend", entryOnlyOk = false, entryWeekAhead = 0;
@@ -4428,7 +4474,7 @@ function stallionFee(st){ return isHomebredStallion(st) ? 0 : FEE_VAL[st.fee_tie
 /* ===== v0.40：故障・繁殖の年齢・自家製種牡馬の供用リミット ===== */
 function isInjured(h){ return h.injuredUntil != null && h.injuredUntil > absWeek(); }
 /* 受胎率（繁殖ルール v1.0 の年齢曲線）：4〜9歳 85% → 16歳 45% */
-function conceptionRate(m){ const a = ageOf(m); const base = a<=9 ? 0.85 : a===10 ? 0.82 : a===11 ? 0.78 : a===12 ? 0.72 : a===13 ? 0.66 : a===14 ? 0.60 : a===15 ? 0.52 : 0.45; return m.talent === "fertile" ? Math.min(0.95, base + 0.10) : base; } /* v4.2：仔出しの良さは受胎率+10pt */
+function conceptionRate(m){ const a = ageOf(m); let base = a<=9 ? 0.85 : a===10 ? 0.82 : a===11 ? 0.78 : a===12 ? 0.72 : a===13 ? 0.66 : a===14 ? 0.60 : a===15 ? 0.52 : 0.45; if(m.talent === "fertile") base = Math.min(0.95, base + 0.10); /* v4.2：仔出しの良さは受胎率+10pt */ if(a >= 12 && facilityReady("foaling")) base = Math.min(0.95, base + 0.10); /* v6.7：分娩舎・繁殖施設は12歳以上に+10pt */ return base; }
 function mareBreedable(m){ return m.status==="broodmare" && !m.pregnant && !m.breedRetired && ageOf(m)>=4 && ageOf(m)<=16; }
 /* 高齢出産のリスク（出産時の年齢で判定）：14歳から */
 function foalingRisk(age){ return age>=17 ? 0.30 : age===16 ? 0.22 : age===15 ? 0.14 : age===14 ? 0.08 : 0; }
@@ -4852,11 +4898,11 @@ function viewManual(){
   const sec = (title, body) => "<details class='card' style='margin-bottom:8px;'><summary><b>" + title + "</b></summary><div style='margin-top:6px;'>" + body + "</div></details>";
   let h = "<h3>📖 マニュアル</h3><div class='sub'>遊び方とシステムの解説です。各項目はタップで開きます。</div>";
   h += sec("🐴 このゲームについて／はじめ方",
-    "2026年から始まる、ゴールなしの牧場経営サンドボックスです。あなたは生産者兼馬主で、週単位で時間を進めながら何年でも遊べます。最初に繁殖牝馬を1頭選び、配合→出産→育成→出走→引退→次の世代へ、という循環を回していくのが基本です。初年度は4月に2歳馬2頭、12月に1歳牝馬1頭の贈呈があります（受け取りは任意）。");
+    "2026年から始まる、ゴールなしの牧場経営サンドボックスです。あなたは生産者兼馬主で、週単位で時間を進めながら何年でも遊べます。最初に繁殖牝馬を1頭選び、配合→出産→育成→出走→引退→次の世代へ、という循環を回していくのが基本です。初年度は4月に2歳馬2頭（素質持ち）、12月に1歳牝馬1頭と当歳牡馬1頭の贈呈があります（受け取りは任意）。初期資金は5億円です。");
   h += sec("🗓 週の進め方と1年の流れ",
     "「週を進める」で1週進みます。1年は日曜起算の52週です。主な季節イベント：<br>・<b>2〜6月</b>：繁殖シーズン（種付けはこの期間だけ）<br>・<b>年始</b>：出産と全馬の加齢<br>・<b>6月</b>：2歳馬のデビューが始まります（早い馬から。晩成は12月〜年明け、超晩成は3歳の春先）<br>・<b>11〜12月</b>：繁殖牝馬セール（毎年10頭出品）<br>・<b>年末</b>：引退判定と年次決算<br>「次のイベントまで」で区切りまで一気に進められます。");
   h += sec("💴 お金",
-    "収入は基本的に賞金だけです。賞金は馬主80%／調教師10%／騎手5%／厩務員5%に配分され、馬主分からは50万円を超える部分に10.21%の源泉徴収がかかります。G1勝ち賞金の目安は2億円、未勝利戦は550万円です。<br>支出：種付料（ランク制：S 3,000万円／A 1,500万円／B 800万円／C 400万円、自家製種牡馬は無料）、海外遠征費（1頭1レース1,000万円）、月次コスト（委託費：現役馬1頭50万円、育成費：0〜1歳1頭20万円、繋養費：繁殖牝馬・自家製種牡馬1頭20万円、経営費：月100万円）。<br>資金はマイナスになってもゲームオーバーにはなりません。");
+    "収入は基本的に賞金だけです。賞金は馬主80%／調教師10%／騎手5%／厩務員5%に配分され、馬主分からは50万円を超える部分に10.21%の源泉徴収がかかります。G1勝ち賞金の目安は2億円、未勝利戦は550万円です。<br>支出：種付料（ランク制：S 3,000万円／A 1,500万円／B 800万円／C 400万円、自家製種牡馬は無料）、海外遠征費（1頭1レース1,000万円）、月次コスト（委託費：現役馬1頭50万円、育成費：0〜1歳1頭20万円、繋養費：繁殖牝馬・自家製種牡馬1頭20万円、経営費：月100万円）。<br>資金はマイナスになってもゲームオーバーにはなりません。<br>牧場施設（任意・馬タブから建設）：温泉・馬プール（1億円、疲労の回復が25%速い）、診療所（1億5,000万円、故障の期間が3割短くなり、重い故障の能力低下を半分の確率で防ぐ）、分娩舎・繁殖施設（6,000万円、12歳以上の繁殖牝馬の受胎率+10ポイント）。建設には約3ヶ月かかり、維持費はかかりません。");
   h += sec("📊 能力の見方（ランク表示）",
     "能力は数字ではなく <b>S〜Gのランク</b> でだけ表示されます（スピード／スタミナ／根性の3要素＋総合評価）。内部的には100点満点で、Sは最上位帯です。若い馬ほど評価は変動し、レースや調教で育っていきます。");
   h += sec("🌱 成長型と仕上がり",
@@ -4882,7 +4928,7 @@ function viewManual(){
   h += sec("🌳 系統と牝系",
     "父系の系統特性（早熟寄り・スタミナ寄りなど）は言葉だけで表示され、配合に薄く影響します（母父は半分の効き）。<br>牝系は牝馬の子孫の広がりで育ちます。直仔5頭以上・子孫25頭以上・ポイント20以上で「候補」になり、そこから2年続けて頭数シェアなどの条件を満たすと「○○系」として成立します。成立した称号は消えませんが、細ると「衰退中」と表示されます。牝系図タブで家系の広がりが見られます。<br>メルトスイートとカルストンライトオを組み合わせると...？");
   h += sec("🏁 引退と種牡馬入り",
-    "引退の目安は成長型で違います（早熟は4歳前後、普通は6歳前後、晩成は7歳以降）。10歳のシーズン終了が全馬の上限です。自動引退がONのときは毎月判定され、目安に達した馬はシーズン途中でも引退します（手動の場合は年末に確認します）。G1を勝った馬は、衰えが見えたら通常の目安より早く引退します（5勝以上の馬はさらに早めです）。4歳になって未勝利の馬は年末に引退します。<br>牡馬は重賞勝ちか生涯賞金1億円以上で種牡馬入りの資格があり、引退時に「種牡馬入り／売却／そのまま残す」から選べます。牝馬は繁殖入り（頭数上限内）か売却です。引退した馬は「牧場年表」タブの引退馬リストに残ります。<br>引退から50年が経つと、その馬の詳細ページは閉じられます（記録データ自体は残ります）。殿堂馬の詳細は無期限で残ります。");
+    "引退の目安は成長型で違います（早熟は4歳前後、普通は6歳前後、晩成は7歳以降）。10歳のシーズン終了が全馬の上限です。自動引退がONのときは毎月判定され、目安に達した馬はシーズン途中でも引退します（手動の場合は年末に確認します）。G1を勝った馬は、衰えが見えたら通常の目安より早く引退します（5勝以上の馬はさらに早めです）。<br>競走寿命の目安は、診療所を建設すると馬ページに「○歳の○ごろ」と表示され、目安が今年に来る馬は年始に通知されます。診療所を建設するとこの仕組み全体（見立て表示・年始通知・寿命引退）が動き始めます。自動引退がONの場合、目安に達した時点で前年まで好成績（1勝以上、または重賞で3着以内）だった馬は、好成績のまま引退します。4歳になって未勝利の馬は年末に引退します。<br>牡馬は重賞勝ちか生涯賞金1億円以上で種牡馬入りの資格があり、引退時に「種牡馬入り／売却／そのまま残す」から選べます。牝馬は繁殖入り（頭数上限内）か売却です。引退した馬は「牧場年表」タブの引退馬リストに残ります。<br>引退から50年が経つと、その馬の詳細ページは閉じられます（記録データ自体は残ります）。殿堂馬の詳細は無期限で残ります。");
   h += sec("🏆 殿堂入り",
     "殿堂入りは、引退済みで <b>生涯賞金10億円以上</b>、または <b>G1（JpnI・海外G1含む）5勝以上</b> のどちらかを満たした馬です。牧場で初めて重賞を勝った馬と初めてG1を勝った馬は、条件にかかわらず殿堂入りします。<b>日本ダービーを勝った馬は、初制覇でなくても全員が称号「牧場の優駿」を得て殿堂入りします</b>。年表タブに殿堂馬が並びます。条件を満たさなくても、引退した馬のページや年末の引退確認から任意で殿堂入りさせることもできます（取り消しも可能で、任意の殿堂馬は詳細も無期限で残ります）。");
   h += sec("🌙 まったりモード",
@@ -5580,6 +5626,51 @@ function autoRetireDue(h, aF){ /* aF：comment 方針の評価時点（月次判
   return false;
 }
 
+/* ============ 競走寿命の見える化＋寿命引退（v6.7・Terai発案 2026-11-21） ============
+   競走寿命＝成長型別の終了目安（retireEndAge）。馬ページに「○歳の○ごろ」という季節単位の
+   見立てで出し、目安が今年に来る馬は年始に通知する。その上で、目安に達した時点で前年まで
+   いい成績（1勝以上 or 重賞3着以内）を残していた馬は、好成績のまま引退させる */
+function lifespanSeasonText(h){
+  const end = retireEndAge(h);
+  const endAgeInt = Math.floor(end);
+  const endMonth = Math.floor((end - endAgeInt) * 12) + 1;
+  const season = endMonth <= 2 ? "冬" : endMonth <= 5 ? "春" : endMonth <= 8 ? "夏" : "秋";
+  return { endAgeInt, season, endYear: h.birthYear + endAgeInt };
+}
+function isFinalSeason(h){
+  if(!h || h.status !== "racehorse" || h.retired) return false;
+  const li = lifespanSeasonText(h);
+  return li.endYear === S.year && ageOf(h) + (S.month - 1) / 12 < retireEndAge(h);
+}
+function lifespanText(h){
+  if(!facilityReady("clinic")) return "診療所を建設すると、獣医の見立てが見られます"; /* v6.7：見える化は施設（診療所）が前提 */
+  const end = retireEndAge(h);
+  const aF = ageOf(h) + (S.month - 1) / 12;
+  if(aF >= end) return "目安（" + Math.floor(end) + "歳）は過ぎています";
+  const li = lifespanSeasonText(h);
+  let t = "目安は" + li.endAgeInt + "歳の" + li.season + "ごろ（" + li.endYear + "年）";
+  if(li.endYear === S.year) t += " ― ⚠ 今季が最後のシーズンになりそうです";
+  return t;
+}
+function prevYearFormGood(h){
+  const y = S.year - 1;
+  for(const r of (h.results || [])){
+    if(parseInt(r.when, 10) !== y) continue;
+    if(r.finish === 1) return true;
+    if(r.finish <= 3 && GRADED_SET.includes(r.grade)) return true;
+  }
+  return false;
+}
+/* 競走寿命での引退（v6.7）：目安年齢に達し、前年まで好成績だった馬はそのまま引退させる。
+   引退方針（logic/comment）は見ない（G1前倒しと同じ扱い）。自動引退が有効な月次判定でのみ働く */
+function lifespanFormRetireDue(h){
+  if(!facilityReady("clinic")) return false; /* v6.7：見立てが見られるようになって初めてこの仕組みが動く（Terai指示） */
+  if(!h || h.status !== "racehorse" || h.retired) return false;
+  if(ageOf(h) >= 11) return false;
+  if(ageOf(h) + (S.month - 1) / 12 < retireEndAge(h)) return false;
+  return prevYearFormGood(h);
+}
+
 /* G1勝ち馬の前倒し引退（v4.3・Terai設計 2026-11-18）：実績馬は衰えが見えたら通常の
    ゾーンより早く締める。条件は「ピークを過ぎたか」ではなく成熟度（衰えの実態）で見る：
    G1 5勝以上は成熟度0.90以下（衰えの兆し）、G1 1勝以上は0.85以下（衰えの始まり）。
@@ -5702,6 +5793,7 @@ function processMonthlyRetirements(){
   for(const h of [...S.horses]){
     if(h.status !== "racehorse" || h.retired) continue;
     if(g1EarlyRetireDue(h)){ notice("🏆 " + h.name + "（G1 " + g1WinCount(h) + "勝）は衰えが見えたため、前倒しで引退します"); autoRetireHorse(h); }
+    else if(lifespanFormRetireDue(h)){ notice("🏁 " + h.name + " は競走寿命の目安に達し、前年までの好成績のまま引退します"); autoRetireHorse(h); } /* v6.7 */
     else if(inRetireZone(h) && autoRetireDue(h, ageOf(h) + (S.month-1)/12)) autoRetireHorse(h);
   }
 }
@@ -5711,6 +5803,15 @@ function processYearEndRetirements(){
     if(h.status==="racehorse" && !h.retired && ageOf(h)===10 && !h.capAnnounced){
       h.capAnnounced = true;
       notice("🏁 " + h.name + " は10歳になりました。現役限界のため、今年が最後のシーズンになります");
+    }
+  }
+  /* v6.7：競走寿命の目安が今年に来る馬を年始にまとめて知らせる */
+  {
+    const finals = facilityReady("clinic") ? S.horses.filter(h => h.status === "racehorse" && !h.retired && h.lifeNoticeYear !== S.year && isFinalSeason(h)) : []; /* v6.7：年始通知も診療所が前提 */
+    if(finals.length){
+      for(const h of finals) h.lifeNoticeYear = S.year;
+      const names = finals.slice(0, 6).map(h => h.name).join("、") + (finals.length > 6 ? " ほか" + (finals.length - 6) + "頭" : "");
+      notice("🏁 競走寿命の目安により、今季が最後のシーズンになりそうな馬：" + names);
     }
   }
   const autoRetireOn = autoActive() && S.mattari.auto.retire;
@@ -5949,6 +6050,7 @@ function openHorse(id){
     + "<dt>成績</dt><dd>"+(h.results.length+(h.preStarts||0))+"戦"+h.wins+"勝"+finishBreakdownText(h)+"・獲得賞金 "+man(h.earnings)+"・出走ライン賞金 "+man(lineMoney(h))+"</dd>"
     + (gw.length ? "<dt>重賞勝ち</dt><dd>"+gradedWinSummary(h)+"</dd>" : "")
     + "<dt>コンディション</dt><dd>状態"+Math.round(h.condition)+"／疲労"+Math.round(h.fatigue)+(isResting(h) ? "／休養中（〜"+fromAbs(h.restUntilAbs - 1)[1]+"月第"+fromAbs(h.restUntilAbs - 1)[2]+"週・自動出走のみ）" : "")+"</dd>"
+    + ((h.status==="racehorse" && !h.retired) ? "<dt>競走寿命</dt><dd>"+lifespanText(h)+"</dd>" : "") /* v6.7 */
     + (entryListText(h) ? "<dt>登録中</dt><dd>"+entryListText(h)+"</dd>" : "")
     + "</dl>"
     + "<h3>血統表</h3>" + pedigreeTable(h) + produceSection(h)
@@ -6120,6 +6222,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v6.6</footer>
+<footer>競馬シミュレーター（趣味） v6.7</footer>
 </body>
 </html>
