@@ -4712,6 +4712,43 @@ function sireRecordHtml(st){
   return "<h3>産駒成績（当牧場）</h3><div>産駒 " + a.foals + "頭／出走 " + a.runners + "頭／勝ち馬 " + a.winners + "頭（" + a.wins + "勝）／重賞勝ち馬 " + a.gradedWinners + "頭／G1勝ち馬 " + a.g1Winners + "頭／産駒通算 " + man(a.earnings) + "</div>"
     + (top ? "<div class='sub'>代表産駒：" + top + "</div>" : "");
 }
+/* ================= 繁殖成績（v6.8・オーナー発案 2026-11-21） =================
+   引退馬一覧に代表産駒を出し、馬詳細では産駒一覧を「繁殖成績ページ」に格上げする。
+   代表産駒の選び方は殿堂の代表勝ち鞍と同じ思想：ダービー勝ち馬がいればその馬、
+   いなければ最高賞金の産駒。集計は表示時のみ（保存データは増やさない） */
+function progenyOf(h){
+  if(!h) return [];
+  if(h.sex === "牝") return S.horses.filter(x => isKidOf(x, h));
+  return S.horses.filter(x => x.sire === h.name);
+}
+function repProgeny(h){
+  const kids = progenyOf(h); if(!kids.length) return null;
+  const derby = kids.filter(k => hasDerbyWin(k));
+  const pool = derby.length ? derby : kids;
+  return [...pool].sort((a, b) => (b.earnings || 0) - (a.earnings || 0))[0];
+}
+function progenyAggOf(h){
+  const a = { foals: 0, runners: 0, winners: 0, wins: 0, earnings: 0, gradedWinners: 0, g1Winners: 0 };
+  const add = (starts, wins, earnings, graded, g1) => { a.foals++; if(starts > 0) a.runners++; if(wins > 0) a.winners++; a.wins += wins; a.earnings += earnings; if(graded) a.gradedWinners++; if(g1) a.g1Winners++; };
+  for(const k of progenyOf(h)) add((k.results ? k.results.length : 0) + (k.preStarts || 0), k.wins || 0, k.earnings || 0, gradedWinList(k).length > 0, g1WinCount(k) > 0);
+  for(const sd of (S.soldHorses || [])){
+    const mine = h.sex === "牝" ? (sd.damId ? sd.damId === h.id : sd.dam === h.name) : sd.sire === h.name;
+    if(mine) add(sd.starts || 0, sd.wins || 0, sd.earnings || 0, false, false);
+  }
+  return a;
+}
+function progenyRecordHtml(h){
+  const kids = progenyOf(h);
+  if(!kids.length) return "";
+  const a = progenyAggOf(h);
+  const rp = repProgeny(h);
+  kids.sort((x, y) => ((y.earnings || 0) - (x.earnings || 0)) || ((y.wins || 0) - (x.wins || 0)) || (x.birthYear - y.birthYear)); /* v6.8：獲得賞金順（オーナー指示） */
+  const rows = kids.map(k => "<tr><td><span class='horse-link' data-horse='" + k.id + "'>" + k.name + "</span>" + talentBadgeHtml(k) + (k.unnamed ? " <span class='sub'>（仮名）</span>" : "") + (rp && k.id === rp.id ? " <span class='ok'>代表産駒</span>" : "") + "</td><td>" + k.sex + "</td><td>" + k.birthYear + "年生</td><td>" + (h.sex === "牝" ? (k.sire || "―") : (k.dam || "―")) + "</td><td>" + (k.results ? k.results.length : 0) + "戦" + (k.wins || 0) + "勝</td><td>" + man(k.earnings || 0) + "</td><td>" + statusJa(k) + "</td></tr>").join("");
+  return "<h3>🌸 繁殖成績</h3>"
+    + "<div>産駒 " + a.foals + "頭／出走 " + a.runners + "頭／勝ち馬 " + a.winners + "頭（" + a.wins + "勝）／重賞勝ち馬 " + a.gradedWinners + "頭／G1勝ち馬 " + a.g1Winners + "頭／産駒通算 " + man(a.earnings) + "</div>"
+    + (rp ? "<div>代表産駒：<span class='horse-link' data-horse='" + rp.id + "'>" + rp.name + "</span>（" + (rp.results ? rp.results.length : 0) + "戦" + (rp.wins || 0) + "勝／" + man(rp.earnings || 0) + (hasDerbyWin(rp) ? "／日本ダービー勝ち" : "") + "）</div>" : "")
+    + "<table><tr><th>馬名</th><th>性</th><th>世代</th><th>" + (h.sex === "牝" ? "父" : "母") + "</th><th>成績</th><th>獲得賞金</th><th>現況</th></tr>" + rows + "</table>";
+}
 function openStallion(name){
   const st = S.stallions.find(s=>s.name===name); if(!st) return;
   const fee = t => t==="S"?"3,000万円":t==="A"?"1,500万円":t==="B"?"800万円":"400万円";
@@ -4877,20 +4914,21 @@ function retiredListHtml(){
   const career = (starts, wins, earnings) => starts ? starts+"戦"+wins+"勝／"+man(earnings) : "出走なし";
   const live = entries.filter(e=>e.horse).map(e=>e.horse).sort((a,b)=>(a.birthYear-b.birthYear) || (a.id<b.id?-1:1));
   const sold = entries.filter(e=>e.sold).map(e=>e.sold).sort((a,b)=>(a.year-b.year) || (a.birthYear-b.birthYear));
+  const repCell = parent => { const rp = repProgeny(parent); return rp ? "<span class='horse-link' data-horse='" + rp.id + "'>" + rp.name + "</span>（" + man(rp.earnings || 0) + (hasDerbyWin(rp) ? "・ダービー馬" : "") + "）" : "―"; }; /* v6.8 */
   const rows = [];
   for(const h of live){
     const notes = [];
     if(h.status==="retired"){ notes.push("繁殖引退"); if(h.origin==="購入") notes.push("購入馬"); notes.push("ランク"+mareRankOf(h)); }
     else notes.push("引退");
-    rows.push("<tr><td><span class='horse-link' data-horse='"+h.id+"'>"+h.name+"</span>" + legendBadgeHtml(h) + titleBadgeHtml(h) + talentBadgeHtml(h) + "</td><td>"+h.sex+"</td><td>"+h.birthYear+"年生</td><td>"+career((h.results?h.results.length:0)+(h.preStarts||0), h.wins||0, h.earnings||0)+"</td><td>"+notes.join("・")+"</td></tr>");
+    rows.push("<tr><td><span class='horse-link' data-horse='"+h.id+"'>"+h.name+"</span>" + legendBadgeHtml(h) + titleBadgeHtml(h) + talentBadgeHtml(h) + "</td><td>"+h.sex+"</td><td>"+h.birthYear+"年生</td><td>"+career((h.results?h.results.length:0)+(h.preStarts||0), h.wins||0, h.earnings||0)+"</td><td>"+repCell(h)+"</td><td>"+notes.join("・")+"</td></tr>");
   }
   for(const r of sold){
     const notes = ["売却（"+r.year+"年・"+man(r.price)+"）"];
     if(r.wasBroodmare && r.origin==="購入") notes.push("購入馬");
     if(r.wasBroodmare && r.rank) notes.push("ランク"+r.rank);
-    rows.push("<tr><td>"+r.name+"</td><td>"+r.sex+"</td><td>"+r.birthYear+"年生</td><td>"+career(r.starts||0, r.wins||0, r.earnings||0)+"</td><td>"+notes.join("・")+"</td></tr>");
+    rows.push("<tr><td>"+r.name+"</td><td>"+r.sex+"</td><td>"+r.birthYear+"年生</td><td>"+career(r.starts||0, r.wins||0, r.earnings||0)+"</td><td>"+repCell(r)+"</td><td>"+notes.join("・")+"</td></tr>");
   }
-  return html + "<table><tr><th>馬名</th><th>性</th><th>世代</th><th>成績</th><th>備考</th></tr>"+rows.join("")+"</table></details>";
+  return html + "<table><tr><th>馬名</th><th>性</th><th>世代</th><th>成績</th><th>代表産駒</th><th>備考</th></tr>"+rows.join("")+"</table></details>";
 }
 /* ===== マニュアル（v3.10）：「その他」メニューとタブから開く遊び方・システム解説。
    数値はすべて現行実装の定数に合わせること（種付料・受胎率・係数など） ===== */
@@ -5305,13 +5343,8 @@ function pedigreeTable(h){
 }
 /* 産駒一覧（v0.40）：繁殖牝馬と自家製種牡馬（供用中・引退後とも）のページに、その馬の仔を並べる */
 function produceSection(h){
-  let kids = [];
-  if(h.sex==="牝") kids = S.horses.filter(x=>isKidOf(x, h));
-  else if(h.sex==="牡" && h.studYear!=null) kids = S.horses.filter(x=>x.sire===h.name);
-  if(!kids.length) return "";
-  kids.sort((a,b)=>(a.birthYear-b.birthYear) || (a.id-b.id));
-  const rows = kids.map(k=>"<tr><td><span class='horse-link' data-horse='"+k.id+"'>"+k.name+"</span>" + talentBadgeHtml(k)+(k.unnamed ? " <span class='sub'>（仮名）</span>" : "")+"</td><td>"+k.sex+"</td><td>"+k.birthYear+"年生</td><td>"+(h.sex==="牝" ? (k.sire||"―") : (k.dam||"―"))+"</td><td>"+(k.results ? k.results.length : 0)+"戦"+(k.wins||0)+"勝</td><td>"+man(k.earnings||0)+"</td><td>"+statusJa(k)+"</td></tr>").join("");
-  return "<h3>産駒（"+kids.length+"頭）</h3><table><tr><th>馬名</th><th>性</th><th>世代</th><th>"+(h.sex==="牝" ? "父" : "母")+"</th><th>成績</th><th>獲得賞金</th><th>現況</th></tr>"+rows+"</table>";
+  if(h.sex === "牡" && h.studYear == null) return ""; /* 種牡馬入りしていない牡馬に産駒はいない */
+  return progenyRecordHtml(h); /* v6.8：繁殖成績ページに格上げ */
 }
 /* ================= 牝系図（v0.55・オーナー設計確定 2026-11-14） =================
    牝系は S.horses の母（dam）リンクだけで毎回計算する（保存フラグは持たない）。
@@ -6222,6 +6255,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v6.7</footer>
+<footer>競馬シミュレーター（趣味） v6.8</footer>
 </body>
 </html>
