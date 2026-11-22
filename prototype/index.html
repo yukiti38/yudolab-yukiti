@@ -1475,7 +1475,6 @@ function buildFacility(key){
   if(S.funds < cost){ notice("資金が足りず、" + def.name + " を" + (lv ? "強化" : "建設") + "できません"); return; }
   S.funds -= cost;
   S.facilities[key] = { level: lv, toLevel: lv + 1, startAbs: absWeek(), readyAbs: absWeek() + FACILITY_BUILD_WEEKS };
-  chron("🏗️ " + def.name + " の" + (lv ? "強化（Lv" + (lv + 1) + "）" : "建設") + "を始めた");
   notice("🏗️ " + def.name + " の" + (lv ? "強化" : "建設") + "を始めました（完成は約2ヶ月後です）");
   save(); render();
 }
@@ -1487,12 +1486,11 @@ function facilityCompletions(){
       if(f.toLevel && f.readyAbs != null && absWeek() >= f.readyAbs){
         const lv = f.toLevel;
         S.facilities[key] = { level: lv };
-        if(lv === 1){ chron("🏗️ " + FACILITIES[key].name + " が完成した"); notice("🏗️ " + FACILITIES[key].name + " が完成しました"); }
-        else { chron("🏗️ " + FACILITIES[key].name + " の強化が完了した（Lv" + lv + "）"); notice("🏗️ " + FACILITIES[key].name + " がLv" + lv + "になりました"); }
+        if(lv === 1){ notice("🏗️ " + FACILITIES[key].name + " が完成しました"); }
+        else { notice("🏗️ " + FACILITIES[key].name + " がLv" + lv + "になりました"); }
       }
     } else if(!f.done && f.readyAbs != null && absWeek() >= f.readyAbs){
       S.facilities[key] = { level: 5 };
-      chron("🏗️ " + FACILITIES[key].name + " が完成した");
       notice("🏗️ " + FACILITIES[key].name + " が完成しました");
     }
   }
@@ -1759,12 +1757,12 @@ function migrateV029(){
      マイルストーン状態を既存の戦績から復元する（達成済みの初制覇などが遡って発火しないように） */
   if(S.chronicle && !S.statsBirths){ S.statsBirths = {}; for(const c of S.chronicle) if(c.text.indexOf("【誕生】")===0) S.statsBirths[c.y] = (S.statsBirths[c.y]||0)+1; }
   /* v7.0.5 修正：この絞り込みは v0.33 の一回きりの移行だったのに、読み込みのたびに実行され、
-     v0.49 以降に追加された年表エントリ（🏗️施設・【レコード】・🌱🌳🍂系統）をリロード時に
+     v0.49 以降に追加された年表エントリ（🌱🌳🍂系統）をリロード時に
      黙って消していた（オーナー 指摘：スキップ後に見えた系統成立がリロードで消える）。
      保持リストを現行の書き手に合わせて広げ、移行はセーブにつき一度だけにする */
   if(S.chronicle && !S.chronFilterV1) S.chronicle = S.chronicle.filter(c=>{
-    if(/^【(初制覇|二冠|三冠|殿堂入り|レコード)】/.test(c.text)) return true; /* v3.1.1：種牡馬引退エントリは保持対象から外し、旧セーブの残存分もここで除去される */
-    if(/^(🏗️|🌱|🌳|🍂)/.test(c.text)) return true; /* v6.7 施設／v7.0 系統 */
+    if(/^【(初制覇|二冠|三冠|殿堂入り)】/.test(c.text)) return true; /* v3.1.1：種牡馬引退エントリは保持対象から外し、旧セーブの残存分もここで除去される */
+    if(/^(🌱|🌳|🍂)/.test(c.text)) return true; /* v7.0 系統（オーナー 承認済み 2026-11-22）。🏗️施設と【レコード】は年表に出さないのが オーナー のルール */
     if(c.text.indexOf("【牧場レコード】")===0){ const nm = c.text.slice(8).split(" が")[0]; const hh = (S.horses||[]).find(x=>x.name===nm); return !!hh && (hh.earnings||0) >= 1000000; }
     return false;
   }); /* v0.48-0.49：年表は牧場初の記録＋牧場レコード（10億円以上の馬）のみ（オーナー決定） */
@@ -2858,7 +2856,6 @@ function runRace(race, entries){
         S.courseRecords[race.racecourse + "|" + race.surface + "|" + race.distance_m] = { t: Math.round(winTime * 10) / 10, name: winner ? winner.name : null, year: S.year };
         if(winner && GRADED_SET.includes(race.grade)){
           topic("⏱ " + winner.name + " が " + race.racecourse + race.surface + race.distance_m + "m のコースレコードを更新しました（" + fmtTime(winTime) + "）");
-          chron("【レコード】" + winner.name + " が " + race.name + " で " + race.racecourse + race.surface + race.distance_m + "m のコースレコード " + fmtTime(winTime) + " を記録した");
         }
       }
     }
@@ -6723,6 +6720,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v7.0.5</footer>
+<footer>競馬シミュレーター（趣味） v7.0.6</footer>
 </body>
 </html>
