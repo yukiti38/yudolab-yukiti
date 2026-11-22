@@ -2848,7 +2848,9 @@ function runRace(race, entries){
     const std = raceStdTime(race);
     if(std != null){
       const gT = goingOf(absWeek(), race.racecourse, race.surface);
-      winTime = std - (winScore - 72) * 0.15 + std * ([0, 0.005, 0.011, 0.018][gT] || 0);
+      winTime = std - (winScore - 78) * 0.12 + std * ([0, 0.005, 0.011, 0.018][gT] || 0); /* v7.1（オーナー指摘：レコードが出やすすぎる）：中心78・傾き0.12に較正し直し。好走程度では実在レコードに届かず、歴史級のスコアでのみ数十秒台の更新になる */
+      const floorT = courseAnchor(race.racecourse, race.surface, race.distance_m) * 0.98; /* v7.1：実在レコードの2%以内が絶対の下限（オーナー判断で2%：歴史級の馬には実在を大きく超える余地を残しつつ、長期セーブでの際限ない割り込みだけを止める） */
+      if(winTime < floorT) winTime = floorT;
       if(winTime < courseRecordOf(race.racecourse, race.surface, race.distance_m).t){
         if(!S.courseRecords) S.courseRecords = {};
         const winner = runners[0].horse;
@@ -3256,10 +3258,14 @@ function bestWinPrestige(h){
   if(best == null && h.gradedWin) best = 2; /* 戦績行の無い重賞勝ち（デバッグ付与等）は G3 勝ち相当として扱う */
   return best;
 }
+const LV_PRESTIGE_CAP = { 1: 5, 2: 4, 3: 2, 4: 1, 5: 0 }; /* v7.1：レベル→地板の緩和上限（そのレベルの主戦場の prestige） */
 function prestigeFloorOk(h, race){
   const b = bestWinPrestige(h);
   if(b == null) return true; /* まだ勝っていない馬に地板は無い */
-  return prestigeOf(race.grade) <= b + 1;
+  let cap = b + 1;
+  const lvCap = LV_PRESTIGE_CAP[autoTargetLevel(h)]; /* v7.1：今のレベルが落ちた馬は、そのレベルのレースまで下りられる（地板と天井の衝突で自動出走が止まるのを防ぐ） */
+  if(lvCap != null && lvCap > cap) cap = lvCap;
+  return prestigeOf(race.grade) <= cap;
 }
 function autoClassRank(h){ const c = horseClass(h); return c==="OP" ? 4 : c==="3勝クラス" ? 3 : c==="2勝クラス" ? 2 : c==="1勝クラス" ? 1 : 0; }
 function autoRaceRank(race){ const g = race.grade; if(g==="新馬" || g==="未勝利") return 0; if(g==="1勝クラス") return 1; if(g==="2勝クラス") return 2; if(g==="3勝クラス") return 3; return 4; }
@@ -3301,6 +3307,61 @@ function autoGenG1LadderOk(h){
    未勝利馬は従来どおり対象外（eligibility 側でも新馬・未勝利に制限される）。
    ただし世代限定G1だけは実績ゲート（autoGenG1LadderOk）を追加で課す：実績のない1勝馬までクラシックに
    飛ばないための段階付け。方針が「慎重」の馬は例外自体を使わない（v2.0の動き：重賞はOPになるまで出ない） */
+/* v7.1（オーナー設計）：重賞の自動構想は「いい方の馬場」に出す。両面のマークを比べて、その馬の
+   ベスト側（同点含む）の重賞だけを構想に入れる。ベストが − でも出す（✕ の面は従来どおり対象外） */
+function surfMarkVal(m){ return m === "○" ? 2 : m === "-" ? 1 : 0; }
+function betterSurfOk(h, surface){
+  if(!surface) return true;
+  const mine = surfMarkOf(h, surface);
+  if(mine === "✕") return false;
+  const other = surface === "芝" ? surfMarkOf(h, "ダート") : surfMarkOf(h, "芝");
+  return surfMarkVal(mine) >= surfMarkVal(other);
+}
+/* v7.1（オーナー設計）：自動出走のレベル制。馬ごとに「今のレベル」を持ち、そのレベルを超える古馬重賞には
+   自動で入れない。レベルは近走の結果（その格で勝てば+1、大敗2回で-1）と今の能力の両方で決まる。
+   充実して能力が届いた馬は実績を飛び越えて一気にステップアップできるが、飛び越えた先で大敗が
+   続けば、その格への飛び越しは止まる（結果で取り戻すまで）。低素質の馬は能力が届かないので
+   G1 に居座らない。世代限定重賞は従来の段階付け（autoGenGradedOk）が担うので対象外。手動・指定は不変 */
+function raceLevelOf(grade){
+  if(grade === "GI" || grade === "JpnI" || grade === "G1" || grade === "J-GI") return 5;
+  if(grade === "GII" || grade === "JpnII" || grade === "G2" || grade === "J-GII") return 4;
+  if(grade === "GIII" || grade === "JpnIII" || grade === "G3" || grade === "J-GIII" || grade === "L") return 3;
+  if(grade === "OP") return 2;
+  return 1;
+}
+function autoFormLevel(h){
+  const starts = (h.results || []).filter(r => raceLevelOf(r.grade) >= 2);
+  const floor = horseClass(h) === "OP" ? 2 : 1;
+  if(!starts.length) return floor;
+  let L = raceLevelOf(starts[starts.length - 1].grade);
+  const atL = starts.filter(r => raceLevelOf(r.grade) === L);
+  if(atL[atL.length - 1].finish === 1) L = Math.min(5, L + 1);
+  else {
+    const last2 = atL.slice(-2);
+    if(last2.length === 2 && last2.every(r => r.finish >= 6)) L = Math.max(floor, L - 1);
+  }
+  return Math.max(floor, L);
+}
+const AUTO_ABILITY_LINE = { 5: 74, 4: 70, 3: 66, 2: 62 }; /* 実効能力（effAvg）の目安：その格で勝負になる水準。相手の帯（rivalStrength）に諸係数が乗る分を見込んで帯の中央より低めに置く */
+function autoAbilityLevel(h){
+  const abil = (paramNow(h, "spd") + paramNow(h, "sta") + paramNow(h, "gut")) / 3;
+  let lv = 1;
+  for(const L of [2, 3, 4, 5]) if(abil >= AUTO_ABILITY_LINE[L]) lv = L;
+  return lv;
+}
+function autoTargetLevel(h){
+  const form = autoFormLevel(h);
+  let ab = autoAbilityLevel(h);
+  if(ab > form){
+    const starts = (h.results || []).filter(r => raceLevelOf(r.grade) >= 2);
+    while(ab > form){
+      const atAb = starts.filter(r => raceLevelOf(r.grade) === ab);
+      const last2 = atAb.slice(-2);
+      if(last2.length === 2 && last2.every(r => r.finish >= 6)) ab--; else break;
+    }
+  }
+  return Math.max(form, ab);
+}
 function autoGenGradedOk(h, race){
   if(!h || h.wins < 1) return false;
   if(autoPolicyOf(h) === "慎重") return false;
@@ -3346,7 +3407,7 @@ function autoFitsLite(h, race, year){
   if(isJumpRace(race)) return false; /* v5.0：障害は自動系の対象外 */
   if(!race || race.sector==="overseas") return false;
   if(race.surface && surfBlocked(h, race.surface)) return false; /* v3.9：✕の馬場には自動で入れない */
-  if(AUTO_BIG_GRADES.includes(race.grade) && race.surface && surfMarkOf(h, race.surface) !== "○") return false; /* v5.7（オーナー指示）：−の馬場の重賞は出走構想に入れない（リザーブ・温存の数え上げ対象外） */
+  if(AUTO_BIG_GRADES.includes(race.grade) && race.surface && !betterSurfOk(h, race.surface)) return false; /* v7.1（オーナー設計）：重賞の構想は「いい方の馬場」だけ（リザーブ・温存の数え上げも同じ） */
   if(race.racecourse && goingBlocked(h, race, absWeek())) return false; /* v3.11：重馬場✕確定の馬は重・不良で自動登録しない */
   const aRg = autoRangeOf(h);
   if(race.distance_m == null || race.distance_m < aRg[0] || race.distance_m > aRg[1]) return false;
@@ -3466,6 +3527,7 @@ function autoEntryPass(){
     const reserveOf = yr => (yr in reserveCache) ? reserveCache[yr] : (reserveCache[yr] = autoG1Reserve(h, yr));
     const restUntil = h.restUntilAbs || 0; /* v6.5：休養 */
     const legPend = pendingCrownLeg(h);   /* v6.5：控えている三冠の脚 */
+    const targetLv = autoTargetLevel(h); /* v7.1：レベル制の天井（古馬重賞のみ） */
     const lastSurf = h.results && h.results.length ? (h.results[h.results.length-1].surface || null) : null; /* v5.6：ローテの連続性（前走と同じ馬場を優先する） */
     const cands = [];
     for(let k=0;k<=3;k++){
@@ -3498,13 +3560,14 @@ function autoEntryPass(){
         if(eligReason && eligReason.startsWith("賞金不足") && rollLineLottery(h, race, a)) eligReason = eligibility(h, race, a); /* v5.6：ライン未達なら開催1回限りの抽選 */
         if(eligReason) continue;
         const graded = AUTO_BIG_GRADES.includes(race.grade);
+        if(graded && race.sector !== "overseas" && autoGenLimit(race) === 0 && raceLevelOf(race.grade) > targetLv) continue; /* v7.1：今のレベルを超える古馬重賞には自動で入れない */
         if(a < autoDueAbs(h, yr, graded)) continue;             /* ローテ／ペースの間隔（重賞はハード側のみ） */
         /* G1リザーブ：この1戦を使った後の残り枠が、残りフィットG1分の確保を割らないこと */
         /* G1リザーブ：この1戦を使った後の残り枠が、残りフィットG1分の確保を割らないこと。
            v5.6改革（オーナー承認）：リザーブは残りフィットG1全部を数え、G1自身はリザーブで止めない
            （年間上限は autoDueAbs 側で効く）。旧仕様は「最大3つまで」＋G1自身にも適用だったため、
            前哨戦で枠を使い切ると一番近いG1から犠牲になる逆転があった */
-        if(!(race.sector==="overseas" && S.autoOverseasPolicy==="積極的") && !G1_GRADES.includes(race.grade)){ /* v3.5：積極的の海外遠征は国内G1リザーブに縛られない */
+        if(targetLv >= 5 && !(race.sector==="overseas" && S.autoOverseasPolicy==="積極的") && !G1_GRADES.includes(race.grade)){ /* v3.5：積極的の海外遠征は国内G1リザーブに縛られない。v7.1：リザーブはG1レベルの馬だけ */
           const used = autoStartsInYear(h, yr);
           if(AUTO_CAP - (used + 1) < reserveOf(yr)) continue;
         }
@@ -3521,12 +3584,12 @@ function autoEntryPass(){
        （重賞候補が無い週は条件戦候補の中で同じ絞り込み。○の条件戦が−の重賞を止めることはない＝格が先）。
        −は「出ても勝負になるが本命ではない」位置づけで、自動出走では代替扱いにする（✕は surfBlocked で除外済み） */
     const surfTrim = list => { if(list.some(c => surfMarkOf(h, c.race.surface) === "○")) for(let j=list.length-1;j>=0;j--) if(surfMarkOf(h, list[j].race.surface) !== "○") list.splice(j,1); };
-    /* v5.7（オーナー指示）：−の馬場の重賞は自動出走の構想に一切入れない。v5.6 の相対優先（○の重賞が
-       ある週だけ−を避ける）では、近くに○の重賞が無い週にジャパンC等へそのまま入ってしまうため、
-       重賞候補は○の馬場だけに絞る。条件戦は v5.6 の相対優先のまま（手動・プレイヤー指定は不変） */
-    for(let j=gradedCands.length-1;j>=0;j--){ const r = gradedCands[j].race; if(!isJumpRace(r) && r.surface && surfMarkOf(h, r.surface) !== "○") gradedCands.splice(j,1); }
+    /* v7.1（オーナー設計）：重賞候補は「いい方の馬場」だけに絞る。v5.7 の ○ 必須を置き換えるもので、
+       ベストが − の馬も自分のいい方の重賞には出る（両方 − なら両方可）。条件戦は v5.6 の相対優先のまま */
+    for(let j=gradedCands.length-1;j>=0;j--){ const r = gradedCands[j].race; if(!isJumpRace(r) && r.surface && !betterSurfOk(h, r.surface)) gradedCands.splice(j,1); }
     if(!gradedCands.length) surfTrim(ordCands);
-    const big = autoUpcomingBig(h);
+    let big = autoUpcomingBig(h);
+    if(big && autoGenLimit(big.race) === 0 && raceLevelOf(big.race.grade) > targetLv) big = null; /* v7.1：格上の古馬大レースへの温存はしない（世代限定の温存は従来どおり） */
     let pick = null;
     if(gradedCands.length){
       pick = gradedCands[0];
@@ -3640,7 +3703,7 @@ function maybeAutoRotation(h, race){
     }
   }
   const k1 = rotationKeyOf(race);
-  if(autoCondOk(h, race, S.year + 1) && (isJumpRace(race) || !race.surface || surfMarkOf(h, race.surface) === "○") && !h.rotAuto.includes(k1) && !h.rotation.includes(k1)){ /* v5.7：−の馬場の重賞は翌年指定もしない（平地のみ） */ /* v5.5：翌年の開催で年齢条件に合わない指定（3歳限定戦など）は付けない */ h.rotAuto.push(k1); added.push(race.name); }
+  if(autoCondOk(h, race, S.year + 1) && (isJumpRace(race) || !race.surface || betterSurfOk(h, race.surface)) && !h.rotAuto.includes(k1) && !h.rotation.includes(k1)){ /* v5.7：−の馬場の重賞は翌年指定もしない（平地のみ） */ /* v5.5：翌年の開催で年齢条件に合わない指定（3歳限定戦など）は付けない */ h.rotAuto.push(k1); added.push(race.name); }
   if(!G1_GRADES.includes(race.grade) && !pendingCrownLeg(h)){ /* v6.5：三冠の脚が控える馬には別のG1を指定しない */
     /* v5.3（オーナー指摘）：G1ルートは「勝った戦場の中」で探す。障害の重賞勝ちで平地G1
        （大阪杯）が指定され、障害専業馬が平地GIを勝ってしまった穴の修正（2世・3世で発生） */
@@ -5053,7 +5116,7 @@ function viewManual(){
   h += sec("🌧 馬場状態（良・稍重・重・不良）",
     "馬場状態は週ごと・競馬場ごとに変わります（芝とダートで別々）。出走登録タブでは、その週のレースに実況の馬場状態が付き、来週のレースには予想（約4回に3回は当たりますが、外れることもあります）が付きます。再来週以降は分かりません。<br>馬場が悪くなると全馬に低下がかかります（稍重 ×0.98／重 ×0.95／不良 ×0.92）。重・不良ではスタミナのある馬が相対的に有利になります。<br>各馬には隠れた「重馬場適性」があります（相性欄にスタッフ予想が出ます）。○の馬は低下を受けず、✕の馬は低下が深くなります（稍重 ×0.96／重 ×0.90／不良 ×0.84）。稍重以上の馬場で走ると適性が確定します。重馬場✕が確定した馬は、自動出走では重・不良のレースを避けます。");
   h += sec("🏟 馬場適性（芝／ダート）",
-    "馬場適性は芝とダート別々のマークで、<b>生まれた時から表示</b>されます（例：芝○ ダート✕）。係数は <b>○ 1.00／− 0.90／✕ 0.78</b> で、✕の馬場では勝負になりません。−の馬場では重賞級は苦しく、条件戦〜OPが主戦場になります。<br>受け継がれ方：両刀（○○）が配合に入ると、産駒はもう片方の適性に引っ張られます。確率の目安は次の通りです（どの結果も最低5%）。<br>・芝×芝 → 芝90%／両刀5%／ダート5%<br>・ダート×ダート → ダート90%／両刀5%／芝5%<br>・芝×ダート → 父側45%／母側45%／両刀約10%（系統の寄りで父側が最大±25%ずれる）<br>・両刀×芝 → 芝85%／両刀10%／ダート5%<br>・両刀×ダート → ダート85%／両刀10%／芝5%<br>・両刀×両刀 → 芝45%／ダート45%／両刀10%<br>両刀が絡んだ配合で生まれた専門型は、裏側のマークが − になります（○−型）。自動出走は ✕ の馬場のレースを避けます（手動登録は可能です）。また重賞については、○ の馬場のレースだけが自動の対象です。− の馬場の重賞は、自動出走・温存・G1リザーブ・自動ローテーションのいずれの構想にも入りません（条件戦では ○ の馬場を優先しつつ − の馬場も使います）。");
+    "馬場適性は芝とダート別々のマークで、<b>生まれた時から表示</b>されます（例：芝○ ダート✕）。係数は <b>○ 1.00／− 0.90／✕ 0.78</b> で、✕の馬場では勝負になりません。−の馬場では重賞級は苦しく、条件戦〜OPが主戦場になります。<br>受け継がれ方：両刀（○○）が配合に入ると、産駒はもう片方の適性に引っ張られます。確率の目安は次の通りです（どの結果も最低5%）。<br>・芝×芝 → 芝90%／両刀5%／ダート5%<br>・ダート×ダート → ダート90%／両刀5%／芝5%<br>・芝×ダート → 父側45%／母側45%／両刀約10%（系統の寄りで父側が最大±25%ずれる）<br>・両刀×芝 → 芝85%／両刀10%／ダート5%<br>・両刀×ダート → ダート85%／両刀10%／芝5%<br>・両刀×両刀 → 芝45%／ダート45%／両刀10%<br>両刀が絡んだ配合で生まれた専門型は、裏側のマークが − になります（○−型）。自動出走は ✕ の馬場のレースを避けます（手動登録は可能です）。また重賞については、その馬の「いい方の馬場」のレースが自動の対象です（ベストが − の馬は − の馬場の重賞に出ます。条件戦では ○ の馬場を優先しつつ − の馬場も使います）。さらに自動出走には「今のレベル」があり、近走の結果（その格で勝てば1つ上、大敗が続けば1つ下）と今の能力で決まります。充実して能力が届いた馬は実績を飛び越えて上の格に挑戦できますが、その格で大敗が続けば挑戦は止まります。レベルを超える古馬重賞には自動で入らないため、力の足りない馬が G1 に出続けることはありません（世代限定重賞と手動登録・指定は従来どおりです）。");
   h += sec("🐎 レースと出走登録",
     "レースは中央（JRA）・地方（Jpn重賞のみ）・海外（G1〜G3）があります。出走登録は3週先まで先行登録できます。<br>・未勝利の馬は新馬・未勝利戦だけに出られます<br>・海外の重賞に出るには、国内の重賞かリステッドで勝つか3着以内に入る必要があります<br>・クラスは勝ち数で上がり、4勝以上か重賞勝ちでオープン入りです<br>・疲労が高い（70以上）上に調子が悪い（40以下）と、レースで故障することがあります。故障には名前があり（軽症：球節炎・蹄挫傷・フレグモーネ・鼻出血／重症：屈腱炎・骨折・蹄葉炎・繋靭帯炎）、名前ごとに休養期間と能力への影響が違います。故障歴は馬のページに残ります<br>・輸送でも疲労します。遠くの競馬場ほど大きく、2歳馬は1.5倍です<br>・カレンダータブでは、過去に勝ったことのある重賞に「🏆制覇」の印が付きます（勝ち数と、最近勝った年・馬名も表示）。まだ勝っていない重賞探しに使えます<br>・馬の選択は、名前検索と絞り込み（⭐お気に入り／登録済みの馬だけ／出走できる馬だけ）と並び替え（年齢順・クラス順・名前順）ができます。⭐はお気に入りの印で、馬ごとに付け外しできます<br>・三冠路線（クラシック三冠・牝馬三冠・秋古馬三冠）は、脚を勝つと残りの脚が自動でローテーション指定され、その直前は路線外のレースを自動で足さなくなります<br>・G1級のレースを走った馬は8週間「休養」になり、その間は自動出走・自動指定がG1以外のレースを拾いません（手動登録とプレイヤーの指定はいつも通り出走できます）<br>・自動出走・自動指定では、見込み斤量が基準より3kg以上重くなるレース（ハンデ・別定）には入らない<br>・国内の平地レースには勝ち時計が付き、成績欄で上がり3Fも見られます。上がりは脚質と末脚の強さで決まります<br>・コースレコード（競馬場×馬場×距離）はカレンダータブの「⏱ コースタイム」で見られます。自馬が重賞でレコードを更新すると年表に残ります");
   h += sec("🐴 障害競走",
@@ -6444,7 +6507,7 @@ function openHorse(id){
     return;
   }
   const gw = gradedWinList(h);
-  const res = h.results.length ? [...h.results].reverse().map(r=>"<tr><td>"+r.when+"</td><td>"+r.race+"（"+r.grade+"）"+(r.pass?"<br><span class='sub'>通過 "+r.pass+"｜"+(r.comment||"")+"</span>":"")+"</td><td>"+r.course+" "+r.surface+(r.dist||"")+"</td><td>"+r.finish+"着/"+r.field+"頭"+(r.weight!=null ? "<br><span class='sub'>斤量"+Number(r.weight).toFixed(1)+"kg</span>" : "")+(r.transport ? "<br><span class='sub'>輸送疲労+"+r.transport+"</span>" : "")+(r.bodyWeight != null ? "<br><span class='sub'>馬体重"+r.bodyWeight+"kg"+(r.weightDiff != null ? "（前走比 "+(r.weightDiff>=0?"+":"")+r.weightDiff+"）" : "")+"</span>" : "")+"</td><td>"+(r.time||"")+"</td><td>上り"+r.agari+"</td><td>"+(r.jockey||"")+"</td><td>"+(r.prize?man(r.prize):"")+"</td></tr>").join("") : "<tr><td>まだ出走がありません</td></tr>";
+  const res = h.results.length ? [...h.results].reverse().map(r=>"<tr><td>"+r.when+"</td><td>"+r.race+"（"+r.grade+"）"+(r.pass?"<br><span class='sub'>通過 "+r.pass+"｜"+(r.comment||"")+"</span>":"")+"</td><td>"+r.course+" "+r.surface+(r.dist||"")+"</td><td>"+r.finish+"着/"+r.field+"頭"+(r.weight!=null ? "<br><span class='sub'>斤量"+Number(r.weight).toFixed(1)+"kg</span>" : "")+(r.transport ? "<br><span class='sub'>輸送疲労+"+r.transport+"</span>" : "")+(r.bodyWeight != null ? "<br><span class='sub'>馬体重"+r.bodyWeight+"kg"+(r.weightDiff != null ? "（前走比 "+(r.weightDiff>=0?"+":"")+r.weightDiff+"）" : "")+"</span>" : "")+"</td><td>"+(r.time ? fmtTime(parseFloat(r.time)) : "")+"</td><td>上り"+r.agari+"</td><td>"+(r.jockey||"")+"</td><td>"+(r.prize?man(r.prize):"")+"</td></tr>").join("") : "<tr><td>まだ出走がありません</td></tr>";
   let actions = "";
   let retireSalePrice = null;
   if(h.status==="racehorse"){
@@ -6722,6 +6785,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v7.0.8</footer>
+<footer>競馬シミュレーター（趣味） v7.1</footer>
 </body>
 </html>
