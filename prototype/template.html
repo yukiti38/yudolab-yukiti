@@ -4616,7 +4616,9 @@ function autoMateBudgetCap(){
   return f < 3000 ? 400 : f < 10000 ? 800 : f < 30000 ? 1500 : 3000;
 }
 function autoMatePass(retry){
-  if(!autoActive() || !S.mattari.auto.mate) return;
+  /* v7.0.1（オーナー 指示 2026-11-22）：種付けは配合という牧場の意思決定そのものなので、
+     スキップ中の自動有効化（_skipAuto）の対象から外す。まったりモードONのときだけ働く */
+  if(!mattariOn() || !S.mattari.auto.mate) return;
   if(_autoMateYear !== S.year){ _autoMateYear = S.year; _autoMateCount = {}; }
   const mares = S.horses.filter(m => m.status === "broodmare" && mareBreedable(m));
   const targets = retry ? mares.filter(m => m.autoMateFeb === S.year) : mares;
@@ -6685,6 +6687,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v7.0</footer>
+<footer>競馬シミュレーター（趣味） v7.0.1</footer>
 </body>
 </html>
