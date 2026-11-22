@@ -29,7 +29,8 @@
   .tscroll th { white-space:nowrap; }
   /* v3.1.2：自動出走設定の表は、スマホ幅でも馬名列（1列目）が1文字幅に潰れないよう床を敷く */
   table.autohorses th:first-child, table.autohorses td:first-child { min-width:6em; }
-  .ped td { background:var(--panel2); }
+  .ped { min-width:660px; }
+  .ped td { background:var(--panel2); border:1px solid var(--line); white-space:nowrap; font-size:12.5px; } /* v7.1.1：スマホで潰れて名前の壁にならないよう、枠線と最小幅で表の形を保つ */
   .ped td.sireline { background:#22382a; }
   .ped td.damline { background:#382631; }
   .sub { color:var(--sub); font-size:12.5px; }
@@ -5814,9 +5815,31 @@ function branchTreeHtml(){
   let html = "<h3>🌳 牡馬系統（分家 " + all.length + "）</h3>";
   if(!all.length) return html + "<div class='sub'>まだ分家は立っていません。産駒からG1級勝ち馬が3頭出た種牡馬が、自分の系統を立てます。</div>";
   const depth = b => { let d = 0, cur = b; while(cur && cur.parentBranch && S.branches[cur.parentBranch]){ d++; cur = S.branches[cur.parentBranch]; } return d; };
-  const rows = [...all].sort((a, b) => (a.year - b.year) || (a.id < b.id ? -1 : 1)).map(b =>
-    "<div style='margin-left:" + (depth(b) * 18) + "px;'>" + (b.extinct ? "🍂 " : "🌱 ") + "<b>" + b.founder + "系</b>（" + BRANCH_TIER_NAMES[b.tier] + "／" + branchParentLabel(b) + "）" + (branchPhrase(b) ? " <span class='sub'>" + branchPhrase(b) + "</span>" : "") + (b.extinct ? " <span class='sub'>消滅</span>" : "") + "</div>").join("");
-  return html + rows;
+  const rowOf = b => "<div style='margin-left:" + (depth(b) * 18) + "px;'>" + (b.extinct ? "🍂 " : "🌱 ") + "<b>" + b.founder + "系</b>（" + BRANCH_TIER_NAMES[b.tier] + "／" + branchParentLabel(b) + "）" + (branchPhrase(b) ? " <span class='sub'>" + branchPhrase(b) + "</span>" : "") + (b.extinct ? " <span class='sub'>消滅</span>" : "") + "</div>";
+  /* v7.1.1（オーナー指摘：成立順だと見にくい）：大系統ごとにまとめ、親の直後に子孫を並べる家系順にする。
+     成立順のフラットな列では、無関係な分家が交互に出て親子が離れてしまうため */
+  const byYear = (a, b) => (a.year - b.year) || (a.id < b.id ? -1 : 1);
+  const childrenOf = {}, roots = [];
+  for(const b of all){
+    if(b.parentBranch && S.branches[b.parentBranch]) (childrenOf[b.parentBranch] || (childrenOf[b.parentBranch] = [])).push(b);
+    else roots.push(b);
+  }
+  for(const k of Object.keys(childrenOf)) childrenOf[k].sort(byYear);
+  const seen = new Set();
+  const emit = (b, out) => { if(seen.has(b.id)) return; seen.add(b.id); out.push(rowOf(b)); for(const c of (childrenOf[b.id] || [])) emit(c, out); };
+  const majorOrder = Object.keys(LINE_TRAITS);
+  const groups = new Map();
+  for(const r of roots){ const m = r.major || "系統不明"; if(!groups.has(m)) groups.set(m, []); groups.get(m).push(r); }
+  const majors = [...groups.keys()].sort((a, b) => { const ia = majorOrder.indexOf(a), ib = majorOrder.indexOf(b); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.localeCompare(b); });
+  for(const m of majors){
+    html += "<h4 style='margin:14px 0 4px;'>" + m + "</h4>";
+    const out = [];
+    for(const r of groups.get(m).sort(byYear)) emit(r, out);
+    html += out.join("");
+  }
+  const rest = all.filter(b => !seen.has(b.id)).sort(byYear);
+  if(rest.length) html += rest.map(rowOf).join("");
+  return html;
 }
 
 /* 成長型の寄せ：内部7段階チェーンを、目標の表示型の方向へ1段だけずらす */
@@ -5864,7 +5887,7 @@ function pedigreeTable(h){
   const sireHalf = block(build(h.sire, 4), 4, "sireline");
   const damHalf = block(build(h.dam, 4, h.bms), 4, "damline");
   const rowsHtml = sireHalf.concat(damHalf).map(r=>"<tr>"+r.join("")+"</tr>").join("");
-  return "<table class='ped'>"+rowsHtml+"</table>"
+  return "<div class='tscroll'><table class='ped'>"+rowsHtml+"</table></div>"
     + "<div class='sub'>5代血統表。記録がある範囲で表示します（種牡馬ロスターは父のみ記録のため、父系の母方は「―」になります）。代を重ねるほど自家生産の血統が埋まっていきます。</div>";
 }
 /* 産駒一覧（v0.40）：繁殖牝馬と自家製種牡馬（供用中・引退後とも）のページに、その馬の仔を並べる */
@@ -6785,6 +6808,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v7.1</footer>
+<footer>競馬シミュレーター（趣味） v7.1.1</footer>
 </body>
 </html>
