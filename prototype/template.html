@@ -207,7 +207,8 @@
       <button data-tab="breed">繁殖（2〜6月）</button>
       <button data-tab="stallions">種牡馬</button>
       <button data-tab="chron">牧場年表</button>
-      <button data-tab="lineage">🌳 牝系図</button>
+      <button data-tab="lineage">🌳 血統</button>
+      <button data-tab="jockeys">🏇 騎手</button>
       <button data-tab="calendar">📅 カレンダー</button>
       <button data-tab="manual">📖 マニュアル</button>
     </div>
@@ -4224,6 +4225,7 @@ function render(){
   else if(currentTab==="stallions") b.innerHTML = viewStallions();
   else if(currentTab==="calendar") b.innerHTML = viewCalendar();
   else if(currentTab==="lineage") b.innerHTML = viewLineage();
+  else if(currentTab==="jockeys") b.innerHTML = viewJockeys();
   else if(currentTab==="manual") b.innerHTML = viewManual();
   else b.innerHTML = viewChron();
   if(S.giftQueue && S.giftQueue.length){
@@ -5061,9 +5063,9 @@ function viewManual(){
   h += sec("💕 繁殖と配合",
     "種付けは2〜6月だけ。繁殖牝馬は4〜16歳が対象で、受胎率は9歳まで85%、その後下がって16歳で45%。14歳から出産のリスクが上がり、17歳で繁殖を引退します（死亡はありません）。子は年始に生まれます。<br>配合では相性（系統の特性の重なりなど）が産駒に影響します。種牡馬は世代交代していき（引退年齢は個体ごとに決まっていて、産駒が活躍すると延長されます）、引退した分は架空の新種牡馬が補充されます。");
   h += sec("🌳 系統と牝系",
-    "父系の系統特性（早熟寄り・スタミナ寄りなど）は言葉だけで表示され、配合に薄く影響します（母父は半分の効き）。<br>牝系は牝馬の子孫の広がりで育ちます。直仔5頭以上・子孫25頭以上・ポイント20以上で「候補」になり、そこから2年続けて頭数シェアなどの条件を満たすと「○○系」として成立します。成立した称号は消えませんが、細ると「衰退中」と表示されます。牝系図タブで家系の広がりが見られます。<br>牡馬の分家（子系統）：産駒からG1級勝ち馬が3頭出た種牡馬は、自分の系統（○○系）を立てます。分家にはファウンダーの競走特性から決まる「色」が2つ付き（裏側の弱さもセット）、配合では大系統の色に代わって一番近い分家の色が効きます（母父側は半分）。分家の下に分家が増えると親系統・祖系統・大系統へ格が上がりますが、色の強さは変わりません。種牡馬が1頭もいなくなった分家は消滅します。年表タブの「牡馬系統」で家系の広がりが見られます。<br>メルトスイートとカルストンライトオを組み合わせると...？");
+    "父系の系統特性（早熟寄り・スタミナ寄りなど）は言葉だけで表示され、配合に薄く影響します（母父は半分の効き）。<br>牝系は牝馬の子孫の広がりで育ちます。直仔5頭以上・子孫25頭以上・ポイント20以上で「候補」になり、そこから2年続けて頭数シェアなどの条件を満たすと「○○系」として成立します。成立した称号は消えませんが、細ると「衰退中」と表示されます。血統タブで牝系の広がりが見られます。<br>牡馬の分家（子系統）：産駒からG1級勝ち馬が3頭出た種牡馬は、自分の系統（○○系）を立てます。分家にはファウンダーの競走特性から決まる「色」が2つ付き（裏側の弱さもセット）、配合では大系統の色に代わって一番近い分家の色が効きます（母父側は半分）。分家の下に分家が増えると親系統・祖系統・大系統へ格が上がりますが、色の強さは変わりません。種牡馬が1頭もいなくなった分家は消滅します。血統タブの「牡馬系統」で見られます。<br>メルトスイートとカルストンライトオを組み合わせると...？");
   h += sec("🏇 騎手",
-    "騎手には実在の騎手をモデルにした26人がいて（名前は架空）、歳を取り、50歳で引退します。引退すると、同苗字の二世か新人の騎手がデビューします。よく乗せる騎手はレベルが上がります（年末に、その年10鞍以上乗ると+1、最大Lv5）。レベルと、その馬の主戦騎手かどうかが、わずかに着差を後押しします。<br>各馬に一番多く乗った騎手が主戦です。馬のページと出走登録画面で騎手を指定でき、指定した騎手は自動出走でも優先して乗ります。年表タブの「騎手」で現役騎手の成績が見られます。");
+    "騎手には実在の騎手をモデルにした26人がいて（名前は架空）、歳を取り、50歳で引退します。引退すると、同苗字の二世か新人の騎手がデビューします。よく乗せる騎手はレベルが上がります（年末に、その年10鞍以上乗ると+1、最大Lv5）。レベルと、その馬の主戦騎手かどうかが、わずかに着差を後押しします。<br>各馬に一番多く乗った騎手が主戦です。馬のページと出走登録画面で騎手を指定でき、指定した騎手は自動出走でも優先して乗ります。騎手タブで現役騎手の成績が見られます。");
   h += sec("🏁 引退と種牡馬入り",
     "引退の目安は成長型で違います（早熟は4歳前後、普通は6歳前後、晩成は7歳以降）。10歳のシーズン終了が全馬の上限です。自動引退がONのときは毎月判定され、目安に達した馬はシーズン途中でも引退します（手動の場合は年末に確認します）。G1を勝った馬は、衰えが見えたら通常の目安より早く引退します（5勝以上の馬はさらに早めです）。<br>競走寿命の目安は、診療所を建設すると馬ページに「○歳の○ごろ」と表示され、目安が今年に来る馬は年始に通知されます。診療所を建設するとこの仕組み全体（見立て表示・年始通知・寿命引退）が動き始めます。自動引退がONの場合、目安に達した時点で前年まで好成績（1勝以上、または重賞で3着以内）だった馬は、好成績のまま引退します。4歳になって未勝利の馬は年末に引退します。<br>牡馬は重賞勝ちか生涯賞金1億円以上で種牡馬入りの資格があり、引退時に「種牡馬入り／売却／そのまま残す」から選べます。牝馬は繁殖入り（頭数上限内）か売却です。引退した馬は「牧場年表」タブの引退馬リストに残ります。<br>引退から50年が経つと、その馬の詳細ページは閉じられます（記録データ自体は残ります）。殿堂馬の詳細は無期限で残ります。");
   h += sec("🏆 殿堂入り",
@@ -5092,8 +5094,6 @@ function viewChron(){
   /* v2.4：殿堂リストも引退馬リストと同じく details で畳めるようにした（開閉状態は S.hofOpen、既定は閉） */
   /* v6.8.1（オーナー指示）：牧場施設は馬タブから年表タブへ移し、折りたたみ式にした */
   html += "<details data-facilities-fold" + (S.facilitiesOpen ? " open" : "") + "><summary style='cursor:pointer;font-size:16px;font-weight:bold;'>🏠 牧場施設</summary>" + facilitiesHtml() + "</details>";
-  html += branchTreeHtml();
-  html += jockeysHtml(); /* v7.0 */
   html += "<details data-hof-fold" + (S.hofOpen ? " open" : "") + "><summary style='cursor:pointer;font-size:16px;font-weight:bold;'>🏆 殿堂（" + hof.length + "頭）</summary>";
   if(hof.length){
     const rows = hof.map(h => {
@@ -5154,8 +5154,6 @@ function bindTab(){
   document.querySelectorAll("[data-retired-fold]").forEach(d=>d.addEventListener("toggle",()=>{ S.retiredOpen = !!d.open; save(); }));
   document.querySelectorAll("[data-hof-fold]").forEach(d=>d.addEventListener("toggle",()=>{ S.hofOpen = !!d.open; save(); }));
   document.querySelectorAll("[data-facilities-fold]").forEach(d=>d.addEventListener("toggle",()=>{ S.facilitiesOpen = !!d.open; save(); }));
-  document.querySelectorAll("[data-branch-fold]").forEach(d=>d.addEventListener("toggle",()=>{ S.branchOpen = !!d.open; save(); }));
-  document.querySelectorAll("[data-jockey-fold]").forEach(d=>d.addEventListener("toggle",()=>{ S.jockeyOpen = !!d.open; save(); }));
   document.querySelectorAll("[data-ltoggle]").forEach(el => el.onclick = () => {
     const id = el.getAttribute("data-ltoggle");
     if(lineCollapsed.has(id)) lineCollapsed.delete(id); else lineCollapsed.add(id);
@@ -5518,13 +5516,15 @@ function jockeyYearEnd(){
 }
 function jockeysHtml(){
   const act = activeJockeys().slice().sort((a, b) => (b.yearWins - a.yearWins) || (b.level - a.level) || (b.wins - a.wins));
-  let html = "<details data-jockey-fold style='margin-top:16px;'" + (S.jockeyOpen ? " open" : "") + "><summary style='cursor:pointer;font-size:16px;font-weight:bold;'>🏇 騎手（現役 " + act.length + " 人）</summary>";
+  let html = "<h3>🏇 騎手（現役 " + act.length + " 人）</h3>"
+    + "<div class='sub'>騎手は歳を取り、50歳で引退します。引退すると、同苗字の二世か新人の騎手がデビューします。その年10鞍以上乗ると年末にレベルが上がります（最大Lv5）。レベルと主戦かどうかが、わずかに着差を後押しします。</div>";
   const rows = act.map(j => "<tr><td>" + j.name + (j.gen > 1 ? " <span class='sub'>" + j.gen + "世</span>" : "") + "</td><td>" + (S.year - j.birthYear) + "歳</td><td>Lv" + j.level + "</td><td>" + j.yearRides + "鞍 " + j.yearWins + "勝</td><td>" + j.rides + "鞍 " + j.wins + "勝（G1 " + j.g1Wins + "勝）</td></tr>").join("");
   html += "<table><tr><th>騎手</th><th>年齢</th><th>レベル</th><th>今年</th><th>通算</th></tr>" + rows + "</table>";
   const ret = (S.jockeys || []).filter(j => j.retired).slice(-8).reverse();
   if(ret.length) html += "<div class='sub'>引退：" + ret.map(j => j.name + "（" + j.retired + "年・通算" + j.wins + "勝）").join("／") + "</div>";
-  return html + "</details>";
+  return html;
 }
+function viewJockeys(){ return jockeysHtml(); }
 function jockeyPrefOptions(h){
   return "<option value=''>指定なし（主戦・自動）</option>" + activeJockeys().map(j => "<option value='" + j.id + "'" + (h.jockeyPref === j.id ? " selected" : "") + ">" + j.name + "（Lv" + j.level + "）</option>").join("");
 }
@@ -5717,12 +5717,12 @@ function branchYearEnd(){
 }
 function branchTreeHtml(){
   const all = S.branches ? Object.values(S.branches) : [];
-  let html = "<details data-branch-fold style='margin-top:16px;'" + (S.branchOpen ? " open" : "") + "><summary style='cursor:pointer;font-size:16px;font-weight:bold;'>🌳 牡馬系統（分家 " + all.length + "）</summary>";
-  if(!all.length) return html + "<div class='sub'>まだ分家は立っていません。産駒からG1級勝ち馬が3頭出た種牡馬が、自分の系統を立てます。</div></details>";
+  let html = "<h3>🌳 牡馬系統（分家 " + all.length + "）</h3>";
+  if(!all.length) return html + "<div class='sub'>まだ分家は立っていません。産駒からG1級勝ち馬が3頭出た種牡馬が、自分の系統を立てます。</div>";
   const depth = b => { let d = 0, cur = b; while(cur && cur.parentBranch && S.branches[cur.parentBranch]){ d++; cur = S.branches[cur.parentBranch]; } return d; };
   const rows = [...all].sort((a, b) => (a.year - b.year) || (a.id < b.id ? -1 : 1)).map(b =>
     "<div style='margin-left:" + (depth(b) * 18) + "px;'>" + (b.extinct ? "🍂 " : "🌱 ") + "<b>" + b.founder + "系</b>（" + BRANCH_TIER_NAMES[b.tier] + "／" + branchParentLabel(b) + "）" + (branchPhrase(b) ? " <span class='sub'>" + branchPhrase(b) + "</span>" : "") + (b.extinct ? " <span class='sub'>消滅</span>" : "") + "</div>").join("");
-  return html + rows + "</details>";
+  return html + rows;
 }
 
 /* 成長型の寄せ：内部7段階チェーンを、目標の表示型の方向へ1段だけずらす */
@@ -5977,7 +5977,9 @@ function lineTreeNode(h, kids){
 }
 function viewLineage(){
   const lines = establishedLines();
-  let html = "<h3>🌳 牝系図</h3>"
+  let html = "<h3>🌳 血統</h3>"
+    + branchTreeHtml()
+    + "<h3 style='margin-top:24px;'>牝系図</h3>"
     + "<div class='sub'>牝系の確立は二段構えです。まず累積の条件（根元牝馬の直仔5頭以上・子孫25頭以上・20ポイント以上）で「確立候補」になり、そこから年末のスナップショット条件（繁殖牝馬が枠の15%以上・現役＋デビュー前が全体の1割以上・3世代が同時に生存・直近25年の子孫にG1勝ち1頭と重賞勝ち2頭）を2年連続で満たすと確立します。一度確立した称号は剥奪されませんが、繁殖・現役が細った状態が10年続くと「衰退中」と表示されます。ポイントは子孫の重賞勝ち馬を世代で重み付けしたもの（直仔1点・孫2点・曾孫以降3点、G1勝ち馬は2倍）です。世代は左から右へ進み、横線が親→子です。カードをタップするとその馬のページが開きます。「－／＋」で枝を畳んだり開いたりできます。</div>";
   const kids = {};
   { const all = childrenByDam(); const realIds = new Set(S.horses.map(h=>h.id));
@@ -6689,6 +6691,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v7.0.2</footer>
+<footer>競馬シミュレーター（趣味） v7.0.3</footer>
 </body>
 </html>
