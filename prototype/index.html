@@ -860,6 +860,71 @@ function raceComment(style, pace, finish, quirk){
 }
 /* 育成方針とパラメータの連動：月末、2〜4歳の現役馬は方針のパラメータが少し伸びる（各+4まで・v0.50。
    絶対上限85に調教分も含む） */
+/* ================= 適正調教（v7.2・オーナー決定 2026-11-23） =================
+   能力を上げる調教ではなく、適性を広げる調教。方針は馬ごとの policy に
+   「aptdist（距離を伸ばす）」「aptsurf（馬場に慣らす）」として乗り、半年で1段階。
+   距離は長い方へ +100m ずつ（合計 +400m まで）、馬場は適性の無い方を ✕→−→○ と1段ずつ。
+   1歳9月から。馬場は3歳いっぱいまで（4歳になる月から進まない）、距離はピークを迎えるまで。
+   代償は疲労の溜まりやすさ（適正調教中の馬は週の疲労回復が半分）。
+   まったり中（自動調教ON・手動方針なし）は、適性の無い方の馬場を自動で慣らす。
+   調教で広げた適性は後天的なもので、産駒には引き継がない（配合は生まれつきの適性で読む） */
+const APT_STEP_MONTHS = 6, APT_DIST_CAP = 400;
+function aptSurfTarget(h){ /* 適性の無い方（マークの低い側）。互角なら null */
+  const v = m => m === "○" ? 2 : m === "-" ? 1 : 0;
+  const t = surfMarkOf(h, "芝"), d = surfMarkOf(h, "ダート");
+  if(v(t) === v(d)) return null;
+  return v(t) < v(d) ? "芝" : "ダート";
+}
+function aptKindOf(h){
+  if(!h || h.retired || h.spd == null) return null;
+  if(h.status !== "racehorse" && h.status !== "yearling") return null;
+  const aF = ageOf(h) + (S.month - 1) / 12;
+  if(aF < 1 + 8 / 12) return null; /* 1歳9月から */
+  if(h.policy === "aptdist") return (aF < peakOf(h) && (h.aptGainDist || 0) < APT_DIST_CAP) ? "dist" : null;
+  if(h.policy === "aptsurf") return (aF < 4 && aptSurfTarget(h)) ? "surf" : null; /* 馬場は3歳いっぱいまで（4歳凸で止まる・オーナー確認 2026-11-23） */
+  if(autoActive() && S.mattari && S.mattari.auto && S.mattari.auto.train && !h.trainManual)
+    return (aF < 4 && aptSurfTarget(h)) ? "surf" : null; /* まったり：無い方の馬場へ自動で向ける */
+  return null;
+}
+function monthlyAptTraining(){
+  for(const h of S.horses){
+    let kind = aptKindOf(h);
+    if(kind && (isTravelWeek(h, absWeek()) || isReturnWeek(h, absWeek()) || isTravelWeek(h, absWeek() - 1) || isReturnWeek(h, absWeek() - 1))) kind = null; /* 遠征の前後週は調教不可（monthlyTraining と同じ近似） */
+    h.aptActive = kind;
+    if(!h.apt || h.apt.kind !== kind) h.apt = { kind, months: 0 };
+    if(!kind) continue;
+    h.apt.months++;
+    if(h.apt.months < APT_STEP_MONTHS) continue;
+    h.apt.months = 0;
+    if(kind === "dist"){
+      h.distMax += 100; h.aptGainDist = (h.aptGainDist || 0) + 100;
+      notice("🏃 " + h.name + " の距離適性が広がった（" + h.distMin + "〜" + h.distMax + "m）");
+    } else {
+      const tgt = aptSurfTarget(h); if(!tgt) continue;
+      const lad = ["✕", "-", "○"];
+      const cur = surfMarkOf(h, tgt), nm = lad[Math.min(2, lad.indexOf(cur) + 1)];
+      if(tgt === "芝"){ setSurfMarks(h, nm, h.surfD); h.aptSurfT = (h.aptSurfT || 0) + 1; }
+      else { setSurfMarks(h, h.surfT, nm); h.aptSurfD = (h.aptSurfD || 0) + 1; }
+      notice("🏃 " + h.name + " は" + tgt + "に慣れてきた（" + tgt + "適性が " + nm + " に上がった）");
+    }
+  }
+}
+/* 生まれつきの適性（配合はこちらで読む：調教で広げた分は産駒に引き継がない） */
+function bornSurfMarkOf(x, surface){
+  const lad = ["✕", "-", "○"];
+  const steps = surface === "芝" ? (x.aptSurfT || 0) : (x.aptSurfD || 0);
+  if(!steps) return surfMarkOf(x, surface);
+  return lad[Math.max(0, lad.indexOf(surfMarkOf(x, surface)) - steps)];
+}
+function bornSurfTypeOf(x){
+  if(!x || (!x.aptSurfT && !x.aptSurfD)) return surfTypeOf(x);
+  const l = surfLabel(bornSurfMarkOf(x, "芝"), bornSurfMarkOf(x, "ダート"));
+  if(l) return l;
+  const sv = x.surface;
+  return sv === "芝ダート" ? "両刀" : sv === "ダート" ? "ダート" : "芝";
+}
+function bornDistMaxOf(h){ return h.distMax - (h.aptGainDist || 0); }
+
 function monthlyTraining(){
   /* 自動調教（v3.1・まったりモード＋自動調教トグルON）：現役2〜4歳で、プレイヤーが方針を
      手動設定していない馬に方針を自動で付ける。付け方を v3.7.3 で変更（オーナー決定）：
@@ -876,6 +941,7 @@ function monthlyTraining(){
   }
   for(const h of S.horses){
     if(h.status!=="racehorse" || h.retired || h.spd == null) continue;
+    if(h.aptActive) continue; /* v7.2：適正調教中の馬は能力調教が止まる（方針枠のトレードオフ） */
     if(isTravelWeek(h, absWeek()) || isReturnWeek(h, absWeek()) || isTravelWeek(h, absWeek()-1) || isReturnWeek(h, absWeek()-1)) continue; /* v0.51：遠征の前後週は調教不可（月単位の近似） */
     const age = ageOf(h); if(age<2 || age>4) continue;
     h.trained = h.trained || { spd:0, sta:0, gut:0 };
@@ -2954,7 +3020,7 @@ function advanceWeek(){
       else if(isInjured(h)){ h.fatigue = clamp(h.fatigue-Math.round(40*rf),0,100); h.condition = clamp(h.condition+traitCondGain(h, 10),5,100); }
       else if(h.policy==="pasture"){ const pm = h.traits && h.traits.pasture === "refresh" ? 1.25 : h.traits && h.traits.pasture === "lax" ? 0.75 : 1; h.fatigue = clamp(h.fatigue-Math.round(30*rf*pm),0,100); h.condition = clamp(h.condition+traitCondGain(h, h.traits && h.traits.pasture === "refresh" ? 18 : h.traits && h.traits.pasture === "lax" ? 8 : 12),5,100); } /* v6.0：放牧リフレッシュ型は放牧の回復が大きい／緩む型は小さい */
       else if(h.policy==="rest"){ h.fatigue = clamp(h.fatigue-Math.round(40*rf),0,100); h.condition = clamp(h.condition+traitCondGain(h, 10),5,100); }
-      else { h.fatigue = clamp(h.fatigue-Math.round(20*rf),0,100); h.condition = clamp(h.condition+traitCondGain(h, 5),5,100); } /* v6.0：状態の波（上がりやすい）は状態の上昇が大きい */
+      else { const am = h.aptActive ? 0.5 : 1; h.fatigue = clamp(h.fatigue-Math.round(20*rf*am),0,100); h.condition = clamp(h.condition+traitCondGain(h, 5),5,100); } /* v6.0：状態の波（上がりやすい）は状態の上昇が大きい／v7.2：適正調教中は疲労が溜まりやすい（回復半分） */
     }
   }
   /* 週の終わりの自動種付け（v7.0.2・オーナー 提案）：2月第1週／4月第1週を「終える」ときに一巡する。
@@ -2966,7 +3032,7 @@ function advanceWeek(){
   const prevMonth = S.month;
   S.week++; if(S.week > WEEKS_IN_MONTH[S.month-1]){ S.week=1; S.month++; }
   if(S.month>12){ S.month=1; S.year++; onNewYear(); }
-  if(S.month !== prevMonth){ monthlyCosts(prevMonth); monthlyTraining(); processMonthlyRetirements(); } /* v0.56：月替わりで前月分の経費を精算 */
+  if(S.month !== prevMonth){ monthlyCosts(prevMonth); monthlyAptTraining(); monthlyTraining(); processMonthlyRetirements(); } /* v7.2：適正調教は能力調教の前に判定（適正調教中の馬は能力が伸びない） */ /* v0.56：月替わりで前月分の経費を精算 */
   // 4) 新しい週のイベント
   facilityCompletions(); /* v6.7：施設の完成判定 */
   weeklyEvents();
@@ -3043,14 +3109,14 @@ function onNewYear(){
          系統のパラメータ寄せはパラメータごとの中心へ加える（ニックスとは別枠で、相性の数値は変えない） */
       const fp = (s, d, bias) => inheritCentre((s + d)/2) + nickShift + gb[0] + bias + Math.round(triSpread(spN) * gb[1]);
       /* 馬場適性（v3.9・オーナー指定）：両刀が配合に入ると産駒はもう片方に引っ張られる */
-      const sType = surfTypeOf(st), dType = surfTypeOf(h);
+      const sType = bornSurfTypeOf(st), dType = bornSurfTypeOf(h); /* v7.2：調教で広げた適性は引き継がない */
       const dualInvolved = sType === "両刀" || dType === "両刀";
       const foalSurfType = branchSurfAdjust(inheritSurfType(sType, dType, lb.surf), sireBr, bmsBr); /* v7.0：馬場の色 */
       const [foalSurfT, foalSurfD] = surfMarksForType(foalSurfType, dualInvolved);
       const bmsSt = S.stallions.find(s=>s.name===h.sire);
-      const cS = (st.dist[0]+st.dist[1])/2, cD = (h.distMin+h.distMax)/2, cB = bmsSt ? (bmsSt.dist[0]+bmsSt.dist[1])/2 : cD;
+      const cS = (st.dist[0]+st.dist[1])/2, cD = (h.distMin+bornDistMaxOf(h))/2, cB = bmsSt ? (bmsSt.dist[0]+bmsSt.dist[1])/2 : cD; /* v7.2：母の距離も生まれつきで */
       const centre = cS*0.5 + cD*0.35 + cB*0.15 + lb.dist + irnd(-200,200);
-      const width = Math.max(500, ((st.dist[1]-st.dist[0]) + (h.distMax-h.distMin))/2);
+      const width = Math.max(500, ((st.dist[1]-st.dist[0]) + (bornDistMaxOf(h)-h.distMin))/2);
       const r50 = v => clamp(Math.round(v/50)*50, 1000, 4000);
       const sireCoat = (S.horses.find(x=>x.status==="stallion" && x.name===st.name) || {}).coat || st.coat;
       const foal = newHorse({ name: provisionalName(h.name, S.year), sex, birthYear:S.year, sire:st.name, dam:h.name, damId:h.id, bms:h.sire, /* v3.4：牝系の追跡は個体IDで行う（名前は同名衝突で壊れる） */
@@ -5117,7 +5183,7 @@ function viewManual(){
   h += sec("🌧 馬場状態（良・稍重・重・不良）",
     "馬場状態は週ごと・競馬場ごとに変わります（芝とダートで別々）。出走登録タブでは、その週のレースに実況の馬場状態が付き、来週のレースには予想（約4回に3回は当たりますが、外れることもあります）が付きます。再来週以降は分かりません。<br>馬場が悪くなると全馬に低下がかかります（稍重 ×0.98／重 ×0.95／不良 ×0.92）。重・不良ではスタミナのある馬が相対的に有利になります。<br>各馬には隠れた「重馬場適性」があります（相性欄にスタッフ予想が出ます）。○の馬は低下を受けず、✕の馬は低下が深くなります（稍重 ×0.96／重 ×0.90／不良 ×0.84）。稍重以上の馬場で走ると適性が確定します。重馬場✕が確定した馬は、自動出走では重・不良のレースを避けます。");
   h += sec("🏟 馬場適性（芝／ダート）",
-    "馬場適性は芝とダート別々のマークで、<b>生まれた時から表示</b>されます（例：芝○ ダート✕）。係数は <b>○ 1.00／− 0.90／✕ 0.78</b> で、✕の馬場では勝負になりません。−の馬場では重賞級は苦しく、条件戦〜OPが主戦場になります。<br>受け継がれ方：両刀（○○）が配合に入ると、産駒はもう片方の適性に引っ張られます。確率の目安は次の通りです（どの結果も最低5%）。<br>・芝×芝 → 芝90%／両刀5%／ダート5%<br>・ダート×ダート → ダート90%／両刀5%／芝5%<br>・芝×ダート → 父側45%／母側45%／両刀約10%（系統の寄りで父側が最大±25%ずれる）<br>・両刀×芝 → 芝85%／両刀10%／ダート5%<br>・両刀×ダート → ダート85%／両刀10%／芝5%<br>・両刀×両刀 → 芝45%／ダート45%／両刀10%<br>両刀が絡んだ配合で生まれた専門型は、裏側のマークが − になります（○−型）。自動出走は ✕ の馬場のレースを避けます（手動登録は可能です）。また重賞については、その馬の「いい方の馬場」のレースが自動の対象です（ベストが − の馬は − の馬場の重賞に出ます。条件戦では ○ の馬場を優先しつつ − の馬場も使います）。さらに自動出走には「今のレベル」があり、近走の結果（その格で勝てば1つ上、大敗が続けば1つ下）と今の能力で決まります。充実して能力が届いた馬は実績を飛び越えて上の格に挑戦できますが、その格で大敗が続けば挑戦は止まります。レベルを超える古馬重賞には自動で入らないため、力の足りない馬が G1 に出続けることはありません（世代限定重賞と手動登録・指定は従来どおりです）。");
+    "馬場適性は芝とダート別々のマークで、<b>生まれた時から表示</b>されます（例：芝○ ダート✕）。係数は <b>○ 1.00／− 0.90／✕ 0.78</b> で、✕の馬場では勝負になりません。−の馬場では重賞級は苦しく、条件戦〜OPが主戦場になります。<br>受け継がれ方：両刀（○○）が配合に入ると、産駒はもう片方の適性に引っ張られます。確率の目安は次の通りです（どの結果も最低5%）。<br>・芝×芝 → 芝90%／両刀5%／ダート5%<br>・ダート×ダート → ダート90%／両刀5%／芝5%<br>・芝×ダート → 父側45%／母側45%／両刀約10%（系統の寄りで父側が最大±25%ずれる）<br>・両刀×芝 → 芝85%／両刀10%／ダート5%<br>・両刀×ダート → ダート85%／両刀10%／芝5%<br>・両刀×両刀 → 芝45%／ダート45%／両刀10%<br>両刀が絡んだ配合で生まれた専門型は、裏側のマークが − になります（○−型）。自動出走は ✕ の馬場のレースを避けます（手動登録は可能です）。また重賞については、その馬の「いい方の馬場」のレースが自動の対象です（ベストが − の馬は − の馬場の重賞に出ます。条件戦では ○ の馬場を優先しつつ − の馬場も使います）。さらに自動出走には「今のレベル」があり、近走の結果（その格で勝てば1つ上、大敗が続けば1つ下）と今の能力で決まります。充実して能力が届いた馬は実績を飛び越えて上の格に挑戦できますが、その格で大敗が続けば挑戦は止まります。レベルを超える古馬重賞には自動で入らないため、力の足りない馬が G1 に出続けることはありません（世代限定重賞と手動登録・指定は従来どおりです）。<br><b>適正調教</b>：方針で「適正調教（距離を伸ばす）」「適正調教（馬場に慣らす）」を選ぶと、能力ではなく適性が広がります。半年で1段階ずつ、距離は長い方へ +100m ずつ（合計 +400m まで）、馬場は適性の無い方が ✕→−→○ と上がります。1歳9月から行えますが、馬場は3歳いっぱいまで（4歳になると止まります）、距離はピークを迎えるまでしか伸びません。適正調教の間は能力調教が止まり、疲労が溜まりやすくなります。まったりモードでは、適性の無い方の馬場を自動で慣らします。調教で広げた適性は後天的なものなので、産駒には引き継がれません。");
   h += sec("🐎 レースと出走登録",
     "レースは中央（JRA）・地方（Jpn重賞のみ）・海外（G1〜G3）があります。出走登録は3週先まで先行登録できます。<br>・未勝利の馬は新馬・未勝利戦だけに出られます<br>・海外の重賞に出るには、国内の重賞かリステッドで勝つか3着以内に入る必要があります<br>・クラスは勝ち数で上がり、4勝以上か重賞勝ちでオープン入りです<br>・疲労が高い（70以上）上に調子が悪い（40以下）と、レースで故障することがあります。故障には名前があり（軽症：球節炎・蹄挫傷・フレグモーネ・鼻出血／重症：屈腱炎・骨折・蹄葉炎・繋靭帯炎）、名前ごとに休養期間と能力への影響が違います。故障歴は馬のページに残ります<br>・輸送でも疲労します。遠くの競馬場ほど大きく、2歳馬は1.5倍です<br>・カレンダータブでは、過去に勝ったことのある重賞に「🏆制覇」の印が付きます（勝ち数と、最近勝った年・馬名も表示）。まだ勝っていない重賞探しに使えます<br>・馬の選択は、名前検索と絞り込み（⭐お気に入り／登録済みの馬だけ／出走できる馬だけ）と並び替え（年齢順・クラス順・名前順）ができます。⭐はお気に入りの印で、馬ごとに付け外しできます<br>・三冠路線（クラシック三冠・牝馬三冠・秋古馬三冠）は、脚を勝つと残りの脚が自動でローテーション指定され、その直前は路線外のレースを自動で足さなくなります<br>・G1級のレースを走った馬は8週間「休養」になり、その間は自動出走・自動指定がG1以外のレースを拾いません（手動登録とプレイヤーの指定はいつも通り出走できます）<br>・自動出走・自動指定では、見込み斤量が基準より3kg以上重くなるレース（ハンデ・別定）には入らない<br>・国内の平地レースには勝ち時計が付き、成績欄で上がり3Fも見られます。上がりは脚質と末脚の強さで決まります<br>・コースレコード（競馬場×馬場×距離）はカレンダータブの「⏱ コースタイム」で見られます。自馬が重賞でレコードを更新すると年表に残ります");
   h += sec("🐴 障害競走",
@@ -6155,7 +6221,7 @@ function retireColtCore(h, toStud){
     const hbGbms = damH ? (damH.gbms || null) : null;
     S.stallions.push({name:h.name, sire:h.sire, dam:h.dam, bms:hbBms, grandam:hbGrandam, gbms:hbGbms, pace: paceOf(h), /* v3.8：種牡馬入り時に仕上がりの個体差も引き継ぐ */
       bmsLine: hbBms ? sireChainOf(hbBms).slice(0,3) : [],
-      region:"domestic", surface:h.surface, surfT: surfMarkOf(h, "芝"), surfD: surfMarkOf(h, "ダート"), dist:[h.distMin,h.distMax], growth:h.growth, gtype:gtypeOf(h), fee_tier:"B", fresh:true, jizoku: !!h.jizoku, /* v3.9：馬場適性マークも引き継ぐ */
+      region:"domestic", surface:h.surface, surfT: bornSurfMarkOf(h, "芝"), surfD: bornSurfMarkOf(h, "ダート"), dist:[h.distMin, bornDistMaxOf(h)], growth:h.growth, gtype:gtypeOf(h), fee_tier:"B", fresh:true, jizoku: !!h.jizoku, /* v3.9：馬場適性マークも引き継ぐ／v7.2：調教で広げた適性は引き継がないため生まれつきの値で作る */
       birthYear:h.birthYear, retireAge:(S.year - h.birthYear) + 19, retired:false, fictional:false, studStart:S.year});
     topic("✨ "+h.name+" が種牡馬入りしました");
   }
@@ -6535,8 +6601,9 @@ function openHorse(id){
   let retireSalePrice = null;
   if(h.status==="racehorse"){
     actions = "<div class='flex' style='margin:10px 0;'><label>方針：</label><select id='policySel'>"
-      + ["train","spd","sta","gut","pasture","rest"].map(p=>"<option value='"+p+"'"+(h.policy===p?" selected":"")+">"+({train:"調教（バランス）",spd:"スピード調教",sta:"スタミナ調教",gut:"根性調教",pasture:"放牧",rest:"休養"})[p]+"</option>").join("")
-      + "</select></div>";
+      + ["train","spd","sta","gut","pasture","rest","aptdist","aptsurf"].map(p=>"<option value='"+p+"'"+(h.policy===p?" selected":"")+">"+({train:"調教（バランス）",spd:"スピード調教",sta:"スタミナ調教",gut:"根性調教",pasture:"放牧",rest:"休養",aptdist:"適正調教（距離を伸ばす）",aptsurf:"適正調教（馬場に慣らす）"})[p]+"</option>").join("")
+      + "</select></div>"
+      + (aptKindOf(h) ? "<div class='sub' style='margin:-4px 0 8px;'>🏃 適正調教中：" + (aptKindOf(h) === "dist" ? "距離を伸ばす" : (aptSurfTarget(h) || "") + "に慣らす") + "（半年で1段階・疲労が溜まりやすい）</div>" : "");
     /* 自動出走（v2.0）：方針の隣にON/OFFと出走間隔（空欄＝全体の既定）。出走登録タブの自動出走設定と同じ保存先 */
     actions += "<div class='flex' style='margin:6px 0;'><label>自動出走：</label><select id='autoEntrySel'>"
       + "<option value='off'"+(!h.autoEntry?" selected":"")+">OFF</option><option value='on'"+(h.autoEntry?" selected":"")+">ON</option></select>"
@@ -6609,6 +6676,14 @@ function openHorse(id){
     actions += "<div class='sellmenu'><div class='sub'>この馬はまだ仮名（"+h.name+"）です。"+(h.status==="racehorse" ? "デビューする前に名前を決めてください" : "2歳になるまでに名前を決めてください（過ぎると自動で名前が付きます）")+"</div>"
       + "<div class='sellmenu-body'><input type='text' id='nameInput' size='16' placeholder='名前を入力'><button id='nameBtn'>この名前で登録</button><button id='nameSuggestBtn' class='ghost'>候補："+nameSuggest+"</button></div></div>";
   }
+  if(h.status === "yearling"){ /* v7.2：1歳馬の適正調教指定（1歳9月から効く。現役になると方針セレクトに引き継がれる） */
+    actions += "<div class='flex' style='margin:10px 0;'><label>適正調教：</label><select id='aptYearlingSel'>"
+      + "<option value=''" + ((h.policy !== "aptdist" && h.policy !== "aptsurf") ? " selected" : "") + ">なし</option>"
+      + "<option value='aptdist'" + (h.policy === "aptdist" ? " selected" : "") + ">距離を伸ばす</option>"
+      + "<option value='aptsurf'" + (h.policy === "aptsurf" ? " selected" : "") + ">馬場に慣らす</option>"
+      + "</select><span class='sub'>1歳9月から、半年で1段階ずつ広がります</span></div>"
+      + (aptKindOf(h) ? "<div class='sub' style='margin:-4px 0 8px;'>🏃 適正調教中：" + (aptKindOf(h) === "dist" ? "距離を伸ばす" : (aptSurfTarget(h) || "") + "に慣らす") + "</div>" : "");
+  }
   /* v4.3：任意殿堂入りの切り替え（現役を終えた馬だけ） */
   if(h.retired || h.status === "broodmare" || h.status === "stallion"){
     if(h.hofManual) actions += "<div class='topic' style='margin-top:10px;'>🏆 任意で殿堂入りしています <button id='hofManualBtn' class='ghost'>取り消す</button></div>";
@@ -6646,6 +6721,7 @@ function openHorse(id){
   $("#horseModal").style.display = "block";
   bindHorses();
   const ps = $("#policySel"); if(ps) ps.onchange = () => { h.policy = ps.value; h.trainManual = true; h.trainAuto = false; save(); }; /* v3.1：手動設定した馬は自動調教の対象外にする */
+  const ys = $("#aptYearlingSel"); if(ys) ys.onchange = () => { if(ys.value){ h.policy = ys.value; h.trainManual = true; } else { h.policy = undefined; h.trainManual = false; } h.trainAuto = false; save(); }; /* v7.2：1歳馬の適正調教指定 */
   const rps = $("#retirePolicySel"); if(rps) rps.onchange = () => { h.retirePolicy = rps.value==="" ? null : rps.value; save(); };
   const aes = $("#autoEntrySel"); if(aes) aes.onchange = () => { h.autoEntry = aes.value==="on"; save(); };
   const ars = $("#autoRotSel"); if(ars) ars.onchange = () => { h.autoRot = ars.value==="" ? null : parseInt(ars.value, 10); save(); };
@@ -6808,6 +6884,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v7.1.1</footer>
+<footer>競馬シミュレーター（趣味） v7.2</footer>
 </body>
 </html>
