@@ -2950,6 +2950,11 @@ function advanceWeek(){
       else { h.fatigue = clamp(h.fatigue-Math.round(20*rf),0,100); h.condition = clamp(h.condition+traitCondGain(h, 5),5,100); } /* v6.0：状態の波（上がりやすい）は状態の上昇が大きい */
     }
   }
+  /* 週の終わりの自動種付け（v7.0.2・オーナー 提案）：2月第1週／4月第1週を「終える」ときに一巡する。
+     週に入った瞬間ではないので、その週はまず手動で種付けでき、残りが週末に自動で埋まる。
+     スキップで2月第1週に着いた時点ではまだ種付けされていない */
+  if(S.month===2 && S.week===1) autoMatePass(false);
+  if(S.month===4 && S.week===1) autoMatePass(true);
   // 3) カレンダーを進める
   const prevMonth = S.month;
   S.week++; if(S.week > WEEKS_IN_MONTH[S.month-1]){ S.week=1; S.month++; }
@@ -3162,8 +3167,6 @@ function onNewYear(){
 function weeklyEvents(){
   if(S.month===11 && S.week===1 && S.phase!=="choose" && S.saleYear!==S.year){ refreshSale(); autoBuyPass(); }
   if(S.month===2 && S.week===1) topic("🌸 繁殖シーズンが始まりました（2〜6月）。「繁殖」タブで種付けできます");
-  if(S.month===2 && S.week===1) autoMatePass(false); /* v3.1：自動種付けは2月第1週に一巡 */
-  if(S.month===4 && S.week===1) autoMatePass(true); /* v3.1：不受胎で空いた馬は4月第1週にもう一度だけ再挑戦 */
   if(S.month===3 && S.week===1) topic("🐴 春の出産シーズンです（昨年の種付け分は年始に誕生済み）");
   if(S.month===6 && S.week===1) topic("🏇 2歳馬のデビューが始まる時期です");
   if(S.month===12 && S.week===4) topic("📅 年末です。週を進めると年が替わり、出産が起きます");
@@ -4616,9 +4619,8 @@ function autoMateBudgetCap(){
   return f < 3000 ? 400 : f < 10000 ? 800 : f < 30000 ? 1500 : 3000;
 }
 function autoMatePass(retry){
-  /* v7.0.1（オーナー 指示 2026-11-22）：種付けは配合という牧場の意思決定そのものなので、
-     スキップ中の自動有効化（_skipAuto）の対象から外す。まったりモードONのときだけ働く */
-  if(!mattariOn() || !S.mattari.auto.mate) return;
+  /* スキップ中も種付けされる（v3.2 の設計どおり）。タイミングだけが v7.0.2 で週末に移った */
+  if(!autoActive() || !S.mattari.auto.mate) return;
   if(_autoMateYear !== S.year){ _autoMateYear = S.year; _autoMateCount = {}; }
   const mares = S.horses.filter(m => m.status === "broodmare" && mareBreedable(m));
   const targets = retry ? mares.filter(m => m.autoMateFeb === S.year) : mares;
@@ -6687,6 +6689,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v7.0.1</footer>
+<footer>競馬シミュレーター（趣味） v7.0.2</footer>
 </body>
 </html>
