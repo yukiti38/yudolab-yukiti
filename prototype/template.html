@@ -909,6 +909,8 @@ function monthlyCosts(prevMonth){
   if(nKeiyo > 0) parts.push("繋養費 " + nKeiyo + "頭×" + man(COST_KEIYO) + "＝" + man(nKeiyo * COST_KEIYO));
   total += nItaku * COST_ITAKU + nIkusei * COST_IKUSEI + nKeiyo * COST_KEIYO;
   parts.push("経営費 " + man(COST_KEIEI));
+  const upF = facilityUpkeepMonthly(); /* v7.0：施設の維持費（レベル比例） */
+  if(upF > 0){ parts.push("施設維持費 " + man(upF)); total += upF; }
   S.funds -= total;
   topic("💰 " + prevMonth + "月分の経費を精算しました：" + parts.join("／") + "｜合計 " + man(total));
   return total;
@@ -1355,9 +1357,9 @@ function substituteAncestor(name, year, group){
 function initState(){
   S = { year:2026, month:1, week:1, calVer:2, ver:3, funds:50000, horses:[], stallions: JSON.parse(JSON.stringify(DATA.stallions)),
         courseRecords:{}, chronicle:[], statsBirths:{}, topics:[], notices:[], yearEndDone:false, phase:"choose", candidates:[], salePool:[], saleYear:2026, usedTemplates:[], firstMatingDone:false,
-        giftQueue:[], giftAprDone:false, giftDecDone:false, giftSet:null, favs:[], mile:null, farmWins:0, farmPrize:0, kanmuri:"", soldHorses:[], autoRotDefault:8, autoPolicyDefault:"積極", autoRangePlusDefault:true, autoBulkOpen:false, retiredOpen:false, hofOpen:false, facilitiesOpen:false, topicsOpen:false, noticesOpen:false, autoOverseasPolicy:"消極的",
+        giftQueue:[], giftAprDone:false, giftDecDone:false, giftSet:null, favs:[], mile:null, farmWins:0, farmPrize:0, kanmuri:"", soldHorses:[], autoRotDefault:8, autoPolicyDefault:"積極", autoRangePlusDefault:true, autoBulkOpen:false, retiredOpen:false, hofOpen:false, facilitiesOpen:false, branchOpen:false, topicsOpen:false, noticesOpen:false, autoOverseasPolicy:"消極的",
         mattari: mattariDefault(), retirePolicyDefault:"logic", retireQueue:[], mareLimit:20, debutLimit:20,
-        lineState:{}, lineGf:false, hofGf:true, hofGf2:true, meltNickUsed:false, nicks:{}, nickCand:{}, nickRecord:{}, lineNickStat:{} }; /* v6.2：ニックス成立（個体）／候補／実績／初期ニックスの+2対象（セーブ別ランダム） */ /* v6.2：特別ニックス（メルトスイート×カルストンライトオ）の初回使用フラグ */ /* v4.2.1：新規セーブは殿堂の経過措置スタンプの対象外（最初から移行済みにしておく） */ /* v3.4：牝系の確立状態（始祖ID→{streak, estYear, decline}）。lineGf は旧セーブの経過措置フラグ */ /* v3.1：まったりモード（自動運転）と引退方針・年末確認キュー。頭数上限（繁殖牝馬／1世代のデビュー馬）はプレイヤー設定可・既定20・最小値なし */
+        lineState:{}, lineGf:false, hofGf:true, hofGf2:true, meltNickUsed:false, nicks:{}, nickCand:{}, nickRecord:{}, lineNickStat:{}, branches:{}, branchRecord:{}, branchSeq:0, jockeys: seedJockeys(), jockeySeq: 26, jockeyOpen: false }; /* v7.0：子系統／騎手 */ /* v6.2：ニックス成立（個体）／候補／実績／初期ニックスの+2対象（セーブ別ランダム） */ /* v6.2：特別ニックス（メルトスイート×カルストンライトオ）の初回使用フラグ */ /* v4.2.1：新規セーブは殿堂の経過措置スタンプの対象外（最初から移行済みにしておく） */ /* v3.4：牝系の確立状態（始祖ID→{streak, estYear, decline}）。lineGf は旧セーブの経過措置フラグ */ /* v3.1：まったりモード（自動運転）と引退方針・年末確認キュー。頭数上限（繁殖牝馬／1世代のデビュー馬）はプレイヤー設定可・既定20・最小値なし */
   initStallionRoster(); /* v3.0：各エントリに birthYear／retireAge／retired／fictional と bmsLine を用意する */
   for(const st of S.stallions) surfMarksFromLabel(st, st.surface, false); /* v3.9：新規ゲームの種牡馬にも馬場適性マークを用意 */
   const sts = S.stallions;
@@ -1437,48 +1439,90 @@ function syncMattariHeader(){
   const pb = $("#mattariPauseBtn"); if(pb) pb.textContent = (S.mattari && S.mattari.paused) ? "▶ 再開" : "⏸ 一時停止";
   const ss = $("#mattariSpeed"); if(ss && S.mattari) ss.value = String(S.mattari.speed);
 }
-/* ================= 牧場施設（v6.7・オーナー発案 2026-11-21） =================
-   資金の出口として3施設を建設できる（維持費なし・建設は約3ヶ月）。効果は既存システムへの
-   薄い係数に留める：温泉＝疲労回復+25%、診療所＝故障期間×0.7＋重症の能力低下を50%回避、
-   分娩舎＝12歳以上の受胎率+10pt。完成は牧場年表に残る */
+/* ================= 牧場施設（v6.7・オーナー発案／v7.0 レベル制） =================
+   3施設を5段階まで強化できる（オーナー 決定 2026-11-22）。v6.7 の効果が最大レベル（Lv5）で、
+   下のレベルは段階的に弱い。費用はレベルごとに嵩み（全MAXの総額は約50億円）、維持費は
+   レベル比例で毎月かかる（全MAXで年約10億円）。1段階の工期は約2ヶ月で、工事中も完成済み
+   レベルの効果はそのまま効く。旧セーブの {done} 形式は facilityLevel が Lv5 として読む */
 const FACILITIES = {
-  onsen: { name: "温泉・馬プール", cost: 10000, desc: "疲労の回復が25%速くなります" },
-  clinic: { name: "診療所", cost: 15000, desc: "故障の期間が3割短くなり、重い故障の能力低下を半分の確率で防ぎます" },
-  foaling: { name: "分娩舎・繁殖施設", cost: 6000, desc: "12歳以上の繁殖牝馬の受胎率が10ポイント上がります" }
+  onsen: { name: "温泉・馬プール", costs: [11400, 20000, 28600, 42900, 57100], upkeep: 32000, desc: "疲労の回復が速くなります（Lv5で+25%）" },
+  clinic: { name: "診療所", costs: [17100, 30000, 42900, 64300, 85700], upkeep: 48000, desc: "故障の期間が短くなり、重い故障の能力低下を防ぎます（Lv5で期間×0.70・回避50%）。競走寿命の見立てもここで見られます" },
+  foaling: { name: "分娩舎・繁殖施設", costs: [7100, 12500, 17900, 26800, 35700], upkeep: 20000, desc: "12歳以上の繁殖牝馬の受胎率が上がります（Lv5で+10ポイント）" }
 };
-const FACILITY_BUILD_WEEKS = 12;
-function facilityReady(key){ const f = S.facilities && S.facilities[key]; return !!f && absWeek() >= f.readyAbs; }
+const FACILITY_BUILD_WEEKS = 8;
+const FACILITY_MAX_LV = 5;
+function facilityLevel(key){
+  const f = S.facilities && S.facilities[key]; if(!f) return 0;
+  if(f.level != null){ if(f.toLevel && f.readyAbs != null && absWeek() >= f.readyAbs) return f.toLevel; return f.level; }
+  if(f.done) return 5;
+  if(f.readyAbs != null && absWeek() >= f.readyAbs) return 5; /* v6.7 形式の建設中＝完成で全効果 */
+  return 0;
+}
+function facilityBuilding(key){ const f = S.facilities && S.facilities[key]; return !!f && f.level != null && !!f.toLevel && absWeek() < f.readyAbs; }
+function facilityReady(key){ return facilityLevel(key) >= 1; }
+function facilityUpkeepMonthly(){
+  let t = 0;
+  for(const key of Object.keys(FACILITIES)){ const lv = facilityLevel(key); if(lv) t += Math.round(FACILITIES[key].upkeep * lv / FACILITY_MAX_LV / 12); }
+  return t;
+}
 function buildFacility(key){
   const def = FACILITIES[key]; if(!def) return;
   if(!S.facilities) S.facilities = {};
-  if(S.facilities[key]) return;
-  if(S.funds < def.cost){ notice("資金が足りず、" + def.name + " を建設できません"); return; }
-  S.funds -= def.cost;
-  S.facilities[key] = { startAbs: absWeek(), readyAbs: absWeek() + FACILITY_BUILD_WEEKS, done: false };
-  chron("🏗️ " + def.name + " の建設を始めた");
-  notice("🏗️ " + def.name + " の建設を始めました（完成は約3ヶ月後です）");
+  const lv = facilityLevel(key);
+  if(lv >= FACILITY_MAX_LV || facilityBuilding(key)) return;
+  const cost = def.costs[lv];
+  if(S.funds < cost){ notice("資金が足りず、" + def.name + " を" + (lv ? "強化" : "建設") + "できません"); return; }
+  S.funds -= cost;
+  S.facilities[key] = { level: lv, toLevel: lv + 1, startAbs: absWeek(), readyAbs: absWeek() + FACILITY_BUILD_WEEKS };
+  chron("🏗️ " + def.name + " の" + (lv ? "強化（Lv" + (lv + 1) + "）" : "建設") + "を始めた");
+  notice("🏗️ " + def.name + " の" + (lv ? "強化" : "建設") + "を始めました（完成は約2ヶ月後です）");
   save(); render();
 }
 function facilityCompletions(){
   if(!S.facilities) return;
   for(const key of Object.keys(FACILITIES)){
-    const f = S.facilities[key];
-    if(f && !f.done && absWeek() >= f.readyAbs){ f.done = true; chron("🏗️ " + FACILITIES[key].name + " が完成した"); notice("🏗️ " + FACILITIES[key].name + " が完成しました"); }
+    const f = S.facilities[key]; if(!f) continue;
+    if(f.level != null){
+      if(f.toLevel && f.readyAbs != null && absWeek() >= f.readyAbs){
+        const lv = f.toLevel;
+        S.facilities[key] = { level: lv };
+        if(lv === 1){ chron("🏗️ " + FACILITIES[key].name + " が完成した"); notice("🏗️ " + FACILITIES[key].name + " が完成しました"); }
+        else { chron("🏗️ " + FACILITIES[key].name + " の強化が完了した（Lv" + lv + "）"); notice("🏗️ " + FACILITIES[key].name + " がLv" + lv + "になりました"); }
+      }
+    } else if(!f.done && f.readyAbs != null && absWeek() >= f.readyAbs){
+      S.facilities[key] = { level: 5 };
+      chron("🏗️ " + FACILITIES[key].name + " が完成した");
+      notice("🏗️ " + FACILITIES[key].name + " が完成しました");
+    }
   }
 }
-function clinicWeeks(weeks){ return facilityReady("clinic") ? Math.max(2, Math.round(weeks * 0.7)) : weeks; }
-function clinicSavesDamage(){ return facilityReady("clinic") && Math.random() < 0.5; }
+function clinicWeeks(weeks){ const lv = facilityLevel("clinic"); return lv ? Math.max(2, Math.round(weeks * (1 - 0.06 * lv))) : weeks; }
+function clinicSavesDamage(){ return Math.random() < 0.10 * facilityLevel("clinic"); }
+function facilityEffectText(key, lv){
+  if(!lv) return "―";
+  if(key === "onsen") return "回復 +" + (lv * 5) + "%";
+  if(key === "clinic") return "期間 ×" + (1 - 0.06 * lv).toFixed(2) + "・回避 " + (lv * 10) + "%";
+  return "受胎 +" + (lv * 2) + "pt";
+}
 function facilitiesHtml(){
   const rows = Object.keys(FACILITIES).map(key => {
     const def = FACILITIES[key];
+    const lv = facilityLevel(key);
+    const building = facilityBuilding(key);
     const f = S.facilities && S.facilities[key];
     let st, btn = "";
-    if(!f){ st = "未建設"; btn = "<button data-facility-build='" + key + "'" + (S.funds < def.cost ? " disabled" : "") + ">建設する（" + man(def.cost) + "）</button>"; }
-    else if(!facilityReady(key)){ const fa = fromAbs(f.readyAbs); st = "建設中（" + fa[0] + "年" + fa[1] + "月完成予定）"; }
-    else st = "完成";
-    return "<tr><td>" + def.name + "</td><td>" + def.desc + "</td><td>" + st + "</td><td>" + btn + "</td></tr>";
+    if(building){ const fa = fromAbs(f.readyAbs); st = "工事中（Lv" + f.toLevel + "、" + fa[0] + "年" + fa[1] + "月完成予定）"; }
+    else if(lv >= FACILITY_MAX_LV) st = "最大レベル";
+    else if(lv) st = "稼働中";
+    else st = "未建設";
+    if(!building && lv < FACILITY_MAX_LV){
+      const cost = def.costs[lv];
+      btn = "<button data-facility-build='" + key + "'" + (S.funds < cost ? " disabled" : "") + ">" + (lv ? "強化する（Lv" + (lv + 1) + "・" : "建設する（") + man(cost) + "）</button>";
+    }
+    const up = lv ? man(Math.round(def.upkeep * lv / FACILITY_MAX_LV / 12)) + "/月" : "―";
+    return "<tr><td>" + def.name + "<br><span class='sub'>" + def.desc + "</span></td><td>" + (lv ? "Lv" + lv : "―") + "</td><td>" + facilityEffectText(key, lv) + "</td><td>" + up + "</td><td>" + st + "</td><td>" + btn + "</td></tr>";
   }).join("");
-  return "<table><tr><th>施設</th><th>効果</th><th>状態</th><th></th></tr>" + rows + "</table>";
+  return "<table><tr><th>施設</th><th>レベル</th><th>効果（現在）</th><th>維持費</th><th>状態</th><th></th></tr>" + rows + "</table>";
 }
 function chron(text){
   S.chronicle.push({ y:S.year, m:S.month, w:S.week, text });
@@ -1745,6 +1789,13 @@ function migrateV029(){
   if(typeof S.retiredOpen !== "boolean") S.retiredOpen = false;
   if(typeof S.hofOpen !== "boolean") S.hofOpen = false;
   if(typeof S.facilitiesOpen !== "boolean") S.facilitiesOpen = false; /* v6.8.1 */
+  if(typeof S.branchOpen !== "boolean") S.branchOpen = false; /* v7.0 */
+  if(!S.branches) S.branches = {}; /* v7.0：子系統 */
+  if(!S.jockeys) S.jockeys = seedJockeys(); /* v7.0：騎手 */
+  if(S.jockeySeq == null) S.jockeySeq = (S.jockeys || []).length;
+  if(typeof S.jockeyOpen !== "boolean") S.jockeyOpen = false;
+  if(!S.branchRecord) S.branchRecord = {};
+  if(S.branchSeq == null) S.branchSeq = 0;
   /* v2.4 移行：今週のトピックの開閉状態。既定は閉じた状態（false） */
   if(typeof S.topicsOpen !== "boolean") S.topicsOpen = false;
   /* v3.7 移行：通知枠（旧セーブには無いので補う） */
@@ -1935,6 +1986,7 @@ function raceMilestones(h, race, finish, prize){
   S.farmWins++;
   for(const t of WIN_MARKS) if(S.farmWins>=t && M.winsMark<t){ M.winsMark = t; topic("🎉 牧場の通算 "+t+" 勝に到達しました"); }
   nickRecordWin(h, race); /* v6.2：ニックス実績の記録（重賞以上の勝ち） */
+  branchRecordWin(h, race); /* v7.0：子系統の成立実績（G1級の勝ち） */
   /* 重賞初制覇（v0.37・オーナー要望）：その馬にとって初めての重賞勝ちは年表に残す（結果は更新済みなので、重賞勝ちがちょうど1つなら今回が初） */
   if(GRADED_SET.includes(race.grade) && gradedWinList(h).length===1){
     topic("🏆 "+h.name+" が "+race.name+" で重賞初制覇です");
@@ -2420,7 +2472,7 @@ function rollInheritSlot(slot, plusVal, minusVal, sireT, damT){
   return r === "plus" ? plusVal : r === "minus" ? minusVal : null;
 }
 function rollPlainSlot(plusVal, minusVal){ const r = rollTraitSide(0.10, 0.10); return r === "plus" ? plusVal : r === "minus" ? minusVal : null; }
-function genTraits(h, sireT, damT){
+function genTraits(h, sireT, damT, xBoost){
   const t = { fresh:null, tsume:false, big:false, spread:null, pasture:null, gate:null, fragile:false, recovery:null, cond:null,
     seasonGood:0, seasonBad:1, hand:"L", pred:null, known:{ fresh:false, tsume:false, big:false, spread:false } };
   /* 継承する（体質・回復系） */
@@ -2444,6 +2496,11 @@ function genTraits(h, sireT, damT){
   t.gate = rollPlainSlot("good", "bad");
   t.tsume = Math.random() < 0.10;
   t.big = Math.random() < 0.10;
+  /* v7.0：子系統の体質の色 — ファウンダーが持っていた体質の発現を押し上げる */
+  for(const b of (xBoost || [])){
+    if(b.slot === "fragile"){ if(!t.fragile && Math.random() < b.p) t.fragile = true; }
+    else if(t[b.slot] !== b.val && Math.random() < b.p) t[b.slot] = b.val;
+  }
   /* 同時発現は5つまで（季節・左右回りは数えない） */
   const rolledKeys = ["fresh", "tsume", "big", "spread", "pasture", "gate", "fragile", "recovery", "cond"];
   const expressed = rolledKeys.filter(k => t[k]);
@@ -2699,6 +2756,36 @@ function agariFor(h, race, pace, scoreGap){
   a += rnd(-0.3, 0.3);
   return clamp(a, race.surface === "ダート" ? 34.5 : 32.6, race.surface === "ダート" ? 43.0 : 40.5).toFixed(1);
 }
+/* ================= 故障の種類（v7.0・オーナー 委任で AI 設計 2026-11-22） =================
+   故障には名前があり、名前ごとに休養期間と能力低下の大きさが違う。診療所の期間短縮・
+   能力低下の回避は名前のある故障にもそのまま効く。落馬の故障は骨折が多めに出る */
+const INJURY_LIGHT = [
+  { name: "球節炎", wMin: 3, wMax: 6, dmg: 0 },
+  { name: "蹄挫傷", wMin: 2, wMax: 5, dmg: 0 },
+  { name: "フレグモーネ", wMin: 2, wMax: 4, dmg: 0 },
+  { name: "鼻出血", wMin: 4, wMax: 4, dmg: 0 }
+];
+const INJURY_HEAVY = [
+  { name: "屈腱炎", wMin: 16, wMax: 28, dmg: 3 },
+  { name: "骨折", wMin: 14, wMax: 24, dmg: 3 },
+  { name: "蹄葉炎", wMin: 12, wMax: 20, dmg: 3 },
+  { name: "繋靭帯炎", wMin: 10, wMax: 18, dmg: 2 }
+];
+function rollInjury(heavy, fall){
+  const pool = heavy ? INJURY_HEAVY : INJURY_LIGHT;
+  let t = pool[irnd(0, pool.length - 1)];
+  if(fall && heavy && Math.random() < 0.5) t = INJURY_HEAVY[1]; /* 落馬は骨折寄り */
+  return { name: t.name, weeks: clinicWeeks(irnd(t.wMin, t.wMax)), dmg: t.dmg };
+}
+function applyInjuryDamage(h, dmg){
+  if(!dmg || clinicSavesDamage()) return false;
+  const ps = ["spd", "sta", "gut"][irnd(0, 2)];
+  const vals = { spd: h.spd, sta: h.sta, gut: h.gut };
+  vals[ps] = Math.max(35, vals[ps] - dmg);
+  setParams(h, vals.spd, vals.sta, vals.gut);
+  return true;
+}
+
 function runRace(race, entries){
   const fs = Math.max(fieldSize(race), entries.length+6);
   const [rlo, rhi] = rivalStrength(race);
@@ -2713,6 +2800,7 @@ function runRace(race, entries){
     if(tf>0) h.fatigue = clamp(h.fatigue + tf, 0, 100);
     tfMap.set(h, tf);
   }
+  const jMap = assignJockeys(race, entries); /* v7.0：騎手の割り当て */
   const runners = [];
   const traitMap = new Map(); /* v6.0：馬特性の当日補正（結果処理で確定判定・叩き良化の段階更新に使う） */
   for(const h of entries){
@@ -2721,7 +2809,7 @@ function runRace(race, entries){
     const wall = assignedWeight(race, h);
     const w = wtActive ? wall : null;
     const tmods = traitRaceMods(h, race); traitMap.set(h, tmods);
-    runners.push({ horse:h, weight:w, wall, score: (isJumpRace(race) ? jumpBase(h, race) : raceBase(h,race))*aptitudeFactor(h,race) /* v5.0：障害はスタミナ・根性寄りのブレンドで */*affinityFactor(h,race)*goingFactor(h, race, absWeek())*euFactor(h, race) /* v5.5：欧州適性 */*styleFactor(h,pace)*(w!=null ? weightFactor(w) : 1)*(h.talent === "longshot" ? 1.03 : 1)*tmods.factor /* v6.0：馬特性 */*(1 + rnd(-1,1)*spread) /* v4.2：大駆けは人気薄で底上げ */, gut });
+    runners.push({ horse:h, weight:w, wall, score: (isJumpRace(race) ? jumpBase(h, race) : raceBase(h,race))*aptitudeFactor(h,race) /* v5.0：障害はスタミナ・根性寄りのブレンドで */*affinityFactor(h,race)*goingFactor(h, race, absWeek())*euFactor(h, race) /* v5.5：欧州適性 */*styleFactor(h,pace)*(w!=null ? weightFactor(w) : 1)*(h.talent === "longshot" ? 1.03 : 1)*tmods.factor /* v6.0：馬特性 */*jockeyFactor(jMap.get(h), h) /* v7.0：騎手 */*(1 + rnd(-1,1)*spread) /* v4.2：大駆けは人気薄で底上げ */, gut });
   }
   const nRivals = fs - entries.length;
   for(let i=0;i<nRivals;i++){
@@ -2779,9 +2867,10 @@ function runRace(race, entries){
       surface: race.surface||"", dist: race.distance_m||null, finish, field: fs, pace, style: styleOf(h),
       pass: passPositions(styleOf(h), finish, fs, h.quirk), comment: dnfSet.has(h) ? "競走中止（落馬）" : raceComment(styleOf(h), pace, finish, h.quirk) + ((traitMap.get(h) || {}).late ? "（出遅れ）" : ""), /* v5.0／v6.0：出遅れ */ dnf: dnfSet.has(h) ? true : undefined,
       weight: r.wall, transport: tfMap.get(h) || 0, bodyWeight: bw, weightDiff: (bw != null && prevBw != null) ? bw - prevBw : null,
-      time: dnfSet.has(h) ? "" : (winTime != null ? (winTime + Math.max(0, winScore - r.score) * 0.15).toFixed(1) : (race.distance_m ? (baseTime + idx*0.35 + rnd(0,0.5)).toFixed(1) : "")), agari: dnfSet.has(h) ? "" : agariFor(h, race, pace, winScore - r.score), winTime: winTime != null ? winTime.toFixed(1) : undefined, prize };
+      time: dnfSet.has(h) ? "" : (winTime != null ? (winTime + Math.max(0, winScore - r.score) * 0.15).toFixed(1) : (race.distance_m ? (baseTime + idx*0.35 + rnd(0,0.5)).toFixed(1) : "")), agari: dnfSet.has(h) ? "" : agariFor(h, race, pace, winScore - r.score), winTime: winTime != null ? winTime.toFixed(1) : undefined, prize, jockeyId: (jMap.get(h) || {}).id || undefined, jockey: (jMap.get(h) || {}).name || undefined }; /* v7.0：騎手 */
     const pay = prizePayout(prize); /* v0.56：記録は総額、資金に入るのは進上金・源泉徴収を引いた手取り */
     h.results.push(rec); h.earnings += prize; S.funds += pay.net;
+    { const jj = jMap.get(h); if(jj){ jj.rides++; jj.yearRides++; if(finish === 1){ jj.wins++; jj.yearWins++; if(isG1ClassRace(race)) jj.g1Wins++; } } } /* v7.0：騎手の成績 */
     if(prize > 0 && finish!==1) topic(payoutText(h, pay)); /* v3.7：勝利時は勝利トピックに一本化（賞金の内訳は戦績・資金で確認できる）。2着以下の賞金は従来どおり（勝利系フィルタで落ちるため実質表示されない） */
     revealAffinities(h, race, tfMap.get(h) || 0); /* 相性は走って初めて確定する（v0.52） */
     { const tm = traitMap.get(h); revealTraits(h, race, tm); if(h.traits && h.traits.fresh === "tataki") h._tatakiNext = !!(tm && tm.tatakiStage === 1); } /* v6.0：特性の確定＋叩き良化の段階（次走が2戦目） */
@@ -2806,22 +2895,21 @@ function runRace(race, entries){
     /* 故障（v0.40）：疲労と状態が両方悪いまま走らせると故障することがある（管理の帰結） */
     if(!h.retired && !dnfSet.has(h) && preFat>=70 && preCon<=40 && Math.random()<Math.min(0.95, injuryChance(r.wall) * (h.talent === "iron" ? 0.5 : 1) * (traitFragile(h) ? 2 : 1)) /* v4.2：鉄馬は故障しにくい／v6.0：故障しやすいは故障率2倍 */){
       const heavy = Math.random()<0.4;
-      const weeks = clinicWeeks(heavy ? irnd(12,24) : irnd(4,8)); /* v6.7：診療所で期間×0.7 */
-      h.injuredUntil = absWeek() + weeks;
-      (h.injuries = h.injuries || []).push({ when: S.year + "年" + S.month + "月第" + S.week + "週", race: race.name, kind: heavy ? "重症" : "軽症", weeks }); /* v3.6：故障歴（馬ページに表示） */
-      let dmg = "";
-      if(heavy && !clinicSavesDamage()){ const ps = ["spd","sta","gut"][irnd(0,2)]; const vals = { spd:h.spd, sta:h.sta, gut:h.gut }; vals[ps] = Math.max(35, vals[ps]-3); setParams(h, vals.spd, vals.sta, vals.gut); dmg = "能力にも影響が残りました"; } /* v0.50：重症の能力低下は-3（下限35）／v6.7：診療所が半分の確率で防ぐ */
-      notice("🚑 "+h.name+" が故障しました（約"+weeks+"週間休養）"); /* v3.7：故障は通知枠へ */
+      const inj = rollInjury(heavy, false); /* v7.0：故障の種類 */
+      h.injuredUntil = absWeek() + inj.weeks;
+      (h.injuries = h.injuries || []).push({ when: S.year + "年" + S.month + "月第" + S.week + "週", race: race.name, kind: heavy ? "重症" : "軽症", name: inj.name, weeks: inj.weeks }); /* v3.6：故障歴（馬ページに表示） */
+      const dmgHit = applyInjuryDamage(h, inj.dmg);
+      notice("🚑 "+h.name+" が "+inj.name+" を発症しました（約"+inj.weeks+"週間休養）" + (dmgHit ? "。能力にも影響が残りました" : "")); /* v3.7：故障は通知枠へ */
     }
     /* v5.0：落馬した馬は半分の確率で故障する（重症は1/4）。無事でも競走中止は通知する */
     if(dnfSet.has(h) && !h.retired){
       if(!isInjured(h) && Math.random() < 0.5){
         const heavyF = Math.random() < 0.25;
-        const weeksF = clinicWeeks(heavyF ? irnd(12,24) : irnd(4,8)); /* v6.7：診療所 */
-        h.injuredUntil = absWeek() + weeksF;
-        (h.injuries = h.injuries || []).push({ when: S.year + "年" + S.month + "月第" + S.week + "週", race: race.name, kind: heavyF ? "重症" : "軽症", weeks: weeksF });
-        if(heavyF && !clinicSavesDamage()){ const ps = ["spd","sta","gut"][irnd(0,2)]; const vals = { spd:h.spd, sta:h.sta, gut:h.gut }; vals[ps] = Math.max(35, vals[ps]-3); setParams(h, vals.spd, vals.sta, vals.gut); }
-        notice("🚑 " + h.name + " が " + race.name + " で落馬し故障しました（約" + weeksF + "週間休養）");
+        const injF = rollInjury(heavyF, true); /* v7.0：故障の種類（落馬は骨折寄り） */
+        h.injuredUntil = absWeek() + injF.weeks;
+        (h.injuries = h.injuries || []).push({ when: S.year + "年" + S.month + "月第" + S.week + "週", race: race.name, kind: heavyF ? "重症" : "軽症", name: injF.name, weeks: injF.weeks });
+        applyInjuryDamage(h, injF.dmg);
+        notice("🚑 " + h.name + " が " + race.name + " で落馬し故障しました（" + injF.name + "・約" + injF.weeks + "週間休養）");
       } else notice("🐴 " + h.name + " は " + race.name + " で競走中止（落馬）しました");
     }
   });
@@ -2853,7 +2941,7 @@ function advanceWeek(){
     if(h.retired) continue;
     if(h.expedReturnAbs != null && absWeek() > h.expedReturnAbs) h.expedReturnAbs = null;
     if(h.status==="racehorse"){
-      const rf = recoveryFactor(h) * traitRecoveryMul(h) * (facilityReady("onsen") ? 1.25 : 1); /* v0.50：ピーク後は疲労回復が衰える（-20%/-40%）。状態回復は不変／v6.0：疲労の抜け（早い×1.25／遅い×0.75）／v6.7：温泉・馬プールで+25% */
+      const rf = recoveryFactor(h) * traitRecoveryMul(h) * (1 + 0.05 * facilityLevel("onsen")); /* v7.0：温泉はレベル制 */ /* v0.50：ピーク後は疲労回復が衰える（-20%/-40%）。状態回復は不変／v6.0：疲労の抜け（早い×1.25／遅い×0.75）／v6.7：温泉・馬プールで+25% */
       if(isTravelWeek(h, absWeek())){ h.fatigue = clamp(h.fatigue+10,0,100); } /* v0.51：出発・検疫週（レース・調教不可） */
       else if(isReturnWeek(h, absWeek())){ h.fatigue = clamp(h.fatigue-40,0,100); h.condition = clamp(h.condition+traitCondGain(h, 10),5,100); } /* v0.51：帰国・検疫週（休養同率） */
       else if(isInjured(h)){ h.fatigue = clamp(h.fatigue-Math.round(40*rf),0,100); h.condition = clamp(h.condition+traitCondGain(h, 10),5,100); }
@@ -2896,6 +2984,8 @@ function inheritGrowth(a, b){
 function onNewYear(){
   snapshotRanks();
   nickYearEnd(); /* v6.2：ニックス候補の昇格（約5%）・消滅の年末判定 */
+  branchYearEnd(); /* v7.0：子系統の昇格・消滅の年末判定 */
+  jockeyYearEnd(); /* v7.0：騎手のレベル・引退・代替わり */
   /* 空胎カウンタ（v3.1）：前年に種付けしたのに受胎しなかった繁殖牝馬は空胎+1。
      受胎中の馬は出産処理側で0に戻す。出産処理より前に数える（出産で pregnant が外れた
      馬を誤って数えないため）。種付けしていない年は据え置き */
@@ -2927,7 +3017,8 @@ function onNewYear(){
       const nickShift = nick==="◎" ? 3 : nick==="○" ? 1.5 : nick==="×" ? -1.5 : 0;
       const spN = inbreedNote(h, st) ? 17 : 13;
       /* 系統の個性（v0.54）：父系フル＋母父系×0.5 の寄せ（父系は種牡馬の系、母父系は母の父の系） */
-      const lb = lineBlend(stallionMajorLine(st), majorLineOfName(h.sire), h.bms);
+      const sireBr = branchOfSire(st.name), bmsBr = branchOfSire(h.sire); /* v7.0：子系統 */
+      const lb = lineBlend(stallionMajorLine(st), majorLineOfName(h.sire), h.bms, sireBr, bmsBr);
       /* v6.2：成立済みの個体ニックスは系統デメリットを打ち消す（初期ニックス分は lineBlend 内で処理済みなので二重に足さない） */
       if(!(LINE_NICKS.some(nk => nk.sire === stallionMajorLine(st) && nk.bms === majorLineOfName(h.sire))) && S.nicks && S.nicks[nickKeyOf(st.name, h.sire)])
         for(const p of ["spd","sta","gut"]) lb[p] += lb.minus[p];
@@ -2942,7 +3033,7 @@ function onNewYear(){
       /* 馬場適性（v3.9・オーナー指定）：両刀が配合に入ると産駒はもう片方に引っ張られる */
       const sType = surfTypeOf(st), dType = surfTypeOf(h);
       const dualInvolved = sType === "両刀" || dType === "両刀";
-      const foalSurfType = inheritSurfType(sType, dType, lb.surf);
+      const foalSurfType = branchSurfAdjust(inheritSurfType(sType, dType, lb.surf), sireBr, bmsBr); /* v7.0：馬場の色 */
       const [foalSurfT, foalSurfD] = surfMarksForType(foalSurfType, dualInvolved);
       const bmsSt = S.stallions.find(s=>s.name===h.sire);
       const cS = (st.dist[0]+st.dist[1])/2, cD = (h.distMin+h.distMax)/2, cB = bmsSt ? (bmsSt.dist[0]+bmsSt.dist[1])/2 : cD;
@@ -2963,23 +3054,24 @@ function onNewYear(){
       foal.aff = genAffinities(foal); /* 相性（v0.52〜）：根幹は400区切りのカテゴリ適性（v1.1〜） */
       { /* 馬特性（v6.0）：体質・回復系は父母から継承（発現率+12pt）。父は自家製種牡馬（馬オブジェクト）か種牡馬レコード側の traits から取る */
         const sireHorseT = (S.horses.find(x => x.status === "stallion" && x.name === st.name) || {}).traits || st.traits || null;
-        foal.traits = genTraits(foal, sireHorseT, h.traits || null);
+        foal.traits = genTraits(foal, sireHorseT, h.traits || null, branchTraitBoosts(sireBr, bmsBr)); /* v7.0：体質の色 */
       }
+      const bAff = branchAffMods(sireBr, bmsBr); /* v7.0：適性の色 */
       { /* 重馬場適性は父母から継承（v3.11） */
         const sg = (st.aff && st.aff.goAff) || "-", dg = (h.aff && h.aff.goAff) || "-";
-        let pO = 0.25, pX = 0.15;
+        let pO = 0.25 + bAff.goAff.o, pX = 0.15 + bAff.goAff.x;
         for(const pv of [sg, dg]){ if(pv === "○") pO += 0.12; else if(pv === "✕") pX += 0.10; }
         foal.aff.goAff = rollMark(Math.min(pO, 0.55), Math.min(pX, 0.45));
       }
       { /* 障害適性も父母から継承（v5.0・重馬場適性と同じ寄せ） */
         const sj = (st.aff && st.aff.jumpAff) || "-", dj = (h.aff && h.aff.jumpAff) || "-";
-        let pOj = 0.20, pXj = 0.15;
+        let pOj = 0.20 + bAff.jumpAff.o, pXj = 0.15 + bAff.jumpAff.x;
         for(const pv of [sj, dj]){ if(pv === "○") pOj += 0.12; else if(pv === "✕") pXj += 0.10; }
         foal.aff.jumpAff = rollMark(Math.min(pOj, 0.55), Math.min(pXj, 0.45));
       }
       { /* 欧州適性も父母から継承（v5.5・障害適性と同じ寄せ） */
         const se = (st.aff && st.aff.euAff) || "-", de = (h.aff && h.aff.euAff) || "-";
-        let pOe = 0.20, pXe = 0.15;
+        let pOe = 0.20 + bAff.euAff.o, pXe = 0.15 + bAff.euAff.x;
         for(const pv of [se, de]){ if(pv === "○") pOe += 0.12; else if(pv === "✕") pXe += 0.10; }
         foal.aff.euAff = rollMark(Math.min(pOe, 0.55), Math.min(pXe, 0.45));
       }
@@ -3000,7 +3092,7 @@ function onNewYear(){
       }
       /* 気性の継承：父母平均＋母父の薄い引き＋ブレ。両親とも荒いと「確変」で癖の確率が跳ね上がる */
       const bmsTemp = bmsSt ? stallionGen(bmsSt).temp : 55;
-      foal.temp = clamp(Math.round((sg.temp + (h.temp != null ? h.temp : 55))/2 + (bmsTemp - 55) * 0.15 + triSpread(10)), 25, 98);
+      foal.temp = clamp(Math.round((sg.temp + (h.temp != null ? h.temp : 55))/2 + (bmsTemp - 55) * 0.15 + triSpread(10)) + branchTempShift(sireBr, bmsBr), 25, 98); /* v7.0：気性の色 */
       foal.quirk = rollQuirk(foal.temp, isHotCross(sg.temp, h.temp) ? 2.2 : 1);
       /* 変異（v0.41→v0.42で父側に訂正）：変異因子を持つ種牡馬の産駒は約1%で能力・適性が大きく変異する */
       if(st.mutation && Math.random()<0.01){
@@ -4439,8 +4531,9 @@ function drawEntryList(){
   const entHere = h.entries ? h.entries[targetAbs] : null;
   const entRace = entHere ? wk.find(r => raceKeyOf(targetAbs, r) === entHere.key) : null;
   const entNote = entHere ? "<div class='topic'>📝 この週は <b>"+(entRace ? entRace.name : "登録済みレース")+"</b> に登録済みです（別のレースを選ぶと差し替わります）</div>" : "";
-  box.innerHTML = trialsHtml + entNote + "<div class='sub'>絞込み後 "+arr.length+" 件（うち出走可能 "+okCount+" 件）／"+tm+"月第"+tw+"週の全 "+wk.length+" レース</div>"
+  box.innerHTML = jockeyPrefBar(h) + trialsHtml + entNote + "<div class='sub'>絞込み後 "+arr.length+" 件（うち出走可能 "+okCount+" 件）／"+tm+"月第"+tw+"週の全 "+wk.length+" レース</div>"
     + "<div class='entryscroll'><table><tr><th></th><th>レース</th><th>区分</th><th>賞金</th><th></th></tr>"+rows+"</table></div>";
+  const jps2 = $("#jockeyPrefSel2"); if(jps2) jps2.onchange = () => { h.jockeyPref = jps2.value || null; save(); drawEntryList(); }; /* v7.0：騎手指定 */
   document.querySelectorAll("[data-enter]").forEach(btn => btn.onclick = () => {
     if(!h.entries) h.entries = {};
     const key = btn.getAttribute("data-key");
@@ -4474,7 +4567,7 @@ function stallionFee(st){ return isHomebredStallion(st) ? 0 : FEE_VAL[st.fee_tie
 /* ===== v0.40：故障・繁殖の年齢・自家製種牡馬の供用リミット ===== */
 function isInjured(h){ return h.injuredUntil != null && h.injuredUntil > absWeek(); }
 /* 受胎率（繁殖ルール v1.0 の年齢曲線）：4〜9歳 85% → 16歳 45% */
-function conceptionRate(m){ const a = ageOf(m); let base = a<=9 ? 0.85 : a===10 ? 0.82 : a===11 ? 0.78 : a===12 ? 0.72 : a===13 ? 0.66 : a===14 ? 0.60 : a===15 ? 0.52 : 0.45; if(m.talent === "fertile") base = Math.min(0.95, base + 0.10); /* v4.2：仔出しの良さは受胎率+10pt */ if(a >= 12 && facilityReady("foaling")) base = Math.min(0.95, base + 0.10); /* v6.7：分娩舎・繁殖施設は12歳以上に+10pt */ return base; }
+function conceptionRate(m){ const a = ageOf(m); let base = a<=9 ? 0.85 : a===10 ? 0.82 : a===11 ? 0.78 : a===12 ? 0.72 : a===13 ? 0.66 : a===14 ? 0.60 : a===15 ? 0.52 : 0.45; if(m.talent === "fertile") base = Math.min(0.95, base + 0.10); /* v4.2：仔出しの良さは受胎率+10pt */ if(a >= 12){ const flv = facilityLevel("foaling"); if(flv) base = Math.min(0.95, base + 0.02 * flv); } /* v6.7→v7.0：分娩舎は12歳以上にレベル×2pt */ return base; }
 function mareBreedable(m){ return m.status==="broodmare" && !m.pregnant && !m.breedRetired && ageOf(m)>=4 && ageOf(m)<=16; }
 /* 高齢出産のリスク（出産時の年齢で判定）：14歳から */
 function foalingRisk(age){ return age>=17 ? 0.30 : age===16 ? 0.22 : age===15 ? 0.14 : age===14 ? 0.08 : 0; }
@@ -4627,7 +4720,7 @@ function broodmareTable(){
     for(const st of list){
       const note = inbreedNote(m, st);
       const hotNote = isHotCross(stallionGen(st).temp, m.temp) ? "気性が荒くなりやすい配合（確変）" : "";
-      html += "<tr><td><button data-fav='"+st.name+"' class='ghost' title='お気に入り'>"+((S.favs||[]).includes(st.name)?"★":"☆")+"</button></td><td>"+st.name+(isHomebredStallion(st)?" <span class='ok'>自家製</span>":"")+(st.sire?" <span class='sub'>父 "+st.sire+"</span>":"")+"<br><span class='sub'>配合の色："+lineColourText(lineBlend(stallionMajorLine(st), mareBmsLine, m.bms))+"</span></td><td>"+(st.region==="overseas"?"海外":"国内")+"</td><td>"+st.surface+"</td><td>"+st.dist[0]+"-"+st.dist[1]+"m</td><td>"+st.growth+"</td><td>"+st.fee_tier+"</td><td>"+stallionTendency(st)+"</td><td>"+(stallionFee(st)===0 ? "無料" : man(stallionFee(st)))+"</td><td>"+compatMark(m, st)+(isNickPair(st, m, mareBmsLine)?" <span class=\'ok\'>✨ニックス</span>":"")+(nickHintFor(st, m)?" <span class=\'sub\'>"+nickHintFor(st, m)+"</span>":"")+(note?" <span class='bad'>"+note+"</span>":"")+(hotNote?" <span class='bad'>"+hotNote+"</span>":"")+"</td><td><button data-matewith='"+st.name+"'>種付け</button></td></tr>";
+      html += "<tr><td><button data-fav='"+st.name+"' class='ghost' title='お気に入り'>"+((S.favs||[]).includes(st.name)?"★":"☆")+"</button></td><td>"+st.name+(isHomebredStallion(st)?" <span class='ok'>自家製</span>":"")+(st.sire?" <span class='sub'>父 "+st.sire+"</span>":"")+"<br><span class='sub'>配合の色："+lineColourText(lineBlend(stallionMajorLine(st), mareBmsLine, m.bms, branchOfSire(st.name), branchOfSire(m.sire)))+"</span></td><td>"+(st.region==="overseas"?"海外":"国内")+"</td><td>"+st.surface+"</td><td>"+st.dist[0]+"-"+st.dist[1]+"m</td><td>"+st.growth+"</td><td>"+st.fee_tier+"</td><td>"+stallionTendency(st)+"</td><td>"+(stallionFee(st)===0 ? "無料" : man(stallionFee(st)))+"</td><td>"+compatMark(m, st)+(isNickPair(st, m, mareBmsLine)?" <span class=\'ok\'>✨ニックス</span>":"")+(nickHintFor(st, m)?" <span class=\'sub\'>"+nickHintFor(st, m)+"</span>":"")+(note?" <span class='bad'>"+note+"</span>":"")+(hotNote?" <span class='bad'>"+hotNote+"</span>":"")+"</td><td><button data-matewith='"+st.name+"'>種付け</button></td></tr>";
     }
     html += "</table>";
   }
@@ -4761,7 +4854,7 @@ function openStallion(name){
     + "<dt>格（ティア）</dt><dd>"+st.fee_tier+"（種付料 "+(stallionFee(st)===0 ? "無料" : fee(st.fee_tier))+"）</dd>"
     + "<dt>地域</dt><dd>"+(st.region==="overseas" ? "海外" : "国内")+"</dd>"
     + "<dt>適性</dt><dd>"+st.surface+" "+st.dist[0]+"-"+st.dist[1]+"m・"+st.growth+"</dd>"
-    + "<dt>系統</dt><dd>"+(ln ? ln+"<br><span class='sub'>"+LINE_TRAITS[ln].phrase+"</span>" : "―")+"</dd>"
+    + "<dt>系統</dt><dd>"+(()=>{ const br = branchOfSire(st.name); if(br) return br.founder+"系（"+BRANCH_TIER_NAMES[br.tier]+"／"+branchParentLabel(br)+"）<br><span class='sub'>"+branchPhrase(br)+"</span>"; return ln ? ln+"<br><span class='sub'>"+LINE_TRAITS[ln].phrase+"</span>" : "―"; })()+"</dd>"
     + "<dt>傾向</dt><dd>"+stallionTendency(st)+"</dd>"
     + (st.weight != null ? "<dt>馬体重</dt><dd>"+st.weight+"kg</dd>" : "")
     + (st.jizoku ? "<dt>持続</dt><dd>🌱 持続の特性あり（衰えにくい）</dd>" : "")
@@ -4791,7 +4884,7 @@ function viewStallions(){
     document.querySelectorAll("[data-stallion]").forEach(el => el.onclick = () => openStallion(el.getAttribute("data-stallion"))); /* v3.1：種牡馬の詳細（血統表） */
   }, 0);
   const list = sortedStallions();
-  const rows = list.map(st=>"<tr><td><button data-fav='"+st.name+"' class='ghost' title='お気に入り'>"+((S.favs||[]).includes(st.name)?"★":"☆")+"</button> <span class='horse-link' data-stallion='"+st.name+"'>"+st.name+"</span>"+(isHomebredStallion(st)?" <span class='ok'>自家製</span>":"")+(()=>{ const hh = S.horses.find(x=>x.name===st.name); return (hh && hh.studYear!=null) ? " <span class='sub'>供用"+(S.year-hh.studYear+1)+"年目</span>" : ""; })()+(st.birthYear != null ? " <span class='sub'>"+(S.year-st.birthYear)+"歳</span>" : "")+((!st.retired && st.retireAge != null && st.birthYear != null && (S.year-st.birthYear) >= st.retireAge) ? " <span class='bad'>今年限り</span>" : "")+(st.record ? "<br><span class='sub'>"+st.record+"</span>" : "")+(st.fresh?" <span class='ok'>NEW</span>":"")+(st.mutation?" <span class='ok'>🧬変異因子</span>":"")+(st.jizoku?" <span class='ok'>🌱持続</span>":"")+(st.sire?" <span class='sub'>父 "+st.sire+"</span>":"")+"</td><td>"+(st.region==="overseas"?"海外":"国内")+"</td><td>"+st.surface+"</td><td>"+st.dist[0]+"-"+st.dist[1]+"m</td><td>"+st.growth+"</td><td>"+st.fee_tier+"</td><td>"+stallionTendency(st)+"</td><td>"+(()=>{ const ln = stallionMajorLine(st); return ln ? ln+"<br><span class='sub'>"+LINE_TRAITS[ln].phrase+"</span>" : "―"; })()+"</td><td>"+(stallionFee(st)===0 ? "無料" : fee(st.fee_tier))+"</td><td>"+(st.weight != null ? st.weight+"kg" : "―")+"</td></tr>").join("");
+  const rows = list.map(st=>"<tr><td><button data-fav='"+st.name+"' class='ghost' title='お気に入り'>"+((S.favs||[]).includes(st.name)?"★":"☆")+"</button> <span class='horse-link' data-stallion='"+st.name+"'>"+st.name+"</span>"+(isHomebredStallion(st)?" <span class='ok'>自家製</span>":"")+(()=>{ const hh = S.horses.find(x=>x.name===st.name); return (hh && hh.studYear!=null) ? " <span class='sub'>供用"+(S.year-hh.studYear+1)+"年目</span>" : ""; })()+(st.birthYear != null ? " <span class='sub'>"+(S.year-st.birthYear)+"歳</span>" : "")+((!st.retired && st.retireAge != null && st.birthYear != null && (S.year-st.birthYear) >= st.retireAge) ? " <span class='bad'>今年限り</span>" : "")+(st.record ? "<br><span class='sub'>"+st.record+"</span>" : "")+(st.fresh?" <span class='ok'>NEW</span>":"")+(st.mutation?" <span class='ok'>🧬変異因子</span>":"")+(st.jizoku?" <span class='ok'>🌱持続</span>":"")+(st.sire?" <span class='sub'>父 "+st.sire+"</span>":"")+"</td><td>"+(st.region==="overseas"?"海外":"国内")+"</td><td>"+st.surface+"</td><td>"+st.dist[0]+"-"+st.dist[1]+"m</td><td>"+st.growth+"</td><td>"+st.fee_tier+"</td><td>"+stallionTendency(st)+"</td><td>"+(()=>{ const br = branchOfSire(st.name); if(br) return br.founder+"系（"+BRANCH_TIER_NAMES[br.tier]+"）<br><span class='sub'>"+branchPhrase(br)+"</span>"; const ln = stallionMajorLine(st); return ln ? ln+"<br><span class='sub'>"+LINE_TRAITS[ln].phrase+"</span>" : "―"; })()+"</td><td>"+(stallionFee(st)===0 ? "無料" : fee(st.fee_tier))+"</td><td>"+(st.weight != null ? st.weight+"kg" : "―")+"</td></tr>").join("");
   const fsel = (id, cur, pairs) => "<select id='"+id+"'>" + pairs.map(p=>"<option value='"+p[0]+"'"+(cur===p[0]?" selected":"")+">"+p[1]+"</option>").join("") + "</select>";
   const retiredN = S.stallions.filter(st=>st.retired).length;
   return "<div class='sub'>種牡馬は世代交代します。引退した種牡馬には種付けできません（最終年は年初に予告されます）。現在 "+list.length+" 頭が供用中（引退済み "+retiredN+" 頭）。種付け料はティア別の設計値です。名前をクリックすると詳細（5世代血統表）が見られます。</div>"
@@ -4940,7 +5033,7 @@ function viewManual(){
   h += sec("🗓 週の進め方と1年の流れ",
     "「週を進める」で1週進みます。1年は日曜起算の52週です。主な季節イベント：<br>・<b>2〜6月</b>：繁殖シーズン（種付けはこの期間だけ）<br>・<b>年始</b>：出産と全馬の加齢<br>・<b>6月</b>：2歳馬のデビューが始まります（早い馬から。晩成は12月〜年明け、超晩成は3歳の春先）<br>・<b>11〜12月</b>：繁殖牝馬セール（毎年10頭出品）<br>・<b>年末</b>：引退判定と年次決算<br>「次のイベントまで」で区切りまで一気に進められます。");
   h += sec("💴 お金",
-    "収入は基本的に賞金だけです。賞金は馬主80%／調教師10%／騎手5%／厩務員5%に配分され、馬主分からは50万円を超える部分に10.21%の源泉徴収がかかります。G1勝ち賞金の目安は2億円、未勝利戦は550万円です。<br>支出：種付料（ランク制：S 3,000万円／A 1,500万円／B 800万円／C 400万円、自家製種牡馬は無料）、海外遠征費（1頭1レース1,000万円）、月次コスト（委託費：現役馬1頭50万円、育成費：0〜1歳1頭20万円、繋養費：繁殖牝馬・自家製種牡馬1頭20万円、経営費：月100万円）。<br>資金はマイナスになってもゲームオーバーにはなりません。<br>牧場施設（任意・年表タブから建設）：温泉・馬プール（1億円、疲労の回復が25%速い）、診療所（1億5,000万円、故障の期間が3割短くなり、重い故障の能力低下を半分の確率で防ぐ）、分娩舎・繁殖施設（6,000万円、12歳以上の繁殖牝馬の受胎率+10ポイント）。建設には約3ヶ月かかり、維持費はかかりません。");
+    "収入は基本的に賞金だけです。賞金は馬主80%／調教師10%／騎手5%／厩務員5%に配分され、馬主分からは50万円を超える部分に10.21%の源泉徴収がかかります。G1勝ち賞金の目安は2億円、未勝利戦は550万円です。<br>支出：種付料（ランク制：S 3,000万円／A 1,500万円／B 800万円／C 400万円、自家製種牡馬は無料）、海外遠征費（1頭1レース1,000万円）、月次コスト（委託費：現役馬1頭50万円、育成費：0〜1歳1頭20万円、繋養費：繁殖牝馬・自家製種牡馬1頭20万円、経営費：月100万円）。<br>資金はマイナスになってもゲームオーバーにはなりません。<br>牧場施設（任意・年表タブから建設）：3施設とも5段階まで強化でき、効果はレベルで段階的に上がります（今の効果が最大のLv5）。温泉・馬プール（疲労の回復が速い）、診療所（故障の期間短縮と能力低下の回避。競走寿命の見立てもLv1から見られます）、分娩舎・繁殖施設（12歳以上の受胎率アップ）。費用はレベルごとに嵩み（全部を最大までで総額約50億円）、維持費が毎月かかります（全部最大で年約10億円）。1段階の工事は約2ヶ月で、工事中も今のレベルの効果は効きます。");
   h += sec("📊 能力の見方（ランク表示）",
     "能力は数字ではなく <b>S〜Gのランク</b> でだけ表示されます（スピード／スタミナ／根性の3要素＋総合評価）。内部的には100点満点で、Sは最上位帯です。若い馬ほど評価は変動し、レースや調教で育っていきます。");
   h += sec("🌱 成長型と仕上がり",
@@ -4952,7 +5045,7 @@ function viewManual(){
   h += sec("🏟 馬場適性（芝／ダート）",
     "馬場適性は芝とダート別々のマークで、<b>生まれた時から表示</b>されます（例：芝○ ダート✕）。係数は <b>○ 1.00／− 0.90／✕ 0.78</b> で、✕の馬場では勝負になりません。−の馬場では重賞級は苦しく、条件戦〜OPが主戦場になります。<br>受け継がれ方：両刀（○○）が配合に入ると、産駒はもう片方の適性に引っ張られます。確率の目安は次の通りです（どの結果も最低5%）。<br>・芝×芝 → 芝90%／両刀5%／ダート5%<br>・ダート×ダート → ダート90%／両刀5%／芝5%<br>・芝×ダート → 父側45%／母側45%／両刀約10%（系統の寄りで父側が最大±25%ずれる）<br>・両刀×芝 → 芝85%／両刀10%／ダート5%<br>・両刀×ダート → ダート85%／両刀10%／芝5%<br>・両刀×両刀 → 芝45%／ダート45%／両刀10%<br>両刀が絡んだ配合で生まれた専門型は、裏側のマークが − になります（○−型）。自動出走は ✕ の馬場のレースを避けます（手動登録は可能です）。また重賞については、○ の馬場のレースだけが自動の対象です。− の馬場の重賞は、自動出走・温存・G1リザーブ・自動ローテーションのいずれの構想にも入りません（条件戦では ○ の馬場を優先しつつ − の馬場も使います）。");
   h += sec("🐎 レースと出走登録",
-    "レースは中央（JRA）・地方（Jpn重賞のみ）・海外（G1〜G3）があります。出走登録は3週先まで先行登録できます。<br>・未勝利の馬は新馬・未勝利戦だけに出られます<br>・海外の重賞に出るには、国内の重賞かリステッドで勝つか3着以内に入る必要があります<br>・クラスは勝ち数で上がり、4勝以上か重賞勝ちでオープン入りです<br>・疲労が高い（70以上）上に調子が悪い（40以下）と、レースで故障することがあります。故障中は出走できず、軽症で4〜8週、重症で12〜24週かかります<br>・輸送でも疲労します。遠くの競馬場ほど大きく、2歳馬は1.5倍です<br>・カレンダータブでは、過去に勝ったことのある重賞に「🏆制覇」の印が付きます（勝ち数と、最近勝った年・馬名も表示）。まだ勝っていない重賞探しに使えます<br>・馬の選択は、名前検索と絞り込み（⭐お気に入り／登録済みの馬だけ／出走できる馬だけ）と並び替え（年齢順・クラス順・名前順）ができます。⭐はお気に入りの印で、馬ごとに付け外しできます<br>・三冠路線（クラシック三冠・牝馬三冠・秋古馬三冠）は、脚を勝つと残りの脚が自動でローテーション指定され、その直前は路線外のレースを自動で足さなくなります<br>・G1級のレースを走った馬は8週間「休養」になり、その間は自動出走・自動指定がG1以外のレースを拾いません（手動登録とプレイヤーの指定はいつも通り出走できます）<br>・自動出走・自動指定では、見込み斤量が基準より3kg以上重くなるレース（ハンデ・別定）には入らない<br>・国内の平地レースには勝ち時計が付き、成績欄で上がり3Fも見られます。上がりは脚質と末脚の強さで決まります<br>・コースレコード（競馬場×馬場×距離）はカレンダータブの「⏱ コースタイム」で見られます。自馬が重賞でレコードを更新すると年表に残ります");
+    "レースは中央（JRA）・地方（Jpn重賞のみ）・海外（G1〜G3）があります。出走登録は3週先まで先行登録できます。<br>・未勝利の馬は新馬・未勝利戦だけに出られます<br>・海外の重賞に出るには、国内の重賞かリステッドで勝つか3着以内に入る必要があります<br>・クラスは勝ち数で上がり、4勝以上か重賞勝ちでオープン入りです<br>・疲労が高い（70以上）上に調子が悪い（40以下）と、レースで故障することがあります。故障には名前があり（軽症：球節炎・蹄挫傷・フレグモーネ・鼻出血／重症：屈腱炎・骨折・蹄葉炎・繋靭帯炎）、名前ごとに休養期間と能力への影響が違います。故障歴は馬のページに残ります<br>・輸送でも疲労します。遠くの競馬場ほど大きく、2歳馬は1.5倍です<br>・カレンダータブでは、過去に勝ったことのある重賞に「🏆制覇」の印が付きます（勝ち数と、最近勝った年・馬名も表示）。まだ勝っていない重賞探しに使えます<br>・馬の選択は、名前検索と絞り込み（⭐お気に入り／登録済みの馬だけ／出走できる馬だけ）と並び替え（年齢順・クラス順・名前順）ができます。⭐はお気に入りの印で、馬ごとに付け外しできます<br>・三冠路線（クラシック三冠・牝馬三冠・秋古馬三冠）は、脚を勝つと残りの脚が自動でローテーション指定され、その直前は路線外のレースを自動で足さなくなります<br>・G1級のレースを走った馬は8週間「休養」になり、その間は自動出走・自動指定がG1以外のレースを拾いません（手動登録とプレイヤーの指定はいつも通り出走できます）<br>・自動出走・自動指定では、見込み斤量が基準より3kg以上重くなるレース（ハンデ・別定）には入らない<br>・国内の平地レースには勝ち時計が付き、成績欄で上がり3Fも見られます。上がりは脚質と末脚の強さで決まります<br>・コースレコード（競馬場×馬場×距離）はカレンダータブの「⏱ コースタイム」で見られます。自馬が重賞でレコードを更新すると年表に残ります");
   h += sec("🐴 障害競走",
     "平地とは別のキャリアとして、障害競走があります。舞台は中山・東京・京都・阪神・新潟・小倉・福島・中京で、障害未勝利（月に2〜3週だけ開催、週1〜2鞍）→ 障害オープン（年に20本ほど＋実名のOP特別）→ 障害重賞（J-GIII〜J-GI）の順に上がっていきます。<br>障害に出られるのは<b>距離適性の上限が3000m以上</b>の馬だけです（素質『稀代のジャンパー』の馬は例外で、距離適性に関係なく転向できます）。各馬には隠れた「障害適性」（○／−／✕）があり、相性欄にスタッフ予想が出て、障害を走ると確定します。障害ではスタミナと根性がものを言います。落馬・競走中止もあり、確率は適性で変わります（○1%／−3%／✕7%）。落馬した馬は半分の確率で故障します。<br>障害の賞金・勝ち数は平地と合算され、平地のクラスも上がります（平地の未勝利戦は、平地で勝っていなければ出られます）。J-GI（中山大障害・中山グランドジャンプ）はG1級として数え、殿堂入りの条件や制覇マークの対象になります。通常の自動出走は障害を対象にしませんが、馬ごとに「障害のみ出走」をONにした馬は障害レースだけを年4〜5戦（J-GI・J-GII中心）で自動出走します（この設定の馬は未勝利のまま4歳を迎えても引退しません。ONの間は平地のローテーション指定も、自動・手動を問わず登録されません）。それ以外の馬の障害出走は手動登録かローテーション指定で。");
   h += sec("💰 国内G1の出走ライン",
@@ -4964,7 +5057,9 @@ function viewManual(){
   h += sec("💕 繁殖と配合",
     "種付けは2〜6月だけ。繁殖牝馬は4〜16歳が対象で、受胎率は9歳まで85%、その後下がって16歳で45%。14歳から出産のリスクが上がり、17歳で繁殖を引退します（死亡はありません）。子は年始に生まれます。<br>配合では相性（系統の特性の重なりなど）が産駒に影響します。種牡馬は世代交代していき（引退年齢は個体ごとに決まっていて、産駒が活躍すると延長されます）、引退した分は架空の新種牡馬が補充されます。");
   h += sec("🌳 系統と牝系",
-    "父系の系統特性（早熟寄り・スタミナ寄りなど）は言葉だけで表示され、配合に薄く影響します（母父は半分の効き）。<br>牝系は牝馬の子孫の広がりで育ちます。直仔5頭以上・子孫25頭以上・ポイント20以上で「候補」になり、そこから2年続けて頭数シェアなどの条件を満たすと「○○系」として成立します。成立した称号は消えませんが、細ると「衰退中」と表示されます。牝系図タブで家系の広がりが見られます。<br>メルトスイートとカルストンライトオを組み合わせると...？");
+    "父系の系統特性（早熟寄り・スタミナ寄りなど）は言葉だけで表示され、配合に薄く影響します（母父は半分の効き）。<br>牝系は牝馬の子孫の広がりで育ちます。直仔5頭以上・子孫25頭以上・ポイント20以上で「候補」になり、そこから2年続けて頭数シェアなどの条件を満たすと「○○系」として成立します。成立した称号は消えませんが、細ると「衰退中」と表示されます。牝系図タブで家系の広がりが見られます。<br>牡馬の分家（子系統）：産駒からG1級勝ち馬が3頭出た種牡馬は、自分の系統（○○系）を立てます。分家にはファウンダーの競走特性から決まる「色」が2つ付き（裏側の弱さもセット）、配合では大系統の色に代わって一番近い分家の色が効きます（母父側は半分）。分家の下に分家が増えると親系統・祖系統・大系統へ格が上がりますが、色の強さは変わりません。種牡馬が1頭もいなくなった分家は消滅します。年表タブの「牡馬系統」で家系の広がりが見られます。<br>メルトスイートとカルストンライトオを組み合わせると...？");
+  h += sec("🏇 騎手",
+    "騎手には実在の騎手をモデルにした26人がいて（名前は架空）、歳を取り、50歳で引退します。引退すると、同苗字の二世か新人の騎手がデビューします。よく乗せる騎手はレベルが上がります（年末に、その年10鞍以上乗ると+1、最大Lv5）。レベルと、その馬の主戦騎手かどうかが、わずかに着差を後押しします。<br>各馬に一番多く乗った騎手が主戦です。馬のページと出走登録画面で騎手を指定でき、指定した騎手は自動出走でも優先して乗ります。年表タブの「騎手」で現役騎手の成績が見られます。");
   h += sec("🏁 引退と種牡馬入り",
     "引退の目安は成長型で違います（早熟は4歳前後、普通は6歳前後、晩成は7歳以降）。10歳のシーズン終了が全馬の上限です。自動引退がONのときは毎月判定され、目安に達した馬はシーズン途中でも引退します（手動の場合は年末に確認します）。G1を勝った馬は、衰えが見えたら通常の目安より早く引退します（5勝以上の馬はさらに早めです）。<br>競走寿命の目安は、診療所を建設すると馬ページに「○歳の○ごろ」と表示され、目安が今年に来る馬は年始に通知されます。診療所を建設するとこの仕組み全体（見立て表示・年始通知・寿命引退）が動き始めます。自動引退がONの場合、目安に達した時点で前年まで好成績（1勝以上、または重賞で3着以内）だった馬は、好成績のまま引退します。4歳になって未勝利の馬は年末に引退します。<br>牡馬は重賞勝ちか生涯賞金1億円以上で種牡馬入りの資格があり、引退時に「種牡馬入り／売却／そのまま残す」から選べます。牝馬は繁殖入り（頭数上限内）か売却です。引退した馬は「牧場年表」タブの引退馬リストに残ります。<br>引退から50年が経つと、その馬の詳細ページは閉じられます（記録データ自体は残ります）。殿堂馬の詳細は無期限で残ります。");
   h += sec("🏆 殿堂入り",
@@ -4993,6 +5088,8 @@ function viewChron(){
   /* v2.4：殿堂リストも引退馬リストと同じく details で畳めるようにした（開閉状態は S.hofOpen、既定は閉） */
   /* v6.8.1（オーナー指示）：牧場施設は馬タブから年表タブへ移し、折りたたみ式にした */
   html += "<details data-facilities-fold" + (S.facilitiesOpen ? " open" : "") + "><summary style='cursor:pointer;font-size:16px;font-weight:bold;'>🏠 牧場施設</summary>" + facilitiesHtml() + "</details>";
+  html += branchTreeHtml();
+  html += jockeysHtml(); /* v7.0 */
   html += "<details data-hof-fold" + (S.hofOpen ? " open" : "") + "><summary style='cursor:pointer;font-size:16px;font-weight:bold;'>🏆 殿堂（" + hof.length + "頭）</summary>";
   if(hof.length){
     const rows = hof.map(h => {
@@ -5053,6 +5150,8 @@ function bindTab(){
   document.querySelectorAll("[data-retired-fold]").forEach(d=>d.addEventListener("toggle",()=>{ S.retiredOpen = !!d.open; save(); }));
   document.querySelectorAll("[data-hof-fold]").forEach(d=>d.addEventListener("toggle",()=>{ S.hofOpen = !!d.open; save(); }));
   document.querySelectorAll("[data-facilities-fold]").forEach(d=>d.addEventListener("toggle",()=>{ S.facilitiesOpen = !!d.open; save(); }));
+  document.querySelectorAll("[data-branch-fold]").forEach(d=>d.addEventListener("toggle",()=>{ S.branchOpen = !!d.open; save(); }));
+  document.querySelectorAll("[data-jockey-fold]").forEach(d=>d.addEventListener("toggle",()=>{ S.jockeyOpen = !!d.open; save(); }));
   document.querySelectorAll("[data-ltoggle]").forEach(el => el.onclick = () => {
     const id = el.getAttribute("data-ltoggle");
     if(lineCollapsed.has(id)) lineCollapsed.delete(id); else lineCollapsed.add(id);
@@ -5210,10 +5309,12 @@ function nickHintFor(st, mare){
   if(rec && (Object.keys(rec.dams || {}).length >= 1 || rec.graded)) return "ニックスの可能性";
   return null;
 }
-function lineBlend(sireLine, bmsLine, damBmsName){
+function lineBlend(sireLine, bmsLine, damBmsName, sireBr, bmsBr){
   const bl = { spd:0, sta:0, gut:0, dist:0, surf:0, nudges:[], minus:{ spd:0, sta:0, gut:0 } }; /* v6.2：minus は系統デメリットの内訳（ニックスの打消し用） */
   const add = (ln, w, np) => { const t = ln && LINE_TRAITS[ln]; if(!t) return; bl[t.plus] += 1.5*w; bl[t.minus] -= 1.5*w; bl.minus[t.minus] += 1.5*w; bl.dist += t.dist*w; bl.surf += t.surf*w; bl.nudges.push([t.growth, np]); };
-  add(sireLine, 1, 0.10); add(bmsLine, 0.5, 0.05);
+  /* v7.0：分家（子系統）がある側は、大系統の寄せではなく一番近い分家の色が効く */
+  if(sireBr) branchBlendApply(bl, sireBr, 1); else add(sireLine, 1, 0.10);
+  if(bmsBr) branchBlendApply(bl, bmsBr, 0.5); else add(bmsLine, 0.5, 0.05);
   if(damBmsName === "メジロマックイーン"){ bl.sta += 1.5 * 0.5; bl.mejiroSta = true; }
   if(LINE_NICKS.some(nk => nk.sire === sireLine && nk.bms === bmsLine)) for(const p of ["spd","sta","gut"]) bl[p] += bl.minus[p]; /* v6.2：初期ニックスはデメリット全打消し */
   return bl;
@@ -5296,6 +5397,330 @@ function lineColourText(bl){
   if(gn) parts.push(gn[0]+"気味");
   return parts.length ? parts.join("・") : "バランスの取れた色";
 }
+/* ================= 騎手（v7.0・オーナー 設計 2026-11-22） =================
+   騎手は実体を持つ：名前は架空だが実在の騎手をモデルにした26人で始まり、歳を取り、
+   50歳で引退すると同苗字の二世か新人が補充される。よく乗せる騎手は年単位でレベルが
+   上がる（年末、その年に10鞍以上で+1、最大Lv5）。効果は Lv×0.2%＋主戦コンビ+0.5%。
+   主戦は「その馬に一番多く乗った騎手」で自動。馬ごとの騎手指定（h.jockeyPref）は
+   手動・自動どちらの出走でも最優先される */
+const JOCKEY_SEED = [
+  { name: "武田 慶太", family: "武田", given: "慶太", age: 48, lv: 5 },
+  { name: "ルカ・ベルナール", family: "ベルナール", given: "ルカ", foreign: true, age: 45, lv: 5 },
+  { name: "河内 将吾", family: "河内", given: "将吾", age: 40, lv: 5 },
+  { name: "福沢 祐介", family: "福沢", given: "祐介", age: 49, lv: 5 },
+  { name: "横田 武蔵", family: "横田", given: "武蔵", age: 27, lv: 4 },
+  { name: "坂上 琉生", family: "坂上", given: "琉生", age: 28, lv: 4 },
+  { name: "松原 弘樹", family: "松原", given: "弘樹", age: 35, lv: 4 },
+  { name: "戸川 圭吾", family: "戸川", given: "圭吾", age: 44, lv: 4 },
+  { name: "岩渕 康明", family: "岩渕", given: "康明", age: 49, lv: 4 },
+  { name: "アントニオ・ロッシ", family: "ロッシ", given: "アントニオ", foreign: true, age: 45, lv: 4 },
+  { name: "岩渕 望", family: "岩渕", given: "望", age: 25, lv: 3, gen: 2 },
+  { name: "横田 和馬", family: "横田", given: "和馬", age: 32, lv: 3 },
+  { name: "須賀 晃", family: "須賀", given: "晃", age: 24, lv: 3 },
+  { name: "今西 紗奈", family: "今西", given: "紗奈", age: 22, lv: 3, female: true },
+  { name: "段野 太一", family: "段野", given: "太一", age: 26, lv: 3 },
+  { name: "鮫原 克己", family: "鮫原", given: "克己", age: 28, lv: 3 },
+  { name: "西岡 淳", family: "西岡", given: "淳", age: 26, lv: 3 },
+  { name: "田伏 裕也", family: "田伏", given: "裕也", age: 41, lv: 3 },
+  { name: "吉岡 隼", family: "吉岡", given: "隼", age: 42, lv: 3 },
+  { name: "和泉 竜司", family: "和泉", given: "竜司", age: 48, lv: 3 },
+  { name: "浜田 俊介", family: "浜田", given: "俊介", age: 37, lv: 3 },
+  { name: "津山 秀明", family: "津山", given: "秀明", age: 39, lv: 3 },
+  { name: "永井 美波", family: "永井", given: "美波", age: 23, lv: 2, female: true },
+  { name: "石原 裕人", family: "石原", given: "裕人", age: 30, lv: 2 },
+  { name: "高林 吏久", family: "高林", given: "吏久", age: 20, lv: 2 },
+  { name: "田嶋 寛太", family: "田嶋", given: "寛太", age: 24, lv: 2 }
+];
+const JOCKEY_FAMILIES = ["佐原","高嶺","森下","岡部","小野寺","千葉","遠藤","加藤","斉藤","中村","小林","伊藤","山本","松本","井上","木村","林","清水","山口","阿部","池田","橋本","山崎","森","石川","前田","小川","中島","後藤","岡田","長谷川","村上","近藤","石井","坂本","遠山","青木","藤原","西村","太田","三浦","藤川","岡本","松田","中川","中野","原田","小野","田村","竹内","金子","和田","中山","石田","上田","森田","小島","柴田","原","宮崎","酒井","工藤","横山","宮本","内田","高木","安藤","島田","谷口","大野","今井","高田","丸山","前原","沢田","大塚","渡辺"];
+const JOCKEY_GIVEN_M = ["翔太","大輔","健太","拓海","悠真","颯太","蓮","大和","陽翔","樹","湊","朝陽","碧","岳","駿","圭","亮介","直樹","和也","智也","雄大","康平","将平","友樹","浩二","慎吾","達也","光","翼","誠"];
+const JOCKEY_GIVEN_F = ["美咲","彩花","結衣","莉子","葵","七海","穂香","真央","遥","栞","萌","沙織","由美","加奈","麻衣"];
+const JOCKEY_GIVEN_FOREIGN = ["ルカ","マルコ","ピエール","アンドレ","ジョアン","ライアン","トム","アレックス","マッテオ","エミール","ユーゴ","ノア"];
+function seedJockeys(){
+  return JOCKEY_SEED.map((d, i) => ({ id: "j" + (i + 1), name: d.name, family: d.family, given: d.given, foreign: !!d.foreign, female: !!d.female, birthYear: 2026 - d.age, level: d.lv, gen: d.gen || 1, rides: 0, wins: 0, g1Wins: 0, yearRides: 0, yearWins: 0, retired: null, debut: 2026 }));
+}
+function activeJockeys(){ return (S.jockeys || []).filter(j => !j.retired && (j.debut == null || j.debut <= S.year)); }
+function jockeyById(id){ return (S.jockeys || []).find(j => j.id === id) || null; }
+function mainJockeyId(h){
+  const cnt = {};
+  for(const r of (h.results || [])) if(r.jockeyId) cnt[r.jockeyId] = (cnt[r.jockeyId] || 0) + 1;
+  let best = null, bn = 0;
+  for(const id in cnt) if(cnt[id] > bn){ bn = cnt[id]; best = id; }
+  return best;
+}
+function mainJockeyStats(h){
+  const id = mainJockeyId(h); if(!id) return null;
+  let rides = 0, wins = 0;
+  for(const r of h.results) if(r.jockeyId === id){ rides++; if(r.finish === 1) wins++; }
+  return { jockey: jockeyById(id), rides, wins };
+}
+function jockeyFactor(j, h){ return j ? 1 + 0.002 * j.level + (mainJockeyId(h) === j.id ? 0.005 : 0) : 1; }
+/* 騎乗の割り当て：指定＞主戦＞今年の騎乗が少ない順。同じレース内では1人1鞍 */
+function assignJockeys(race, entries){
+  const act = activeJockeys(); const map = new Map();
+  if(!act.length) return map;
+  const used = new Set();
+  const order = [...entries].sort((a, b) => ((b.jockeyPref ? 1 : 0) - (a.jockeyPref ? 1 : 0)));
+  for(const h of order){
+    let j = null;
+    const want = h.jockeyPref || mainJockeyId(h);
+    if(want){ const cand = act.find(x => x.id === want); if(cand && !used.has(cand.id)) j = cand; }
+    if(!j){
+      const free = act.filter(x => !used.has(x.id));
+      if(free.length){ free.sort((a, b) => (a.yearRides - b.yearRides) || (a.rides - b.rides)); j = free[0]; }
+    }
+    if(j){ used.add(j.id); map.set(h, j); }
+  }
+  return map;
+}
+function spawnSuccessor(old){
+  if(S.jockeySeq == null) S.jockeySeq = (S.jockeys || []).length;
+  const nisei = Math.random() < 0.5;
+  const act = activeJockeys();
+  let family = null, foreign = !!old.foreign, female = false;
+  if(nisei){ family = old.family; }
+  else {
+    const usedFam = new Set(act.map(j => j.family));
+    const pool = JOCKEY_FAMILIES.filter(f => !usedFam.has(f));
+    family = pool.length ? pool[irnd(0, pool.length - 1)] : JOCKEY_FAMILIES[irnd(0, JOCKEY_FAMILIES.length - 1)];
+    foreign = false;
+  }
+  let given = "";
+  for(let t = 0; t < 12; t++){
+    if(foreign) given = JOCKEY_GIVEN_FOREIGN[irnd(0, JOCKEY_GIVEN_FOREIGN.length - 1)];
+    else if(Math.random() < 0.15){ given = JOCKEY_GIVEN_F[irnd(0, JOCKEY_GIVEN_F.length - 1)]; female = true; }
+    else { given = JOCKEY_GIVEN_M[irnd(0, JOCKEY_GIVEN_M.length - 1)]; female = false; }
+    const nm = foreign ? given + "・" + family : family + " " + given;
+    if(!act.some(j => j.name === nm)) break;
+  }
+  const name = foreign ? given + "・" + family : family + " " + given;
+  const nj = { id: "j" + (++S.jockeySeq), name, family, given, foreign, female, birthYear: S.year - 20, level: 1, gen: nisei ? (old.gen || 1) + 1 : 1, rides: 0, wins: 0, g1Wins: 0, yearRides: 0, yearWins: 0, retired: null, debut: S.year }; /* 年末処理時点では S.year は新年：後継は新年からデビューし、その年に20歳 */
+  S.jockeys.push(nj);
+  chron(nisei ? "🏇 " + name + " 騎手がデビューします（" + old.name + " の" + (nj.gen === 2 ? "二世" : nj.gen + "世") + "）" : "🏇 新人の " + name + " 騎手がデビューします");
+  return nj;
+}
+function jockeyYearEnd(){
+  if(!S.jockeys) return;
+  for(const j of [...S.jockeys]){
+    if(j.retired) continue;
+    if(j.yearRides >= 10 && j.level < 5){ j.level++; if(j.level === 5) chron("🏇 " + j.name + " 騎手がトップジョッキーの域に達しました（Lv5）"); }
+    j.yearRides = 0; j.yearWins = 0;
+    if(S.year - j.birthYear >= 51){ /* 50歳のシーズンを最後に引退（年末処理時点の S.year は新年） */
+      j.retired = S.year - 1;
+      chron("🏇 " + j.name + " 騎手が引退しました（通算 " + j.wins + " 勝）");
+      notice("🏇 " + j.name + " 騎手が引退しました");
+      spawnSuccessor(j);
+    }
+  }
+}
+function jockeysHtml(){
+  const act = activeJockeys().slice().sort((a, b) => (b.yearWins - a.yearWins) || (b.level - a.level) || (b.wins - a.wins));
+  let html = "<details data-jockey-fold style='margin-top:16px;'" + (S.jockeyOpen ? " open" : "") + "><summary style='cursor:pointer;font-size:16px;font-weight:bold;'>🏇 騎手（現役 " + act.length + " 人）</summary>";
+  const rows = act.map(j => "<tr><td>" + j.name + (j.gen > 1 ? " <span class='sub'>" + j.gen + "世</span>" : "") + "</td><td>" + (S.year - j.birthYear) + "歳</td><td>Lv" + j.level + "</td><td>" + j.yearRides + "鞍 " + j.yearWins + "勝</td><td>" + j.rides + "鞍 " + j.wins + "勝（G1 " + j.g1Wins + "勝）</td></tr>").join("");
+  html += "<table><tr><th>騎手</th><th>年齢</th><th>レベル</th><th>今年</th><th>通算</th></tr>" + rows + "</table>";
+  const ret = (S.jockeys || []).filter(j => j.retired).slice(-8).reverse();
+  if(ret.length) html += "<div class='sub'>引退：" + ret.map(j => j.name + "（" + j.retired + "年・通算" + j.wins + "勝）").join("／") + "</div>";
+  return html + "</details>";
+}
+function jockeyPrefOptions(h){
+  return "<option value=''>指定なし（主戦・自動）</option>" + activeJockeys().map(j => "<option value='" + j.id + "'" + (h.jockeyPref === j.id ? " selected" : "") + ">" + j.name + "（Lv" + j.level + "）</option>").join("");
+}
+function jockeyRowHtml(h){
+  const ms = mainJockeyStats(h);
+  const main = ms && ms.jockey ? "主戦：" + ms.jockey.name + "（コンビ " + ms.rides + "戦" + ms.wins + "勝）" : "主戦：まだいません";
+  return main + " <select id='jockeyPrefSel'>" + jockeyPrefOptions(h) + "</select>";
+}
+function jockeyPrefBar(h){
+  const ms = mainJockeyStats(h);
+  return "<div class='topic'>🏇 騎手指定：<select id='jockeyPrefSel2'>" + jockeyPrefOptions(h) + "</select> <span class='sub'>" + (ms && ms.jockey ? "主戦は " + ms.jockey.name + "（" + ms.rides + "戦" + ms.wins + "勝）" : "主戦はまだいません") + "。指定した騎手は自動出走でも優先して乗ります</span></div>";
+}
+
+/* ================= 子系統（v7.0・オーナー 設計確定 2026-11-22、DESIGN_SIRELINE_DRAFT §7） =================
+   牡馬系統は4階層（大系統＞祖系統＞親系統＞子系統）。分家は種牡馬の産駒実績で立つ：
+   産駒からG1級勝ち馬が3頭出た種牡馬がファウンダーとなり、自分の「色」（特性2つ、
+   マイナス面つき）を決定的に受け継ぐ。昇格は傘下の分家の顔ぶれ（センサス）で決まり、
+   段位で特性の強さは変わらない（全分家一律）。産駒に効くのは一番近い系統の色で、
+   大系統の寄せ（lineBlend）は分家がある側では置き換わる。消滅した分家はセンサスに残る */
+const BRANCH_TIER_NAMES = { 1:"子系統", 2:"親系統", 3:"祖系統", 4:"大系統" };
+function branchByFounder(name){ if(!S.branches) return null; for(const id in S.branches) if(S.branches[id].founder === name) return S.branches[id]; return null; }
+function branchOfSire(name){
+  if(!name || !S.branches) return null;
+  for(const n of sireChainOf(name)){ const b = branchByFounder(n); if(b && !b.extinct) return b; }
+  return null;
+}
+function founderProfile(name){
+  const hh = (S.horses || []).find(x => x.name === name);
+  const st = (S.stallions || []).find(x => x.name === name) || (DATA.stallions || []).find(x => x.name === name);
+  const src = (hh && hh.studYear != null) ? hh : (st || hh);
+  if(!src) return null;
+  const isH = src === hh;
+  const gen = isH ? { spd: src.spd, sta: src.sta, gut: src.gut, temp: src.temp != null ? src.temp : 55 } : stallionGen(src);
+  return {
+    surfType: surfTypeOf(src),
+    centre: isH ? (src.distMin + src.distMax) / 2 : (src.dist[0] + src.dist[1]) / 2,
+    gtype: isH ? gtypeOf(src) : stGtype(src),
+    params: gen, temp: gen.temp,
+    aff: src.aff || {},
+    traits: src.traits || null,
+    talent: isH ? (src.talent || null) : null
+  };
+}
+function founderConstitutionTrait(t){
+  if(!t) return null;
+  if(t.recovery) return { kind:"trait", slot:"recovery", val:t.recovery };
+  if(t.pasture) return { kind:"trait", slot:"pasture", val:t.pasture };
+  if(t.cond) return { kind:"trait", slot:"cond", val:t.cond };
+  if(t.fragile) return { kind:"trait", slot:"fragile", val:true };
+  return null;
+}
+/* 色の導出：ファウンダーの特徴を数値化し、際立ち度の高い順に2つ（同点は
+   馬場＞距離＞適性＞成長＞気性＞体質＞パラメータの順）。閾値未満の色は付かない */
+function deriveBranchTraits(name){
+  const p = founderProfile(name); if(!p) return [];
+  const cands = [];
+  const push = (order, score, trait) => { if(score >= 8) cands.push({ order, score, trait }); };
+  if(p.surfType === "芝") push(0, 30, { kind:"surf", surf:"芝" });
+  else if(p.surfType === "ダート") push(0, 30, { kind:"surf", surf:"ダート" });
+  const dc = Math.abs(p.centre - 2200);
+  if(p.centre <= 1800) push(1, Math.min(24, dc / 50), { kind:"dist", dir:-1 });
+  else if(p.centre >= 2600) push(1, Math.min(24, dc / 50), { kind:"dist", dir:1 });
+  if(p.aff.goAff === "○") push(2, 22, { kind:"aff", aff:"goAff" });
+  if(p.aff.jumpAff === "○" || p.talent === "jumper") push(2, p.talent === "jumper" ? 26 : 22, { kind:"aff", aff:"jumpAff" });
+  if(p.aff.euAff === "○") push(2, 22, { kind:"aff", aff:"euAff" });
+  const fam = G_DISP[p.gtype] || "普通";
+  if(fam === "早熟" || fam === "晩成") push(3, 15, { kind:"growth", fam });
+  else if(fam === "超晩成") push(3, 20, { kind:"growth", fam });
+  if(p.temp < 45) push(4, Math.min(20, 45 - p.temp), { kind:"temp", dir:-1 });
+  else if(p.temp >= 70) push(4, Math.min(20, p.temp - 55), { kind:"temp", dir:1 });
+  const ct = founderConstitutionTrait(p.traits);
+  if(ct) push(5, 18, ct);
+  const ent = [["spd", p.params.spd], ["sta", p.params.sta], ["gut", p.params.gut]].sort((a, b) => b[1] - a[1]);
+  if(ent[0][1] - ent[1][1] >= 6) push(6, Math.min(20, ent[0][1] - ent[1][1]), { kind:"param", plus:ent[0][0], minus:ent[2][0] });
+  cands.sort((a, b) => (b.score - a.score) || (a.order - b.order));
+  return cands.slice(0, 2).map(c => c.trait);
+}
+function foundBranch(sireName){
+  if(branchByFounder(sireName)) return null;
+  if(!S.branches) S.branches = {};
+  if(S.branchSeq == null) S.branchSeq = 0;
+  let parentBranch = null;
+  for(const n of sireChainOf(sireName).slice(1)){ const b = branchByFounder(n); if(b){ parentBranch = b.id; break; } }
+  const br = { id:"br" + (++S.branchSeq), founder:sireName, parentBranch, major:majorLineOfName(sireName), tier:1, traits:deriveBranchTraits(sireName), year:S.year, extinct:false };
+  S.branches[br.id] = br;
+  chron("🌱 " + sireName + "系が成立しました（子系統）");
+  return br;
+}
+function branchRecordWin(h, race){
+  if(!h.sire || !isG1ClassRace(race)) return;
+  if(!S.branchRecord) S.branchRecord = {};
+  const rec = S.branchRecord[h.sire] || (S.branchRecord[h.sire] = { winners:{} });
+  if(rec.winners[h.id]) return;
+  rec.winners[h.id] = true;
+  if(Object.keys(rec.winners).length >= 3 && !branchByFounder(h.sire)){
+    const br = foundBranch(h.sire);
+    if(br) notice("🌱 " + h.sire + "系が成立しました（子系統）");
+  }
+}
+/* 分家の色を lineBlend の合成に混ぜる（パラメータ±0.75・距離±150・馬場±10pt・成長ナッジ）。
+   マイナス分は bl.minus に積むので、ニックスのデメリット打消しが分家にも効く */
+function branchBlendApply(bl, br, w){
+  for(const tr of (br.traits || [])){
+    if(tr.kind === "param"){ bl[tr.plus] += 0.75 * w; bl[tr.minus] -= 0.75 * w; bl.minus[tr.minus] += 0.75 * w; }
+    else if(tr.kind === "dist") bl.dist += tr.dir * 150 * w;
+    else if(tr.kind === "surf") bl.surf += (tr.surf === "芝" ? 10 : -10) * w;
+    else if(tr.kind === "growth") bl.nudges.push([tr.fam, 0.10 * w]);
+  }
+}
+function branchAffMods(sireBr, bmsBr){
+  const m = { goAff:{ o:0, x:0 }, jumpAff:{ o:0, x:0 }, euAff:{ o:0, x:0 } };
+  for(const pair of [[sireBr, 1], [bmsBr, 0.5]]){
+    const br = pair[0], w = pair[1]; if(!br) continue;
+    for(const tr of (br.traits || [])) if(tr.kind === "aff"){ m[tr.aff].o += 0.12 * w; m[tr.aff].x += 0.06 * w; }
+  }
+  return m;
+}
+function branchSurfAdjust(type, sireBr, bmsBr){
+  for(const pair of [[sireBr, 1], [bmsBr, 0.5]]){
+    const br = pair[0], w = pair[1]; if(!br) continue;
+    for(const tr of (br.traits || [])){
+      if(tr.kind !== "surf") continue;
+      const opp = tr.surf === "芝" ? "ダート" : "芝";
+      if(type === opp && Math.random() < 0.10 * w) type = "両刀";
+      if(type !== tr.surf && Math.random() < 0.10 * w) type = tr.surf;
+    }
+  }
+  return type;
+}
+function branchTempShift(sireBr, bmsBr){
+  let sh = 0;
+  for(const pair of [[sireBr, 1], [bmsBr, 0.5]]){
+    const br = pair[0], w = pair[1]; if(!br) continue;
+    for(const tr of (br.traits || [])) if(tr.kind === "temp") sh += tr.dir * 5 * w;
+  }
+  return Math.round(sh);
+}
+function branchTraitBoosts(sireBr, bmsBr){
+  const out = [];
+  for(const pair of [[sireBr, 1], [bmsBr, 0.5]]){
+    const br = pair[0], w = pair[1]; if(!br) continue;
+    for(const tr of (br.traits || [])) if(tr.kind === "trait") out.push({ slot:tr.slot, val:tr.val, p:0.12 * w });
+  }
+  return out;
+}
+function branchTraitPhrase(tr){
+  if(tr.kind === "surf") return tr.surf + "に強い";
+  if(tr.kind === "dist") return tr.dir < 0 ? "短距離に強い" : "長距離に強い";
+  if(tr.kind === "aff") return { goAff:"重馬場に強い", jumpAff:"障害に強い", euAff:"欧州に強い" }[tr.aff] || "";
+  if(tr.kind === "growth") return tr.fam + "の血";
+  if(tr.kind === "temp") return tr.dir < 0 ? "穏やかな血" : "気性の強い血";
+  if(tr.kind === "trait") return { "recovery:fast":"回復の早い血", "recovery:slow":"回復の遅い血", "pasture:refresh":"放牧で良くなる血", "pasture:lax":"放牧で緩む血", "cond:up":"状態の上がりやすい血", "cond:down":"状態の波のある血", "fragile:true":"故障しやすい血" }[tr.slot + ":" + tr.val] || "体質の血";
+  if(tr.kind === "param") return { spd:"スピードの血", sta:"スタミナの血", gut:"根性の血" }[tr.plus] || "";
+  return "";
+}
+function branchPhrase(br){ return (br.traits || []).map(branchTraitPhrase).filter(Boolean).join("・"); }
+function branchParentLabel(br){
+  if(br.parentBranch && S.branches[br.parentBranch]) return S.branches[br.parentBranch].founder + "系の分家";
+  return (br.major || "系統不明") + "の分家";
+}
+/* 年末判定：昇格は傘下センサス（各分家は到達した一番上の段で数える。段は下がらない）、
+   消滅は「その系統の種牡馬が1頭もいない」こと（傘下の種牡馬は上の系統も生かす） */
+function branchYearEnd(){
+  if(!S.branches) return;
+  const all = Object.values(S.branches);
+  if(!all.length) return;
+  const childrenOf = {};
+  for(const b of all) if(b.parentBranch) (childrenOf[b.parentBranch] = childrenOf[b.parentBranch] || []).push(b);
+  const descOf = b => { const out = []; const walk = x => { for(const c of (childrenOf[x.id] || [])){ out.push(c); walk(c); } }; walk(b); return out; };
+  for(let pass = 0; pass < 4; pass++){
+    let changed = false;
+    for(const b of all){
+      if(b.extinct) continue;
+      const desc = descOf(b);
+      const nT = t => desc.filter(d => d.tier === t).length;
+      let target = b.tier;
+      if(b.tier === 1 && (childrenOf[b.id] || []).length >= 2) target = 2;
+      else if(b.tier === 2 && nT(2) >= 2 && nT(1) >= 2) target = 3;
+      else if(b.tier === 3 && nT(3) >= 1 && nT(2) >= 2 && nT(1) >= 2) target = 4;
+      if(target > b.tier){ b.tier = target; changed = true; notice("🌳 " + b.founder + "系が" + BRANCH_TIER_NAMES[target] + "に昇格しました"); chron("🌳 " + b.founder + "系が" + BRANCH_TIER_NAMES[target] + "に昇格しました"); }
+    }
+    if(!changed) break;
+  }
+  const aliveIds = new Set();
+  for(const st of activeStallions()){
+    let br = branchOfSire(st.name);
+    while(br){ aliveIds.add(br.id); br = br.parentBranch ? S.branches[br.parentBranch] : null; }
+  }
+  for(const b of all) if(!b.extinct && !aliveIds.has(b.id)){ b.extinct = true; chron("🍂 " + b.founder + "系は消滅しました"); }
+}
+function branchTreeHtml(){
+  const all = S.branches ? Object.values(S.branches) : [];
+  let html = "<details data-branch-fold style='margin-top:16px;'" + (S.branchOpen ? " open" : "") + "><summary style='cursor:pointer;font-size:16px;font-weight:bold;'>🌳 牡馬系統（分家 " + all.length + "）</summary>";
+  if(!all.length) return html + "<div class='sub'>まだ分家は立っていません。産駒からG1級勝ち馬が3頭出た種牡馬が、自分の系統を立てます。</div></details>";
+  const depth = b => { let d = 0, cur = b; while(cur && cur.parentBranch && S.branches[cur.parentBranch]){ d++; cur = S.branches[cur.parentBranch]; } return d; };
+  const rows = [...all].sort((a, b) => (a.year - b.year) || (a.id < b.id ? -1 : 1)).map(b =>
+    "<div style='margin-left:" + (depth(b) * 18) + "px;'>" + (b.extinct ? "🍂 " : "🌱 ") + "<b>" + b.founder + "系</b>（" + BRANCH_TIER_NAMES[b.tier] + "／" + branchParentLabel(b) + "）" + (branchPhrase(b) ? " <span class='sub'>" + branchPhrase(b) + "</span>" : "") + (b.extinct ? " <span class='sub'>消滅</span>" : "") + "</div>").join("");
+  return html + rows + "</details>";
+}
+
 /* 成長型の寄せ：内部7段階チェーンを、目標の表示型の方向へ1段だけずらす */
 function nudgeGrowthType(gt, targetDisp, p){
   if(Math.random() >= p) return gt;
@@ -5309,8 +5734,8 @@ function nudgeGrowthType(gt, targetDisp, p){
 /* 故障歴の表示（v3.6・オーナー要望）：新しい順に、時期・レース・程度・休養週数 */
 function injuryHistoryHtml(h){
   if(!h.injuries || !h.injuries.length) return "";
-  const rows = [...h.injuries].reverse().map(x => "<tr><td>" + x.when + "</td><td>" + x.race + "</td><td>" + x.kind + "</td><td>約" + x.weeks + "週間</td></tr>").join("");
-  return "<h3>故障歴</h3><table><tr><th>時期</th><th>レース</th><th>程度</th><th>休養</th></tr>" + rows + "</table>";
+  const rows = [...h.injuries].reverse().map(x => "<tr><td>" + x.when + "</td><td>" + x.race + "</td><td>" + (x.name || x.kind) + "</td><td>約" + x.weeks + "週間</td></tr>").join("");
+  return "<h3>故障歴</h3><table><tr><th>時期</th><th>レース</th><th>故障</th><th>休養</th></tr>" + rows + "</table>";
 }
 /* 持続の表示行（v0.54・オーナー決定）：繁殖牝馬は未判明なら行ごと出さない（「不明」表示は廃止）。
    種牡馬は有無を表示し、判明済みの馬は「あり」を出す従来仕様はそのまま */
@@ -5982,7 +6407,7 @@ function openHorse(id){
     return;
   }
   const gw = gradedWinList(h);
-  const res = h.results.length ? [...h.results].reverse().map(r=>"<tr><td>"+r.when+"</td><td>"+r.race+"（"+r.grade+"）"+(r.pass?"<br><span class='sub'>通過 "+r.pass+"｜"+(r.comment||"")+"</span>":"")+"</td><td>"+r.course+" "+r.surface+(r.dist||"")+"</td><td>"+r.finish+"着/"+r.field+"頭"+(r.weight!=null ? "<br><span class='sub'>斤量"+Number(r.weight).toFixed(1)+"kg</span>" : "")+(r.transport ? "<br><span class='sub'>輸送疲労+"+r.transport+"</span>" : "")+(r.bodyWeight != null ? "<br><span class='sub'>馬体重"+r.bodyWeight+"kg"+(r.weightDiff != null ? "（前走比 "+(r.weightDiff>=0?"+":"")+r.weightDiff+"）" : "")+"</span>" : "")+"</td><td>"+(r.time||"")+"</td><td>上り"+r.agari+"</td><td>"+(r.prize?man(r.prize):"")+"</td></tr>").join("") : "<tr><td>まだ出走がありません</td></tr>";
+  const res = h.results.length ? [...h.results].reverse().map(r=>"<tr><td>"+r.when+"</td><td>"+r.race+"（"+r.grade+"）"+(r.pass?"<br><span class='sub'>通過 "+r.pass+"｜"+(r.comment||"")+"</span>":"")+"</td><td>"+r.course+" "+r.surface+(r.dist||"")+"</td><td>"+r.finish+"着/"+r.field+"頭"+(r.weight!=null ? "<br><span class='sub'>斤量"+Number(r.weight).toFixed(1)+"kg</span>" : "")+(r.transport ? "<br><span class='sub'>輸送疲労+"+r.transport+"</span>" : "")+(r.bodyWeight != null ? "<br><span class='sub'>馬体重"+r.bodyWeight+"kg"+(r.weightDiff != null ? "（前走比 "+(r.weightDiff>=0?"+":"")+r.weightDiff+"）" : "")+"</span>" : "")+"</td><td>"+(r.time||"")+"</td><td>上り"+r.agari+"</td><td>"+(r.jockey||"")+"</td><td>"+(r.prize?man(r.prize):"")+"</td></tr>").join("") : "<tr><td>まだ出走がありません</td></tr>";
   let actions = "";
   let retireSalePrice = null;
   if(h.status==="racehorse"){
@@ -6087,11 +6512,12 @@ function openHorse(id){
     + (gw.length ? "<dt>重賞勝ち</dt><dd>"+gradedWinSummary(h)+"</dd>" : "")
     + "<dt>コンディション</dt><dd>状態"+Math.round(h.condition)+"／疲労"+Math.round(h.fatigue)+(isResting(h) ? "／休養中（〜"+fromAbs(h.restUntilAbs - 1)[1]+"月第"+fromAbs(h.restUntilAbs - 1)[2]+"週・自動出走のみ）" : "")+"</dd>"
     + ((h.status==="racehorse" && !h.retired) ? "<dt>競走寿命</dt><dd>"+lifespanText(h)+"</dd>" : "") /* v6.7 */
+    + ((h.status==="racehorse") ? "<dt>騎手</dt><dd>"+jockeyRowHtml(h)+"</dd>" : "") /* v7.0 */
     + (entryListText(h) ? "<dt>登録中</dt><dd>"+entryListText(h)+"</dd>" : "")
     + "</dl>"
     + "<h3>血統表</h3>" + pedigreeTable(h) + produceSection(h)
     + actions
-    + "<h3>戦績・履歴</h3><table><tr><th>時期</th><th>レース</th><th>条件</th><th>着順</th><th>タイム</th><th></th><th>賞金</th></tr>"+res+"</table>"
+    + "<h3>戦績・履歴</h3><table><tr><th>時期</th><th>レース</th><th>条件</th><th>着順</th><th>タイム</th><th></th><th>騎手</th><th>賞金</th></tr>"+res+"</table>"
     + injuryHistoryHtml(h);
   wrapTables($("#horseModalBox"));
   $("#horseModal").style.display = "block";
@@ -6103,6 +6529,7 @@ function openHorse(id){
   const aps = $("#autoPolicySel"); if(aps) aps.onchange = () => { h.autoPolicy = aps.value==="" ? null : aps.value; save(); };
   const arps = $("#autoRangePlusSel"); if(arps) arps.onchange = () => { h.autoRangePlus = arps.value==="" ? null : arps.value==="on"; save(); };
   const jas = $("#jumpAutoSel"); if(jas) jas.onchange = () => { h.jumpAuto = jas.value==="on"; save(); }; /* v5.1 */
+  const jps = $("#jockeyPrefSel"); if(jps) jps.onchange = () => { h.jockeyPref = jps.value || null; save(); openHorse(h.id); }; /* v7.0 */
   const rab = $("#rotAddBtn"); if(rab) rab.onclick = () => { const sel = $("#rotAddSel"); const k = sel ? sel.value : ""; if(k && !(h.rotation || []).includes(k) && !(h.rotAuto || []).includes(k)){ h.rotation = h.rotation || []; h.rotation.push(k); const onceChk = $("#rotOnceChk"); const once = !!(onceChk && onceChk.checked); if(once) markRotOnce(h, k, false); const r = rotationRaceOf(k); if(r) topic("🎯 " + h.name + " のローテーションに " + r.name + " を指定しました" + (once ? "（1回限り）" : "")); save(); openHorse(h.id); } };
   document.querySelectorAll("[data-rot-remove]").forEach(btn => btn.onclick = () => { const k = btn.getAttribute("data-rot-remove"); h.rotation = (h.rotation || []).filter(x => x !== k); clearRotOnce(h, k); save(); openHorse(h.id); });
   document.querySelectorAll("[data-rot-auto-remove]").forEach(btn => btn.onclick = () => { const k = btn.getAttribute("data-rot-auto-remove"); h.rotAuto = (h.rotAuto || []).filter(x => x !== k); clearRotOnce(h, k); save(); openHorse(h.id); });
@@ -6258,6 +6685,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v6.8.1</footer>
+<footer>競馬シミュレーター（趣味） v7.0</footer>
 </body>
 </html>
