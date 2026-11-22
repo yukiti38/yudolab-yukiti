@@ -1355,7 +1355,7 @@ function substituteAncestor(name, year, group){
 function initState(){
   S = { year:2026, month:1, week:1, calVer:2, ver:3, funds:50000, horses:[], stallions: JSON.parse(JSON.stringify(DATA.stallions)),
         courseRecords:{}, chronicle:[], statsBirths:{}, topics:[], notices:[], yearEndDone:false, phase:"choose", candidates:[], salePool:[], saleYear:2026, usedTemplates:[], firstMatingDone:false,
-        giftQueue:[], giftAprDone:false, giftDecDone:false, giftSet:null, favs:[], mile:null, farmWins:0, farmPrize:0, kanmuri:"", soldHorses:[], autoRotDefault:8, autoPolicyDefault:"積極", autoRangePlusDefault:true, autoBulkOpen:false, retiredOpen:false, hofOpen:false, topicsOpen:false, noticesOpen:false, autoOverseasPolicy:"消極的",
+        giftQueue:[], giftAprDone:false, giftDecDone:false, giftSet:null, favs:[], mile:null, farmWins:0, farmPrize:0, kanmuri:"", soldHorses:[], autoRotDefault:8, autoPolicyDefault:"積極", autoRangePlusDefault:true, autoBulkOpen:false, retiredOpen:false, hofOpen:false, facilitiesOpen:false, topicsOpen:false, noticesOpen:false, autoOverseasPolicy:"消極的",
         mattari: mattariDefault(), retirePolicyDefault:"logic", retireQueue:[], mareLimit:20, debutLimit:20,
         lineState:{}, lineGf:false, hofGf:true, hofGf2:true, meltNickUsed:false, nicks:{}, nickCand:{}, nickRecord:{}, lineNickStat:{} }; /* v6.2：ニックス成立（個体）／候補／実績／初期ニックスの+2対象（セーブ別ランダム） */ /* v6.2：特別ニックス（メルトスイート×カルストンライトオ）の初回使用フラグ */ /* v4.2.1：新規セーブは殿堂の経過措置スタンプの対象外（最初から移行済みにしておく） */ /* v3.4：牝系の確立状態（始祖ID→{streak, estYear, decline}）。lineGf は旧セーブの経過措置フラグ */ /* v3.1：まったりモード（自動運転）と引退方針・年末確認キュー。頭数上限（繁殖牝馬／1世代のデビュー馬）はプレイヤー設定可・既定20・最小値なし */
   initStallionRoster(); /* v3.0：各エントリに birthYear／retireAge／retired／fictional と bmsLine を用意する */
@@ -1478,7 +1478,7 @@ function facilitiesHtml(){
     else st = "完成";
     return "<tr><td>" + def.name + "</td><td>" + def.desc + "</td><td>" + st + "</td><td>" + btn + "</td></tr>";
   }).join("");
-  return "<h3>🏠 牧場施設</h3><table><tr><th>施設</th><th>効果</th><th>状態</th><th></th></tr>" + rows + "</table>";
+  return "<table><tr><th>施設</th><th>効果</th><th>状態</th><th></th></tr>" + rows + "</table>";
 }
 function chron(text){
   S.chronicle.push({ y:S.year, m:S.month, w:S.week, text });
@@ -1744,6 +1744,7 @@ function migrateV029(){
   /* v2.4 移行：引退馬リスト・殿堂リストの開閉状態。既定は閉じた状態（false） */
   if(typeof S.retiredOpen !== "boolean") S.retiredOpen = false;
   if(typeof S.hofOpen !== "boolean") S.hofOpen = false;
+  if(typeof S.facilitiesOpen !== "boolean") S.facilitiesOpen = false; /* v6.8.1 */
   /* v2.4 移行：今週のトピックの開閉状態。既定は閉じた状態（false） */
   if(typeof S.topicsOpen !== "boolean") S.topicsOpen = false;
   /* v3.7 移行：通知枠（旧セーブには無いので補う） */
@@ -4189,8 +4190,7 @@ function viewHorses(){
   } else {
     bodyHtml = "<table>"+tableHead+sorted.map(rowOf).join("")+"</table>";
   }
-  return facilitiesHtml()
-    + "<div class='flex listtools' style='margin-bottom:8px;'><label>表示：</label><select id='horseFilterSel'>"+opts+"</select><label>並び替え：</label><select id='horseSortSel'>"+sortOpts+"</select><span class='sub'>"+list.length+"頭（全 "+S.horses.length+" 頭）。繁殖牝馬・種牡馬は「繁殖」「種牡馬」タブでも見られます。引退馬は「牧場年表」タブの引退馬リストにいます</span></div>"
+  return "<div class='flex listtools' style='margin-bottom:8px;'><label>表示：</label><select id='horseFilterSel'>"+opts+"</select><label>並び替え：</label><select id='horseSortSel'>"+sortOpts+"</select><span class='sub'>"+list.length+"頭（全 "+S.horses.length+" 頭）。繁殖牝馬・種牡馬は「繁殖」「種牡馬」タブでも見られます。引退馬は「牧場年表」タブの引退馬リストにいます</span></div>"
     + bodyHtml + "<div class='sub'>馬名を押すと履歴ページが開きます。</div>";
 }
 let entryHorseId = null, entrySort = "recommend", entryOnlyOk = false, entryWeekAhead = 0;
@@ -4940,7 +4940,7 @@ function viewManual(){
   h += sec("🗓 週の進め方と1年の流れ",
     "「週を進める」で1週進みます。1年は日曜起算の52週です。主な季節イベント：<br>・<b>2〜6月</b>：繁殖シーズン（種付けはこの期間だけ）<br>・<b>年始</b>：出産と全馬の加齢<br>・<b>6月</b>：2歳馬のデビューが始まります（早い馬から。晩成は12月〜年明け、超晩成は3歳の春先）<br>・<b>11〜12月</b>：繁殖牝馬セール（毎年10頭出品）<br>・<b>年末</b>：引退判定と年次決算<br>「次のイベントまで」で区切りまで一気に進められます。");
   h += sec("💴 お金",
-    "収入は基本的に賞金だけです。賞金は馬主80%／調教師10%／騎手5%／厩務員5%に配分され、馬主分からは50万円を超える部分に10.21%の源泉徴収がかかります。G1勝ち賞金の目安は2億円、未勝利戦は550万円です。<br>支出：種付料（ランク制：S 3,000万円／A 1,500万円／B 800万円／C 400万円、自家製種牡馬は無料）、海外遠征費（1頭1レース1,000万円）、月次コスト（委託費：現役馬1頭50万円、育成費：0〜1歳1頭20万円、繋養費：繁殖牝馬・自家製種牡馬1頭20万円、経営費：月100万円）。<br>資金はマイナスになってもゲームオーバーにはなりません。<br>牧場施設（任意・馬タブから建設）：温泉・馬プール（1億円、疲労の回復が25%速い）、診療所（1億5,000万円、故障の期間が3割短くなり、重い故障の能力低下を半分の確率で防ぐ）、分娩舎・繁殖施設（6,000万円、12歳以上の繁殖牝馬の受胎率+10ポイント）。建設には約3ヶ月かかり、維持費はかかりません。");
+    "収入は基本的に賞金だけです。賞金は馬主80%／調教師10%／騎手5%／厩務員5%に配分され、馬主分からは50万円を超える部分に10.21%の源泉徴収がかかります。G1勝ち賞金の目安は2億円、未勝利戦は550万円です。<br>支出：種付料（ランク制：S 3,000万円／A 1,500万円／B 800万円／C 400万円、自家製種牡馬は無料）、海外遠征費（1頭1レース1,000万円）、月次コスト（委託費：現役馬1頭50万円、育成費：0〜1歳1頭20万円、繋養費：繁殖牝馬・自家製種牡馬1頭20万円、経営費：月100万円）。<br>資金はマイナスになってもゲームオーバーにはなりません。<br>牧場施設（任意・年表タブから建設）：温泉・馬プール（1億円、疲労の回復が25%速い）、診療所（1億5,000万円、故障の期間が3割短くなり、重い故障の能力低下を半分の確率で防ぐ）、分娩舎・繁殖施設（6,000万円、12歳以上の繁殖牝馬の受胎率+10ポイント）。建設には約3ヶ月かかり、維持費はかかりません。");
   h += sec("📊 能力の見方（ランク表示）",
     "能力は数字ではなく <b>S〜Gのランク</b> でだけ表示されます（スピード／スタミナ／根性の3要素＋総合評価）。内部的には100点満点で、Sは最上位帯です。若い馬ほど評価は変動し、レースや調教で育っていきます。");
   h += sec("🌱 成長型と仕上がり",
@@ -4991,6 +4991,8 @@ function viewChron(){
   const hof = S.horses.filter(h => careerDone(h) && isHof(h))
     .sort((a,b)=>b.earnings-a.earnings);
   /* v2.4：殿堂リストも引退馬リストと同じく details で畳めるようにした（開閉状態は S.hofOpen、既定は閉） */
+  /* v6.8.1（オーナー指示）：牧場施設は馬タブから年表タブへ移し、折りたたみ式にした */
+  html += "<details data-facilities-fold" + (S.facilitiesOpen ? " open" : "") + "><summary style='cursor:pointer;font-size:16px;font-weight:bold;'>🏠 牧場施設</summary>" + facilitiesHtml() + "</details>";
   html += "<details data-hof-fold" + (S.hofOpen ? " open" : "") + "><summary style='cursor:pointer;font-size:16px;font-weight:bold;'>🏆 殿堂（" + hof.length + "頭）</summary>";
   if(hof.length){
     const rows = hof.map(h => {
@@ -5050,6 +5052,7 @@ function bindTab(){
   /* 引退馬・殿堂リストの開閉状態を保存する（v2.4）。開閉そのものは details の標準動作なので再描画はしない */
   document.querySelectorAll("[data-retired-fold]").forEach(d=>d.addEventListener("toggle",()=>{ S.retiredOpen = !!d.open; save(); }));
   document.querySelectorAll("[data-hof-fold]").forEach(d=>d.addEventListener("toggle",()=>{ S.hofOpen = !!d.open; save(); }));
+  document.querySelectorAll("[data-facilities-fold]").forEach(d=>d.addEventListener("toggle",()=>{ S.facilitiesOpen = !!d.open; save(); }));
   document.querySelectorAll("[data-ltoggle]").forEach(el => el.onclick = () => {
     const id = el.getAttribute("data-ltoggle");
     if(lineCollapsed.has(id)) lineCollapsed.delete(id); else lineCollapsed.add(id);
@@ -6255,6 +6258,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v6.8</footer>
+<footer>競馬シミュレーター（趣味） v6.8.1</footer>
 </body>
 </html>
