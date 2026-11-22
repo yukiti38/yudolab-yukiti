@@ -1889,8 +1889,8 @@ const CROWN_COLT = ["皐月賞","日本ダービー","菊花賞"];
 const CROWN_FILLY = ["桜花賞","オークス","秋華賞"];
 const WIN_MARKS = [50,100,200,300,500,750,1000,1500,2000,3000];
 const PRIZE_MARKS = [100000,300000,500000,1000000,2000000,5000000,10000000]; // 万円（10億・30億・50億・100億・200億・500億・1000億）
-function hasG1Win(h){ return h.results.some(r=>r.finish===1 && G1_GRADES.includes(r.grade)); }
-function g1WinCount(h){ return h.results.filter(r=>r.finish===1 && G1_GRADES.includes(r.grade)).length; }
+function hasG1Win(h){ return h.results.some(r=>r.finish===1 && isG1Grade(r.grade)); }
+function g1WinCount(h){ return h.results.filter(r=>r.finish===1 && isG1Grade(r.grade)).length; }
 /* v4.4（オーナー指示 2026-11-18）：殿堂の称号「牧場の優駿」。日本ダービー（東京）を勝った馬は、
    牧場初かどうかに関係なく全員が称号を得て自動で殿堂入りする。戦績から動的に判定するので、
    過去のダービー勝ち馬にもそのまま遡及する（保存フラグは持たない）。東京ダービー（大井）は対象外 */
@@ -2002,7 +2002,7 @@ function raceMilestones(h, race, finish, prize){
     M.classic = true;
     chron("【初制覇】"+h.name+" が "+race.name+" を勝ち、牧場初のクラシック制覇を果たした");
   }
-  if(G1_GRADES.includes(race.grade)){
+  if(isG1ClassRace(race)){
     if(!M.g1){ M.g1 = true; h.hofLegend = true; h.firstG1 = true; /* v4.1：牧場初のG1勝ち馬は殿堂保証 */ chron("【初制覇】"+h.name+" が "+race.name+" を勝ち、牧場初のG1制覇を果たした"); topic("🏆 牧場初のG1制覇です！"); }
     if(race.sector==="overseas" && !M.ovsG1){ M.ovsG1 = true; chron("【初制覇】"+h.name+" が "+race.name+" を勝ち、牧場初の海外G1制覇を果たした"); }
     if(sireIsHomebred(h) && !M.hsG1){ M.hsG1 = true; chron("【初制覇】自家製種牡馬 "+h.sire+" の産駒 "+h.name+" がG1（"+race.name+"）を初めて制覇した"); }
@@ -2095,7 +2095,7 @@ function lineMoney(h){
     const a = resultAbsOf(r);
     let v = p * 0.5;
     if(a >= now - 52) v += p * 0.5; /* 直近1年は上乗せ（近況重視） */
-    if(G1_GRADES.includes(r.grade) && a >= now - 104) v += p * 0.5; /* 直近2年のG1級実績はさらに上乗せ */
+    if(isG1Grade(r.grade) && a >= now - 104) v += p * 0.5; /* 直近2年のG1級実績はさらに上乗せ */
     sum += v;
   }
   return Math.floor(sum);
@@ -2549,7 +2549,7 @@ function traitRaceMods(h, race){
     out.streak = n;
     if(n > 0) f *= 1 + Math.min(TRAIT_TSUME_CAP, 0.005 * n);
   }
-  if(t.big && G1_GRADES.includes(race.grade)) f *= 1.01;
+  if(t.big && isG1ClassRace(race)) f *= 1.01;
   const seas = seasonOfMonth(S.month);
   if(seas === t.seasonGood) f *= 1.01; else if(seas === t.seasonBad) f *= 0.99;
   const hd = courseHand(race);
@@ -2564,7 +2564,7 @@ function revealTraits(h, race, mods){
   if(mods.gap != null && mods.gap >= TRAIT_FRESH_GAP) t.known.fresh = true;
   if(mods.tatakiStage === 2) t.known.fresh = true;
   if(mods.streak >= 1) t.known.tsume = true;
-  if(G1_GRADES.includes(race.grade)) t.known.big = true;
+  if(isG1ClassRace(race)) t.known.big = true;
   if((h.results || []).length >= 3) t.known.spread = true;
 }
 function affinitySection(h){
@@ -3594,7 +3594,8 @@ const CROWN_ROUTES = [
   { name: "秋古馬三冠", legs: ["天皇賞（秋）", "ジャパンC", "有馬記念"] },
 ];
 function crownRouteOf(race){ return race ? (CROWN_ROUTES.find(rt => rt.legs.includes(race.name)) || null) : null; }
-function isG1ClassRace(race){ return !!race && (G1_GRADES.includes(race.grade) || race.grade === "G1"); }
+function isG1Grade(g){ return G1_GRADES.includes(g) || g === "G1"; } /* G1級の統一判定：海外G1（grade "G1"）を含む */
+function isG1ClassRace(race){ return !!race && isG1Grade(race.grade); }
 function isResting(h){ return (h.restUntilAbs || 0) > absWeek(); }
 function pendingCrownLeg(h){
   let best = null;
@@ -5106,7 +5107,7 @@ function viewChron(){
       /* v5.6（オーナー指示）：代表勝ち鞍は1つだけ選ぶ。優先順は ダービー＞有馬記念＞あとは賞金順（G1級の中で）。
          G1級の勝ちが無い馬は、従来どおりグレード→賞金の順で一番の勝ち鞍を出す */
       let best = null;
-      const g1wins = wins.filter(r => G1_GRADES.includes(r.grade));
+      const g1wins = wins.filter(r => isG1Grade(r.grade));
       if(g1wins.length){
         const pin = name => name === "日本ダービー" ? 0 : name === "有馬記念" ? 1 : 2;
         best = { r: [...g1wins].sort((a, b) => (pin(a.race) - pin(b.race)) || ((b.prize||0) - (a.prize||0)))[0] };
@@ -5346,7 +5347,7 @@ function nickRecordWin(h, race){
   const key = nickKeyOf(h.sire, h.bms);
   const rec = S.nickRecord[key] || (S.nickRecord[key] = { dams:{}, graded:false });
   rec.graded = true;
-  if(!G1_GRADES.includes(race.grade)) return;
+  if(!isG1ClassRace(race)) return;
   const dk = h.damId ? "id:" + h.damId : "name:" + (h.dam || "");
   if(rec.dams[dk]) return; /* 同じ牝馬からのG1勝ちは1枠（同じ馬の複数勝ちも同じ） */
   rec.dams[dk] = true;
@@ -5467,8 +5468,11 @@ function assignJockeys(race, entries){
   const order = [...entries].sort((a, b) => ((b.jockeyPref ? 1 : 0) - (a.jockeyPref ? 1 : 0)));
   for(const h of order){
     let j = null;
-    const want = h.jockeyPref || mainJockeyId(h);
-    if(want){ const cand = act.find(x => x.id === want); if(cand && !used.has(cand.id)) j = cand; }
+    const wants = [];
+    if(h.jockeyPref) wants.push(h.jockeyPref);
+    const mainId = mainJockeyId(h);
+    if(mainId && !wants.includes(mainId)) wants.push(mainId);
+    for(const wid of wants){ const cand = act.find(x => x.id === wid); if(cand && !used.has(cand.id)){ j = cand; break; } }
     if(!j){
       const free = act.filter(x => !used.has(x.id));
       if(free.length){ free.sort((a, b) => (a.yearRides - b.yearRides) || (a.rides - b.rides)); j = free[0]; }
@@ -5962,7 +5966,7 @@ function familyLineRow(h){
 function repG1Win(h){
   let best = null;
   for(const r of h.results){
-    if(r.finish===1 && G1_GRADES.includes(r.grade)){
+    if(r.finish===1 && isG1Grade(r.grade)){
       const rk = GRADE_RANK[r.grade]!=null ? GRADE_RANK[r.grade] : 9;
       if(!best || rk<best.rk || (rk===best.rk && (r.prize||0)>best.prize)) best = { rk, prize: r.prize||0, race: r.race, grade: r.grade };
     }
@@ -6718,6 +6722,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v7.0.7</footer>
+<footer>競馬シミュレーター（趣味） v7.0.8</footer>
 </body>
 </html>
