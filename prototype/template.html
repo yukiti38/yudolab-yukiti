@@ -1795,6 +1795,7 @@ function migrateV029(){
   if(!S.jockeys) S.jockeys = seedJockeys(); /* v7.0：騎手 */
   if(S.jockeySeq == null) S.jockeySeq = (S.jockeys || []).length;
   if(typeof S.jockeyOpen !== "boolean") S.jockeyOpen = false;
+  if(Array.isArray(S.jockeys)) for(const j of S.jockeys){ if(j.xp == null) j.xp = JOCKEY_XP_LINE[j.level || 1] || 0; if(!j.growth){ const g = rollJockeyGrowth(j.level || 1); j.growth = g.growth; j.ceil = g.ceil; } } /* v7.0.4：旧セーブの騎手にXPと成長傾向を補う */
   if(!S.branchRecord) S.branchRecord = {};
   if(S.branchSeq == null) S.branchSeq = 0;
   /* v2.4 移行：今週のトピックの開閉状態。既定は閉じた状態（false） */
@@ -2871,7 +2872,7 @@ function runRace(race, entries){
       time: dnfSet.has(h) ? "" : (winTime != null ? (winTime + Math.max(0, winScore - r.score) * 0.15).toFixed(1) : (race.distance_m ? (baseTime + idx*0.35 + rnd(0,0.5)).toFixed(1) : "")), agari: dnfSet.has(h) ? "" : agariFor(h, race, pace, winScore - r.score), winTime: winTime != null ? winTime.toFixed(1) : undefined, prize, jockeyId: (jMap.get(h) || {}).id || undefined, jockey: (jMap.get(h) || {}).name || undefined }; /* v7.0：騎手 */
     const pay = prizePayout(prize); /* v0.56：記録は総額、資金に入るのは進上金・源泉徴収を引いた手取り */
     h.results.push(rec); h.earnings += prize; S.funds += pay.net;
-    { const jj = jMap.get(h); if(jj){ jj.rides++; jj.yearRides++; if(finish === 1){ jj.wins++; jj.yearWins++; if(isG1ClassRace(race)) jj.g1Wins++; } } } /* v7.0：騎手の成績 */
+    { const jj = jMap.get(h); if(jj){ jj.rides++; jj.yearRides++; jockeyGainXp(jj, 1); if(finish === 1){ jj.wins++; jj.yearWins++; jockeyGainXp(jj, 4); if(isG1ClassRace(race)){ jj.g1Wins++; jockeyGainXp(jj, 8); } } } } /* v7.0：騎手の成績／v7.0.4：XP */
     if(prize > 0 && finish!==1) topic(payoutText(h, pay)); /* v3.7：勝利時は勝利トピックに一本化（賞金の内訳は戦績・資金で確認できる）。2着以下の賞金は従来どおり（勝利系フィルタで落ちるため実質表示されない） */
     revealAffinities(h, race, tfMap.get(h) || 0); /* 相性は走って初めて確定する（v0.52） */
     { const tm = traitMap.get(h); revealTraits(h, race, tm); if(h.traits && h.traits.fresh === "tataki") h._tatakiNext = !!(tm && tm.tatakiStage === 1); } /* v6.0：特性の確定＋叩き良化の段階（次走が2戦目） */
@@ -5065,7 +5066,7 @@ function viewManual(){
   h += sec("🌳 系統と牝系",
     "父系の系統特性（早熟寄り・スタミナ寄りなど）は言葉だけで表示され、配合に薄く影響します（母父は半分の効き）。<br>牝系は牝馬の子孫の広がりで育ちます。直仔5頭以上・子孫25頭以上・ポイント20以上で「候補」になり、そこから2年続けて頭数シェアなどの条件を満たすと「○○系」として成立します。成立した称号は消えませんが、細ると「衰退中」と表示されます。血統タブで牝系の広がりが見られます。<br>牡馬の分家（子系統）：産駒からG1級勝ち馬が3頭出た種牡馬は、自分の系統（○○系）を立てます。分家にはファウンダーの競走特性から決まる「色」が2つ付き（裏側の弱さもセット）、配合では大系統の色に代わって一番近い分家の色が効きます（母父側は半分）。分家の下に分家が増えると親系統・祖系統・大系統へ格が上がりますが、色の強さは変わりません。種牡馬が1頭もいなくなった分家は消滅します。血統タブの「牡馬系統」で見られます。<br>メルトスイートとカルストンライトオを組み合わせると...？");
   h += sec("🏇 騎手",
-    "騎手には実在の騎手をモデルにした26人がいて（名前は架空）、歳を取り、50歳で引退します。引退すると、同苗字の二世か新人の騎手がデビューします。よく乗せる騎手はレベルが上がります（年末に、その年10鞍以上乗ると+1、最大Lv5）。レベルと、その馬の主戦騎手かどうかが、わずかに着差を後押しします。<br>各馬に一番多く乗った騎手が主戦です。馬のページと出走登録画面で騎手を指定でき、指定した騎手は自動出走でも優先して乗ります。騎手タブで現役騎手の成績が見られます。");
+    "騎手には実在の騎手をモデルにした26人がいて（名前は架空）、歳を取り、50歳で引退します。引退すると、同苗字の二世か新人の騎手がデビューします。よく乗せる騎手は騎乗経験を積んで少しずつレベルが上がります（最大Lv5）。上がり方には個人差があり、若いうちに伸びるタイプ、晩年に伸びるタイプ、上限が低めのタイプがいます。レベルと、その馬の主戦騎手かどうかが、わずかに着差を後押しします。<br>各馬に一番多く乗った騎手が主戦です。馬のページと出走登録画面で騎手を指定でき、指定した騎手は自動出走でも優先して乗ります。騎手タブで現役騎手の成績が見られます。");
   h += sec("🏁 引退と種牡馬入り",
     "引退の目安は成長型で違います（早熟は4歳前後、普通は6歳前後、晩成は7歳以降）。10歳のシーズン終了が全馬の上限です。自動引退がONのときは毎月判定され、目安に達した馬はシーズン途中でも引退します（手動の場合は年末に確認します）。G1を勝った馬は、衰えが見えたら通常の目安より早く引退します（5勝以上の馬はさらに早めです）。<br>競走寿命の目安は、診療所を建設すると馬ページに「○歳の○ごろ」と表示され、目安が今年に来る馬は年始に通知されます。診療所を建設するとこの仕組み全体（見立て表示・年始通知・寿命引退）が動き始めます。自動引退がONの場合、目安に達した時点で前年まで好成績（1勝以上、または重賞で3着以内）だった馬は、好成績のまま引退します。4歳になって未勝利の馬は年末に引退します。<br>牡馬は重賞勝ちか生涯賞金1億円以上で種牡馬入りの資格があり、引退時に「種牡馬入り／売却／そのまま残す」から選べます。牝馬は繁殖入り（頭数上限内）か売却です。引退した馬は「牧場年表」タブの引退馬リストに残ります。<br>引退から50年が経つと、その馬の詳細ページは閉じられます（記録データ自体は残ります）。殿堂馬の詳細は無期限で残ります。");
   h += sec("🏆 殿堂入り",
@@ -5438,7 +5439,7 @@ const JOCKEY_GIVEN_M = ["翔太","大輔","健太","拓海","悠真","颯太","�
 const JOCKEY_GIVEN_F = ["美咲","彩花","結衣","莉子","葵","七海","穂香","真央","遥","栞","萌","沙織","由美","加奈","麻衣"];
 const JOCKEY_GIVEN_FOREIGN = ["ルカ","マルコ","ピエール","アンドレ","ジョアン","ライアン","トム","アレックス","マッテオ","エミール","ユーゴ","ノア"];
 function seedJockeys(){
-  return JOCKEY_SEED.map((d, i) => ({ id: "j" + (i + 1), name: d.name, family: d.family, given: d.given, foreign: !!d.foreign, female: !!d.female, birthYear: 2026 - d.age, level: d.lv, gen: d.gen || 1, rides: 0, wins: 0, g1Wins: 0, yearRides: 0, yearWins: 0, retired: null, debut: 2026 }));
+  return JOCKEY_SEED.map((d, i) => { const g = rollJockeyGrowth(d.lv); return { id: "j" + (i + 1), name: d.name, family: d.family, given: d.given, foreign: !!d.foreign, female: !!d.female, birthYear: 2026 - d.age, level: d.lv, xp: JOCKEY_XP_LINE[d.lv] || 0, growth: g.growth, ceil: g.ceil, gen: d.gen || 1, rides: 0, wins: 0, g1Wins: 0, yearRides: 0, yearWins: 0, retired: null, debut: 2026 }; });
 }
 function activeJockeys(){ return (S.jockeys || []).filter(j => !j.retired && (j.debut == null || j.debut <= S.year)); }
 function jockeyById(id){ return (S.jockeys || []).find(j => j.id === id) || null; }
@@ -5495,20 +5496,45 @@ function spawnSuccessor(old){
     if(!act.some(j => j.name === nm)) break;
   }
   const name = foreign ? given + "・" + family : family + " " + given;
-  const nj = { id: "j" + (++S.jockeySeq), name, family, given, foreign, female, birthYear: S.year - 20, level: 1, gen: nisei ? (old.gen || 1) + 1 : 1, rides: 0, wins: 0, g1Wins: 0, yearRides: 0, yearWins: 0, retired: null, debut: S.year }; /* 年末処理時点では S.year は新年：後継は新年からデビューし、その年に20歳 */
+  const gj = rollJockeyGrowth(1);
+  const nj = { id: "j" + (++S.jockeySeq), name, family, given, foreign, female, birthYear: S.year - 20, level: 1, xp: 0, growth: gj.growth, ceil: gj.ceil, gen: nisei ? (old.gen || 1) + 1 : 1, rides: 0, wins: 0, g1Wins: 0, yearRides: 0, yearWins: 0, retired: null, debut: S.year }; /* 年末処理時点では S.year は新年：後継は新年からデビューし、その年に20歳 */
   S.jockeys.push(nj);
-  chron(nisei ? "🏇 " + name + " 騎手がデビューします（" + old.name + " の" + (nj.gen === 2 ? "二世" : nj.gen + "世") + "）" : "🏇 新人の " + name + " 騎手がデビューします");
   return nj;
+}
+/* 騎手の成長（v7.0.4・オーナー 指摘「上がるのが早すぎる。徐々に＋傾向を」）：年+1方式をやめ、騎乗経験（XP）の蓄積制に。
+   1鞍+1／1勝+4／G1級1勝+8 を、成長傾向の倍率つきで積む。閾値は逓増（Lv2:60／Lv3:180／Lv4:420／Lv5:800）。
+   傾向は非表示：早熟＝若いうち伸びるが上限Lv4／晩成＝32歳までは伸びにくく、そこから伸びる／普通＝標準（2割は上限Lv4） */
+const JOCKEY_XP_LINE = [0, 0, 60, 180, 420, 800]; /* index = そのレベルに必要な累積XP */
+function rollJockeyGrowth(minCeil){
+  const r = Math.random();
+  let growth, ceil;
+  if(r < 0.25){ growth = "早熟"; ceil = 4; }
+  else if(r < 0.45){ growth = "晩成"; ceil = 5; }
+  else { growth = "普通"; ceil = Math.random() < 0.2 ? 4 : 5; }
+  if(ceil < minCeil) ceil = minCeil;
+  return { growth, ceil };
+}
+function jockeyGainMul(j){
+  const age = S.year - j.birthYear;
+  if(j.growth === "早熟") return age < 32 ? 1.35 : 0.75;
+  if(j.growth === "晩成") return age < 32 ? 0.65 : 1.3;
+  return 1.0;
+}
+function jockeyGainXp(j, raw){ j.xp = (j.xp || 0) + raw * jockeyGainMul(j); }
+function jockeyLevelFor(j){
+  let lv = 1;
+  for(let L = 2; L <= 5; L++) if((j.xp || 0) >= JOCKEY_XP_LINE[L]) lv = L;
+  return Math.min(lv, j.ceil || 5);
 }
 function jockeyYearEnd(){
   if(!S.jockeys) return;
   for(const j of [...S.jockeys]){
     if(j.retired) continue;
-    if(j.yearRides >= 10 && j.level < 5){ j.level++; if(j.level === 5) chron("🏇 " + j.name + " 騎手がトップジョッキーの域に達しました（Lv5）"); }
+    const nl = jockeyLevelFor(j);
+    if(nl > j.level) j.level = nl;
     j.yearRides = 0; j.yearWins = 0;
     if(S.year - j.birthYear >= 51){ /* 50歳のシーズンを最後に引退（年末処理時点の S.year は新年） */
       j.retired = S.year - 1;
-      chron("🏇 " + j.name + " 騎手が引退しました（通算 " + j.wins + " 勝）");
       notice("🏇 " + j.name + " 騎手が引退しました");
       spawnSuccessor(j);
     }
@@ -5517,7 +5543,7 @@ function jockeyYearEnd(){
 function jockeysHtml(){
   const act = activeJockeys().slice().sort((a, b) => (b.yearWins - a.yearWins) || (b.level - a.level) || (b.wins - a.wins));
   let html = "<h3>🏇 騎手（現役 " + act.length + " 人）</h3>"
-    + "<div class='sub'>騎手は歳を取り、50歳で引退します。引退すると、同苗字の二世か新人の騎手がデビューします。その年10鞍以上乗ると年末にレベルが上がります（最大Lv5）。レベルと主戦かどうかが、わずかに着差を後押しします。</div>";
+    + "<div class='sub'>騎手は歳を取り、50歳で引退します。引退すると、同苗字の二世か新人の騎手がデビューします。騎乗を重ねると少しずつレベルが上がります（最大Lv5）。上がり方には個人差があります。レベルと主戦かどうかが、わずかに着差を後押しします。</div>";
   const rows = act.map(j => "<tr><td>" + j.name + (j.gen > 1 ? " <span class='sub'>" + j.gen + "世</span>" : "") + "</td><td>" + (S.year - j.birthYear) + "歳</td><td>Lv" + j.level + "</td><td>" + j.yearRides + "鞍 " + j.yearWins + "勝</td><td>" + j.rides + "鞍 " + j.wins + "勝（G1 " + j.g1Wins + "勝）</td></tr>").join("");
   html += "<table><tr><th>騎手</th><th>年齢</th><th>レベル</th><th>今年</th><th>通算</th></tr>" + rows + "</table>";
   const ret = (S.jockeys || []).filter(j => j.retired).slice(-8).reverse();
@@ -6691,6 +6717,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v7.0.3</footer>
+<footer>競馬シミュレーター（趣味） v7.0.4</footer>
 </body>
 </html>
