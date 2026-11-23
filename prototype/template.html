@@ -3986,13 +3986,15 @@ function nextEvent(){
   S.silent = false; save(); render();
 }
 function skipTo(y, m, w){
-  // 指定した年・月・週まで進める（最大50年分）。途中の出来事は年表に残る。
+  // 指定した年・月・週まで進める（最大100年分）。途中の出来事は年表に残る。
+  // ガードは青天井にしない：万一カレンダーが進まない週が来たら無限ループでタブが固まるため、
+  // 週数上限に加えて「進まなかったら止める」安全弁も入れてある（v7.6.1・オーナー指示で上限を100年分に拡大）
   w = Math.min(w, WEEKS_IN_MONTH[m-1]); /* 第5週のない月は末週に寄せる */
   const target = absOf(y, m, w);
   let guard = 0;
   S.silent = true;
   S._skipAuto = true; /* v3.2：スキップ中は自動トグルを有効化する（autoActive 参照） */
-  while(absWeek() < target && guard++ < 2700) advanceWeek();
+  while(absWeek() < target && guard++ < 5200){ const before = absWeek(); advanceWeek(); if(absWeek() <= before) break; }
   S._skipAuto = false;
   S.silent = false;
   /* スキップ自体は年表に残さない（v0.33）。途中のビッグイベントは通常どおり記録される */
@@ -7066,6 +7068,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v7.6</footer>
+<footer>競馬シミュレーター（趣味） v7.6.1</footer>
 </body>
 </html>
