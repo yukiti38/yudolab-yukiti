@@ -2097,7 +2097,13 @@ function raceMilestones(h, race, finish, prize){
   /* v4.4：日本ダービー制覇の通知（称号そのものは hasDerbyWin の動的判定で遡及も効く） */
   if(race.name === "日本ダービー") notice("👑 " + h.name + " が日本ダービーを制覇し、殿堂の称号『牧場の優駿』を得ました");
   const legs = crownLegs(h);
-  if(legs.length===2 && !h.crown2){ h.crown2 = true; chron("【二冠】"+h.name+" がクラシック二冠を達成し、三冠に王手をかけた"); topic("👑 "+h.name+" が二冠達成、三冠に王手です"); }
+  if(legs.length===2 && !h.crown2){ h.crown2 = true;
+    /* v7.7.1（オーナー指摘）：2勝目が路線の最終脚（菊花賞・秋華賞）の場合、残りの脚はもう走れないので「三冠に王手」にはならない。
+       王手は最終脚がまだ残っている時（＝今回が最終脚でない時）だけ */
+    const route = h.sex==="牝" ? CROWN_FILLY : CROWN_COLT;
+    const ohte = route[route.length-1] !== race.name;
+    chron("【二冠】"+h.name+" がクラシック二冠を達成した" + (ohte ? "、三冠に王手をかけた" : ""));
+    topic("👑 "+h.name+" が二冠達成" + (ohte ? "、三冠に王手です" : "です")); }
   if(legs.length===3 && !h.crown3){ h.crown3 = true; chron("【三冠】"+h.name+" がクラシック三冠を達成した！"); topic("👑👑👑 "+h.name+" が三冠を達成しました！"); }
 }
 function checkHofMilestone(h){
@@ -7077,6 +7083,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v7.7</footer>
+<footer>競馬シミュレーター（趣味） v7.7.1</footer>
 </body>
 </html>
