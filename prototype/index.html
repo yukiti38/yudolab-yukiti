@@ -4740,7 +4740,7 @@ function viewBreed(){
   return broodmareTable() + saleView();
 }
 let mateMareId = null, mateSort = "recommend";
-let mateFilter = { region:"all", surface:"all", feeMax:"all", homeOnly:false };
+let mateFilter = { region:"all", surface:"all", feeMax:"all", growth:"all", homeOnly:false }; /* growth は v7.7.3 で追加（オーナー依頼：配合画面でも成長型で絞れるように。種牡馬リストの絞込みと同じ流儀） */
 /* 自家製種牡馬か（自牧場の馬が種牡馬入りしたもの。ロスターの自動補充組は含まない） */
 function isHomebredStallion(st){ return S.horses.some(h=>h.status==="stallion" && h.name===st.name); }
 /* 種付料（v0.38）：自家製種牡馬は無料（設計通り）。それ以外はティア別の固定額 */
@@ -4944,6 +4944,7 @@ function sortedForMating(m){
     (mateFilter.region==="all" || st.region===mateFilter.region) &&
     (mateFilter.surface==="all" || st.surface===mateFilter.surface) &&
     (mateFilter.feeMax==="all" || stallionFee(st) <= parseInt(mateFilter.feeMax,10)) &&
+    (mateFilter.growth==="all" || st.growth===mateFilter.growth) &&
     (!mateFilter.homeOnly || isHomebredStallion(st)));
   const growOrd = {"早熟":0, "普通":1, "晩成":2};
   if(mateSort==="recommend") arr.sort((a,b)=> ((compatScore(m,b)+inbredScoreAdj(m,b))-(compatScore(m,a)+inbredScoreAdj(m,a))) || (((S.favs||[]).includes(b.name)?1:0)-((S.favs||[]).includes(a.name)?1:0)) || (FEE_VAL[b.fee_tier]-FEE_VAL[a.fee_tier]));
@@ -4987,6 +4988,7 @@ function broodmareTable(){
       + fsel("mfRegion", mateFilter.region, [["all","地域すべて"],["domestic","国内"],["overseas","海外"]])
       + fsel("mfSurface", mateFilter.surface, [["all","芝・ダート"],["芝","芝"],["ダート","ダート"]])
       + fsel("mfFeeMax", mateFilter.feeMax, [["all","種付料上限なし"],["3000","〜3,000万円"],["1500","〜1,500万円"],["800","〜800万円"],["400","〜400万円"]])
+      + fsel("mfGrowth", mateFilter.growth, [["all","成長すべて"],["早熟","早熟"],["普通","普通"],["晩成","晩成"],["超晩成","超晩成"]])
       + "<label><input type='checkbox' id='mfHome'"+(mateFilter.homeOnly?" checked":"")+"> 自家製だけ</label></div>";
     const mareBmsLine = majorLineOfName(m.sire); /* この牝馬の父＝産駒の母父の系（系統の個性 v0.54） */
     const list = sortedForMating(m);
@@ -5006,7 +5008,7 @@ function broodmareTable(){
     document.querySelectorAll("[data-mate-mare]").forEach(btn => btn.onclick = () => { mateMareId = btn.getAttribute("data-mate-mare"); render(); });
     const so = document.querySelector("#mateSort"); if(so) so.onchange = () => { mateSort = so.value; render(); };
     const bindF = (id, key) => { const el = document.querySelector(id); if(el) el.onchange = () => { mateFilter[key] = el.value; render(); }; };
-    bindF("#mfRegion","region"); bindF("#mfSurface","surface"); bindF("#mfFeeMax","feeMax");
+    bindF("#mfRegion","region"); bindF("#mfSurface","surface"); bindF("#mfFeeMax","feeMax"); bindF("#mfGrowth","growth");
     const mh = document.querySelector("#mfHome"); if(mh) mh.onchange = () => { mateFilter.homeOnly = mh.checked; render(); };
     document.querySelectorAll("[data-matewith]").forEach(btn => btn.onclick = () => {
       const st = S.stallions.find(s=>s.name===btn.getAttribute("data-matewith"));
@@ -7095,6 +7097,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v7.7.2</footer>
+<footer>競馬シミュレーター（趣味） v7.7.3</footer>
 </body>
 </html>
