@@ -5442,6 +5442,11 @@ function bindTab(){
     if(lineCollapsed.has(id)) lineCollapsed.delete(id); else lineCollapsed.add(id);
     render();
   });
+  document.querySelectorAll("[data-btoggle]").forEach(el => el.onclick = () => {
+    const id = el.getAttribute("data-btoggle");
+    if(branchCollapsed.has(id)) branchCollapsed.delete(id); else branchCollapsed.add(id);
+    render();
+  }); /* v7.7.2：牡馬系統の折りたたみ */
 }
 /* 牡馬系ライン（v0.41）：種牡馬データの line（父父〜）と特別牝馬の父系・母父系から、名前→父の対応表を作る */
 const PEDIGREE_LINES = {};
@@ -6068,8 +6073,13 @@ function branchTreeHtml(){
   const all = S.branches ? Object.values(S.branches) : [];
   let html = "<h3>🌳 牡馬系統（分家 " + all.length + "）</h3>";
   if(!all.length) return html + "<div class='sub'>まだ分家は立っていません。産駒からG1級勝ち馬が3頭出た種牡馬が、自分の系統を立てます。</div>";
+  html += "<div class='sub'>「－／＋」で分家の枝を畳んだり開いたりできます。</div>";
   const depth = b => { let d = 0, cur = b; while(cur && cur.parentBranch && S.branches[cur.parentBranch]){ d++; cur = S.branches[cur.parentBranch]; } return d; };
-  const rowOf = b => "<div style='margin-left:" + (depth(b) * 18) + "px;'>" + (b.extinct ? "🍂 " : "🌱 ") + "<b>" + b.founder + "系</b>（" + BRANCH_TIER_NAMES[b.tier] + "／" + branchParentLabel(b) + "）" + (branchPhrase(b) ? " <span class='sub'>" + branchPhrase(b) + "</span>" : "") + (b.extinct ? " <span class='sub'>消滅</span>" : "") + "</div>";
+  function descCount(id){ let n = 0; for(const c of (childrenOf[id] || [])){ n += 1 + descCount(c.id); } return n; }
+  const rowOf = b => "<div style='margin-left:" + (depth(b) * 18) + "px;'>"
+    + ((childrenOf[b.id] || []).length ? "<button class='ltoggle' data-btoggle='" + b.id + "'>" + (branchCollapsed.has(b.id) ? "＋" : "－") + "</button>" : "")
+    + (b.extinct ? "🍂 " : "🌱 ") + "<b>" + b.founder + "系</b>（" + BRANCH_TIER_NAMES[b.tier] + "／" + branchParentLabel(b) + "）" + (branchPhrase(b) ? " <span class='sub'>" + branchPhrase(b) + "</span>" : "") + (b.extinct ? " <span class='sub'>消滅</span>" : "")
+    + (branchCollapsed.has(b.id) && (childrenOf[b.id] || []).length ? " <span class='lmore'>分家 " + descCount(b.id) + "家</span>" : "") + "</div>";
   /* v7.1.1（オーナー指摘：成立順だと見にくい）：大系統ごとにまとめ、親の直後に子孫を並べる家系順にする。
      成立順のフラットな列では、無関係な分家が交互に出て親子が離れてしまうため */
   const byYear = (a, b) => (a.year - b.year) || (a.id < b.id ? -1 : 1);
@@ -6080,7 +6090,8 @@ function branchTreeHtml(){
   }
   for(const k of Object.keys(childrenOf)) childrenOf[k].sort(byYear);
   const seen = new Set();
-  const emit = (b, out) => { if(seen.has(b.id)) return; seen.add(b.id); out.push(rowOf(b)); for(const c of (childrenOf[b.id] || [])) emit(c, out); };
+  const emit = (b, out) => { if(seen.has(b.id)) return; seen.add(b.id); out.push(rowOf(b)); if(branchCollapsed.has(b.id)){ for(const c of (childrenOf[b.id] || [])) markSeen(c); return; } for(const c of (childrenOf[b.id] || [])) emit(c, out); };
+  const markSeen = b => { if(seen.has(b.id)) return; seen.add(b.id); for(const c of (childrenOf[b.id] || [])) markSeen(c); }; /* 畳んだ枝の子孫は「表示済み」にして末尾の rest に二重に出さない */
   const majorOrder = Object.keys(LINE_TRAITS);
   const groups = new Map();
   for(const r of roots){ const m = r.major || "系統不明"; if(!groups.has(m)) groups.set(m, []); groups.get(m).push(r); }
@@ -6161,6 +6172,7 @@ function produceSection(h){
    売却した馬は S.horses から消えるため、系図・頭数は「現在の所有馬」の範囲で数える（仕様として受容）。
    establishedLines() を系図ビューと馬ページの「牝系」表示の両方が使うので、両者は食い違わない。 */
 let lineCollapsed = new Set();
+let branchCollapsed = new Set(); /* v7.7.2：牡馬系統の折りたたみ状態（牝系と同じくセッション内のみ） */
 /* 母馬の解決（v3.4）：出生時に刻まれた damId があればそれが正。無い旧セーブの馬は
    名前＋生年で解決する（その名前の牝馬のうち、その仔の出生時に4〜17歳だった馬を優先し、
    複数いれば若い方）。始祖より前に生まれた馬が系統に紛れる同名衝突を防ぐ */
@@ -7083,6 +7095,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v7.7.1</footer>
+<footer>競馬シミュレーター（趣味） v7.7.2</footer>
 </body>
 </html>
