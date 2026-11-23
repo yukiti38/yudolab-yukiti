@@ -1010,8 +1010,9 @@ function horseClass(h){
   return "3勝クラス";
 }
 /* 重賞勝ちの一覧（v0.33）：戦績からグレード対象の勝利だけを抽出する。馬ページの成績欄に明記するため（斤量計算用の gradedWins とは別） */
-const GRADED_SET = ["GI","GII","GIII","G1","G2","G3","JpnI","JpnII","JpnIII","J-GI","J-GII","J-GIII","L"]; /* v5.0：障害重賞も重賞扱い */
+const GRADED_SET = ["GI","GII","GIII","G1","G2","G3","JpnI","JpnII","JpnIII","J-GI","J-GII","J-GIII"]; /* v5.0：障害重賞も重賞扱い。v7.7（オーナー指摘）：リステッドは重賞ではないので含めない。リステッドは独立格として別扱い（listedWinList） */
 function gradedWinList(h){ return h.results.filter(r=>r.finish===1 && GRADED_SET.includes(r.grade)); }
+function listedWinList(h){ return h.results.filter(r=>r.finish===1 && r.grade==="L"); } /* v7.7：リステッド勝ちは重賞勝ちとは別枠 */
 /* v4.4（オーナー要望 2026-11-18）：着順の内訳（1着-2着-3着-着外）。馬詳細の成績欄で一目で見られるようにする */
 function finishBreakdown(h){
   const b = [0, 0, 0, 0];
@@ -1043,9 +1044,9 @@ function gradedWinIndex(){
 /* 重賞勝ちの表示用まとめ（v3.7・オーナー要望）：同じレース（名前・グレード・競馬場）の勝ちは
    「有馬記念（GI・2026,2027）」のように年を並べて1件に畳む。連覇・複数回勝ちの多い馬で
    重賞勝ち欄が勝ち鞍の羅列になって見にくかったため。並びは初勝利の時系列順を維持する */
-function gradedWinSummary(h){
+function winSummaryOf(list){
   const groups = new Map();
-  for(const r of gradedWinList(h)){
+  for(const r of list){
     const key = r.race + "|" + r.grade + "|" + (r.course || "");
     if(!groups.has(key)) groups.set(key, { race: r.race, grade: r.grade, years: [] });
     const y = String(r.when).slice(0, 4);
@@ -1054,6 +1055,8 @@ function gradedWinSummary(h){
   }
   return [...groups.values()].map(g => g.race + "（" + g.grade + "・" + g.years.join(",") + "）").join("、");
 }
+function gradedWinSummary(h){ return winSummaryOf(gradedWinList(h)); }
+function listedWinSummary(h){ return winSummaryOf(listedWinList(h)); }
 function evalComment(h){
   if(h.spd == null) return "―評価（"+h.surface+"・"+h.distMin+"〜"+h.distMax+"m・"+h.growth+"）";
   const comp = Math.round((h.spd+h.sta+h.gut)/3);
@@ -2971,7 +2974,7 @@ function runRace(race, entries){
     if(prize > 0 && finish!==1) topic(payoutText(h, pay)); /* v3.7：勝利時は勝利トピックに一本化（賞金の内訳は戦績・資金で確認できる）。2着以下の賞金は従来どおり（勝利系フィルタで落ちるため実質表示されない） */
     revealAffinities(h, race, tfMap.get(h) || 0); /* 相性は走って初めて確定する（v0.52） */
     { const tm = traitMap.get(h); revealTraits(h, race, tm); if(h.traits && h.traits.fresh === "tataki") h._tatakiNext = !!(tm && tm.tatakiStage === 1); } /* v6.0：特性の確定＋叩き良化の段階（次走が2戦目） */
-    if(finish===1){ h.wins++; if(["GI","GII","GIII","JpnI","JpnII","JpnIII","J-GI","J-GII","J-GIII","L"].includes(race.grade)) h.gradedWin = true; }
+    if(finish===1){ h.wins++; if(GRADED_SET.includes(race.grade)) h.gradedWin = true; } /* v7.7：リステッド勝ちでは立たない（従来は明示リストに L が混ざっていた） */
     if(finish===1 && GRADED_SET.includes(race.grade)) maybeAutoRotation(h, race); if(finish===1) maybeTrialRotation(h, race); /* v5.5：トライアル・前哨戦を勝つと本番を1回限りで自動指定 */ /* v3.1：自動ローテーション（重賞勝ちで翌年の指定を自動で付ける） */
     h.fatigue = clamp(h.fatigue + Math.round((irnd(34,52) + weightBurden(r.wall)) * (h.talent === "tireless" ? 0.7 : 1)), 0, 100); /* v4.2：タフガイは疲れにくい */
     h.condition = clamp(h.condition - Math.round(irnd(6,16) * (h.talent === "tireless" ? 0.7 : 1) * (h.traits && h.traits.cond === "down" ? 1.25 : 1)), 5, 100); /* v4.2：タフガイは状態を崩しにくい／v6.0：状態の波（維持しにくい）は落ちが大きい */
@@ -3352,7 +3355,7 @@ function bestWinPrestige(h){
   if(best == null && h.gradedWin) best = 2; /* 戦績行の無い重賞勝ち（デバッグ付与等）は G3 勝ち相当として扱う */
   return best;
 }
-const LV_PRESTIGE_CAP = { 1: 5, 2: 4, 3: 2, 4: 1, 5: 0 }; /* v7.1：レベル→地板の緩和上限（そのレベルの主戦場の prestige） */
+const LV_PRESTIGE_CAP = { 1: 5, 2: 4, 2.5: 3, 3: 2, 4: 1, 5: 0 }; /* v7.7：リステッド級の緩和上限は OP と G3 の中間 */ /* v7.1：レベル→地板の緩和上限（そのレベルの主戦場の prestige） */
 function prestigeFloorOk(h, race){
   const b = bestWinPrestige(h);
   if(b == null) return true; /* まだ勝っていない馬に地板は無い */
@@ -3419,28 +3422,32 @@ function betterSurfOk(h, surface){
 function raceLevelOf(grade){
   if(grade === "GI" || grade === "JpnI" || grade === "G1" || grade === "J-GI") return 5;
   if(grade === "GII" || grade === "JpnII" || grade === "G2" || grade === "J-GII") return 4;
-  if(grade === "GIII" || grade === "JpnIII" || grade === "G3" || grade === "J-GIII" || grade === "L") return 3;
+  if(grade === "GIII" || grade === "JpnIII" || grade === "G3" || grade === "J-GIII") return 3;
+  if(grade === "L") return 2.5; /* v7.7：リステッドは G3 と OP の間の独立レベル */
   if(grade === "OP") return 2;
   return 1;
 }
+const LEVEL_STEPS = [1, 2, 2.5, 3, 4, 5]; /* v7.7：リステッド級 2.5 を含むレベルの階段 */
+function levelUp(v){ for(const s of LEVEL_STEPS) if(s > v) return s; return 5; }
+function levelDown(v){ let r = 1; for(const s of LEVEL_STEPS) if(s < v) r = s; return r; }
 function autoFormLevel(h){
   const starts = (h.results || []).filter(r => raceLevelOf(r.grade) >= 2);
   const floor = horseClass(h) === "OP" ? 2 : 1;
   if(!starts.length) return floor;
   let L = raceLevelOf(starts[starts.length - 1].grade);
   const atL = starts.filter(r => raceLevelOf(r.grade) === L);
-  if(atL[atL.length - 1].finish === 1) L = Math.min(5, L + 1);
+  if(atL[atL.length - 1].finish === 1) L = levelUp(L);
   else {
     const last2 = atL.slice(-2);
-    if(last2.length === 2 && last2.every(r => r.finish >= 6)) L = Math.max(floor, L - 1);
+    if(last2.length === 2 && last2.every(r => r.finish >= 6)) L = Math.max(floor, levelDown(L));
   }
   return Math.max(floor, L);
 }
-const AUTO_ABILITY_LINE = { 5: 74, 4: 70, 3: 66, 2: 62 }; /* 実効能力（effAvg）の目安：その格で勝負になる水準。相手の帯（rivalStrength）に諸係数が乗る分を見込んで帯の中央より低めに置く */
+const AUTO_ABILITY_LINE = { 5: 74, 4: 70, 3: 66, 2.5: 64, 2: 62 }; /* v7.7：リステッド級は G3 と OP の中間 */ /* 実効能力（effAvg）の目安：その格で勝負になる水準。相手の帯（rivalStrength）に諸係数が乗る分を見込んで帯の中央より低めに置く */
 function autoAbilityLevel(h){
   const abil = (paramNow(h, "spd") + paramNow(h, "sta") + paramNow(h, "gut")) / 3;
   let lv = 1;
-  for(const L of [2, 3, 4, 5]) if(abil >= AUTO_ABILITY_LINE[L]) lv = L;
+  for(const L of [2, 2.5, 3, 4, 5]) if(abil >= AUTO_ABILITY_LINE[L]) lv = L;
   return lv;
 }
 function autoTargetLevel(h){
@@ -3451,7 +3458,7 @@ function autoTargetLevel(h){
     while(ab > form){
       const atAb = starts.filter(r => raceLevelOf(r.grade) === ab);
       const last2 = atAb.slice(-2);
-      if(last2.length === 2 && last2.every(r => r.finish >= 6)) ab--; else break;
+      if(last2.length === 2 && last2.every(r => r.finish >= 6)) ab = levelDown(ab); else break;
     }
   }
   return Math.max(form, ab);
@@ -6779,6 +6786,7 @@ function openHorse(id){
     return;
   }
   const gw = gradedWinList(h);
+  const lw = listedWinList(h); /* v7.7 */
   const res = h.results.length ? [...h.results].reverse().map(r=>"<tr><td>"+r.when+"</td><td>"+r.race+"（"+r.grade+"）"+(r.pass?"<br><span class='sub'>通過 "+r.pass+"｜"+(r.comment||"")+"</span>":"")+"</td><td>"+r.course+" "+r.surface+(r.dist||"")+"</td><td>"+r.finish+"着/"+r.field+"頭"+(r.weight!=null ? "<br><span class='sub'>斤量"+Number(r.weight).toFixed(1)+"kg</span>" : "")+(r.transport ? "<br><span class='sub'>輸送疲労+"+r.transport+"</span>" : "")+(r.bodyWeight != null ? "<br><span class='sub'>馬体重"+r.bodyWeight+"kg"+(r.weightDiff != null ? "（前走比 "+(r.weightDiff>=0?"+":"")+r.weightDiff+"）" : "")+"</span>" : "")+"</td><td>"+(r.time ? fmtTime(parseFloat(r.time)) : "")+"</td><td>上り"+r.agari+"</td><td>"+(r.jockey||"")+"</td><td>"+(r.prize?man(r.prize):"")+"</td></tr>").join("") : "<tr><td>まだ出走がありません</td></tr>";
   let actions = "";
   let retireSalePrice = null;
@@ -6892,6 +6900,7 @@ function openHorse(id){
     + "<dt>スタッフ評価</dt><dd>"+evalComment(h)+"</dd>"
     + "<dt>成績</dt><dd>"+(h.results.length+(h.preStarts||0))+"戦"+h.wins+"勝"+finishBreakdownText(h)+"・獲得賞金 "+man(h.earnings)+"・出走ライン賞金 "+man(lineMoney(h))+"</dd>"
     + (gw.length ? "<dt>重賞勝ち</dt><dd>"+gradedWinSummary(h)+"</dd>" : "")
+    + (lw.length ? "<dt>リステッド勝ち</dt><dd>"+listedWinSummary(h)+"</dd>" : "") /* v7.7：重賞とは別枠で表示 */
     + "<dt>コンディション</dt><dd>状態"+Math.round(h.condition)+"／疲労"+Math.round(h.fatigue)+(isResting(h) ? "／休養中（〜"+fromAbs(h.restUntilAbs - 1)[1]+"月第"+fromAbs(h.restUntilAbs - 1)[2]+"週・自動出走のみ）" : "")+"</dd>"
     + ((h.status==="racehorse" && !h.retired) ? "<dt>競走寿命</dt><dd>"+lifespanText(h)+"</dd>" : "") /* v6.7 */
     + ((h.status==="racehorse") ? "<dt>騎手</dt><dd>"+jockeyRowHtml(h)+"</dd>" : "") /* v7.0 */
@@ -7068,6 +7077,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v7.6.1</footer>
+<footer>競馬シミュレーター（趣味） v7.7</footer>
 </body>
 </html>
