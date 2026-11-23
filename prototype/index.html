@@ -2971,7 +2971,7 @@ function runRace(race, entries){
     if(finish===1) topic("🏆 "+h.name+" が "+race.name+" を勝ちました");
     raceMilestones(h, race, finish, prize);
     /* 故障（v0.40）：疲労と状態が両方悪いまま走らせると故障することがある（管理の帰結） */
-    if(!h.retired && !dnfSet.has(h) && preFat>=70 && preCon<=40 && Math.random()<Math.min(0.95, injuryChance(r.wall) * (h.talent === "iron" ? 0.5 : 1) * (traitFragile(h) ? 2 : 1)) /* v4.2：鉄馬は故障しにくい／v6.0：故障しやすいは故障率2倍 */){
+    if(!h.retired && !dnfSet.has(h) && preFat>=70 && preCon<=40 && Math.random()<Math.min(0.95, injuryChance(r.wall) * (h.talent === "iron" ? 0.5 : 1) * (traitFragile(h) ? 2 : 1) * inbredInjuryMul(h)) /* v4.2：鉄馬は故障しにくい／v6.0：故障しやすいは故障率2倍／v7.3：インブリードの健康リスク */){
       const heavy = Math.random()<0.4;
       const inj = rollInjury(heavy, false); /* v7.0：故障の種類 */
       h.injuredUntil = absWeek() + inj.weeks;
@@ -3098,7 +3098,8 @@ function onNewYear(){
       const sg = stallionGen(st);
       const nick = compatMark(h, st);
       const nickShift = nick==="◎" ? 3 : nick==="○" ? 1.5 : nick==="×" ? -1.5 : 0;
-      const spN = inbreedNote(h, st) ? 17 : 13;
+      const ibc = inbredCross(st.name, h.name); /* v7.3：クロスで判定（従来の inbreedNote の3パターンを含む） */
+      const spN = ibc && ibc.sum <= 5 ? 17 : 13;
       /* 系統の個性（v0.54）：父系フル＋母父系×0.5 の寄せ（父系は種牡馬の系、母父系は母の父の系） */
       const sireBr = branchOfSire(st.name), bmsBr = branchOfSire(h.sire); /* v7.0：子系統 */
       const lb = lineBlend(stallionMajorLine(st), majorLineOfName(h.sire), h.bms, sireBr, bmsBr);
@@ -3129,6 +3130,7 @@ function onNewYear(){
         distMin: r50(centre - width/2), distMax: r50(centre + width/2),
         growth: G_DISP[foalGt], gtype: foalGt, pace: inheritPace(paceOf(st), paceOf(h)), ability: 70 });
       foal.surface = foalSurfType; setSurfMarks(foal, foalSurfT, foalSurfD);
+      if(ibc){ foal.inbredSum = ibc.sum; foal.inbredA = ibc.a; foal.inbredB = ibc.b; foal.inbredName = ibc.name; if(ibc.dbl) foal.inbredDouble = 1; } /* v7.3：インブリードの保存 */
       foal.saleNoise = rnd(0.85, 1.15);
       foal.unnamed = true;
       setParams(foal, fp(sg.spd, h.spd, lb.spd), fp(sg.sta, h.sta, lb.sta), fp(sg.gut, h.gut, lb.gut));
@@ -4724,6 +4726,68 @@ function compatScore(m, st){
   return s;
 }
 function compatMark(m, st){ const s = compatScore(m, st); return s>=4 ? "◎" : s>=2 ? "○" : s>=1 ? "△" : "×"; }
+/* ================= インブリードの危険度（v7.3・オーナー決定 2026-11-23） =================
+   設計当初（繁殖ルール v1.0）の「ブレ拡大＋健康リスク」のうち健康リスクが未実装だった。
+   共通祖先のクロス（父側 a 代目 × 母側 b 代目、最も近いもの）で危険度を決める。
+   ちゃんと走れる限界は 3×3（a+b=6）。それより近いと故障率が上がり、受胎率が下がる。
+   タフガイ（tireless）は故障リスクだけ1段緩める（3×2 までなら走れる）。 */
+function pedigreeAncestors(rootName, maxGen){
+  const map = {};
+  const walk = (name, gen) => {
+    if(!name || gen > maxGen) return;
+    if(map[name] != null && map[name] <= gen) return;
+    map[name] = gen;
+    const rec = personRec(name);
+    if(!rec) return;
+    walk(rec.sire, gen + 1);
+    walk(rec.dam, gen + 1);
+  };
+  walk(rootName, 1);
+  return map;
+}
+function inbredCross(stName, mareName){
+  if(!stName || !mareName) return null;
+  const A = pedigreeAncestors(stName, 4), B = pedigreeAncestors(mareName, 4);
+  let best = null;
+  const tied = [];
+  for(const n of Object.keys(A)){
+    if(B[n] == null) continue;
+    const a = A[n], b = B[n], sum = a + b;
+    if(!best || sum < best.sum){ best = { name: n, a, b, sum }; tied.length = 0; tied.push(n); }
+    else if(sum === best.sum) tied.push(n);
+  }
+  if(!best) return null;
+  /* 共通祖先が最も近い段で2頭以上重なる配合（全兄妹など）は遺伝的な濃さが1段上：
+     全兄妹（2×2が2頭）は親子配合（1×2）と同等として扱う（オーナー指摘 2026-11-23） */
+  best.dbl = tied.length >= 2;
+  if(best.dbl){ best.names = tied.slice(0, 3); best.name = best.names.join("・"); best.sum -= 1; }
+  return best;
+}
+const INBRED_TIERS = { 3:{ label:"極高", inj:3.0, conc:0.5 }, 4:{ label:"高", inj:2.2, conc:0.65 }, 5:{ label:"中", inj:1.6, conc:0.8 }, 6:{ label:"低", inj:1.3, conc:0.9 } };
+function inbredTier(sum){ return sum != null && sum <= 6 ? INBRED_TIERS[Math.max(3, sum)] : null; }
+function inbredInfoOf(h){ /* 馬自身のインブリード：出生時の保存値を優先し、無ければ父母名から再計算する */
+  if(!h) return null;
+  if(h.inbredSum != null) return { name: h.inbredName || null, a: h.inbredA, b: h.inbredB, sum: h.inbredSum, dbl: !!h.inbredDouble };
+  if(h.sire && h.dam) return inbredCross(h.sire, h.dam);
+  return null;
+}
+function inbredInjuryMul(h){
+  const info = inbredInfoOf(h); if(!info) return 1;
+  const eff = info.sum + (h.talent === "tireless" ? 1 : 0); /* タフガイは故障リスクを1段緩和 */
+  const t = inbredTier(eff);
+  return t ? t.inj : 1;
+}
+function inbredConcMul(m, st){
+  const c = inbredCross(st.name, m.name); if(!c) return 1;
+  const t = inbredTier(c.sum);
+  return t ? t.conc : 1;
+}
+function inbredRowHtml(h){
+  const info = inbredInfoOf(h); if(!info) return "";
+  const t = inbredTier(info.sum); if(!t) return "";
+  return "<dt>インブリード</dt><dd>" + info.a + "×" + info.b + (info.name ? "（" + info.name + "）" : "") + (info.dbl ? " 共通祖先が重なるため1段上" : "") + " 危険度：" + t.label + (h.talent === "tireless" ? " <span class='sub'>タフガイのため故障リスクは1段軽減</span>" : "") + "</dd>";
+}
+
 function inbreedNote(m, st){
   if(st.name===m.sire) return "父と同一（インブリード）";
   if(st.name===m.bms) return "母父と同一";
@@ -4743,7 +4807,7 @@ function mateWith(m, st){
   m.lastSire = st.name;
   m.matedYear = S.year; /* v3.1：空胎カウンタ（barrenStreak）の判定用に、種付けした年を記録する */
   const guaranteed = !S.firstMatingDone; // 最初の1回だけ受胎確定（滑り出しで詰まらないための配慮）
-  if(guaranteed || Math.random() < conceptionRate(m)){ S.firstMatingDone = true; m.pregnant = { sire: st.name, dueYear: S.year+1 }; topic("🌸 "+m.name+" が "+st.name+" を受胎しました（来年出産予定）"); }
+  if(guaranteed || Math.random() < conceptionRate(m) * inbredConcMul(m, st)){ S.firstMatingDone = true; /* v7.3：インブリードは受胎率低下 */ m.pregnant = { sire: st.name, dueYear: S.year+1 }; topic("🌸 "+m.name+" が "+st.name+" を受胎しました（来年出産予定）"); }
   else { topic(m.name+" は不受胎でした。シーズン中なら再種付けできます"); }
   mateSettle();
 }
@@ -4863,9 +4927,10 @@ function broodmareTable(){
     html += "<div class='sub' style='margin-top:6px;'>"+m.name+"（"+m.surface+" "+m.distMin+"-"+m.distMax+"m・母父 "+m.bms+"）への種付け候補 "+list.length+" 頭。相性は馬場と距離の重なりから見た目安です。</div>";
     html += "<table><tr><th></th><th>種牡馬</th><th>地域</th><th>馬場</th><th>距離</th><th>成長</th><th>格</th><th>傾向</th><th>種付料</th><th>相性</th><th></th></tr>";
     for(const st of list){
-      const note = inbreedNote(m, st);
+      const ibc = inbredCross(st.name, m.name), ibt = ibc ? inbredTier(ibc.sum) : null;
+      const note = ibt ? "⚠ インブリード " + ibc.a + "×" + ibc.b + "（" + ibc.name + "）危険度：" + ibt.label : inbreedNote(m, st);
       const hotNote = isHotCross(stallionGen(st).temp, m.temp) ? "気性が荒くなりやすい配合（確変）" : "";
-      html += "<tr><td><button data-fav='"+st.name+"' class='ghost' title='お気に入り'>"+((S.favs||[]).includes(st.name)?"★":"☆")+"</button></td><td>"+st.name+(isHomebredStallion(st)?" <span class='ok'>自家製</span>":"")+(st.sire?" <span class='sub'>父 "+st.sire+"</span>":"")+"<br><span class='sub'>配合の色："+lineColourText(lineBlend(stallionMajorLine(st), mareBmsLine, m.bms, branchOfSire(st.name), branchOfSire(m.sire)))+"</span></td><td>"+(st.region==="overseas"?"海外":"国内")+"</td><td>"+st.surface+"</td><td>"+st.dist[0]+"-"+st.dist[1]+"m</td><td>"+st.growth+"</td><td>"+st.fee_tier+"</td><td>"+stallionTendency(st)+"</td><td>"+(stallionFee(st)===0 ? "無料" : man(stallionFee(st)))+"</td><td>"+compatMark(m, st)+(isNickPair(st, m, mareBmsLine)?" <span class=\'ok\'>✨ニックス</span>":"")+(nickHintFor(st, m)?" <span class=\'sub\'>"+nickHintFor(st, m)+"</span>":"")+(note?" <span class='bad'>"+note+"</span>":"")+(hotNote?" <span class='bad'>"+hotNote+"</span>":"")+"</td><td><button data-matewith='"+st.name+"'>種付け</button></td></tr>";
+      html += "<tr><td><button data-fav='"+st.name+"' class='ghost' title='お気に入り'>"+((S.favs||[]).includes(st.name)?"★":"☆")+"</button></td><td>"+st.name+(isHomebredStallion(st)?" <span class='ok'>自家製</span>":"")+(st.sire?" <span class='sub'>父 "+st.sire+"</span>":"")+"<br><span class='sub'>配合の色："+lineColourText(lineBlend(stallionMajorLine(st), mareBmsLine, m.bms, branchOfSire(st.name), branchOfSire(m.sire)))+"</span></td><td>"+(st.region==="overseas"?"海外":"国内")+"</td><td>"+st.surface+"</td><td>"+st.dist[0]+"-"+st.dist[1]+"m</td><td>"+st.growth+"</td><td>"+st.fee_tier+"</td><td>"+stallionTendency(st)+"</td><td>"+(stallionFee(st)===0 ? "無料" : man(stallionFee(st)))+"</td><td>"+compatMark(m, st)+(isNickPair(st, m, mareBmsLine)?" <span class=\'ok\'>✨ニックス</span>":"")+(nickHintFor(st, m)?" <span class=\'sub\'>"+nickHintFor(st, m)+"</span>":"")+(note?" <span class='"+(ibt && ibt.label==="低" ? "warn" : "bad")+"'>"+note+"</span>":"")+(hotNote?" <span class='bad'>"+hotNote+"</span>":"")+"</td><td><button data-matewith='"+st.name+"'>種付け</button></td></tr>";
     }
     html += "</table>";
   }
@@ -5200,7 +5265,7 @@ function viewManual(){
   h += sec("🤖 自動出走とローテーション",
     "自動出走をONにした馬は、適性・クラス・体調を見て毎週自動でレースに登録されます（年間6戦ペース目標・上限7戦）。方針は「積極／慎重」、適性距離の±200m許容のON/OFFも選べます。海外遠征は設定（消極的／普通／積極的）で自動化の範囲が変わり、既定では手動のみです。<br>ローテーションは「どのレースに出すか」の指定です。指定した馬は指定レースにだけ自動登録され、毎年繰り返されます（各馬のページから設定）。指定がある馬は自動出走の対象外になりますが、手動登録はいつでも可能で、指定以外のレースにも出走できます。<br>指定には「1回限り」も選べます（直近の開催1回だけで、終わると自動で外れます）。<br>トライアル（弥生賞→皐月賞、青葉賞→日本ダービーなど）を勝つと、本番が自動で指定されます（1回限り・適性内の馬だけ）。海外の前哨戦（サウジダービー→UAEダービー→ケンタッキーダービー、フォワ賞／ニエル賞→凱旋門賞）も同じ仕組みで、こちらは適性内に加えて通算賞金1億円以上の馬だけが対象です。<br>G1については、残っている適性内のG1全部のぶんの出走枠を確保するように前哨戦を間引きます（G1自身は枠の確保では止まらず、年間上限だけが効きます）。馬場については、重賞は ○ の馬場のレースだけが自動の対象です（−の馬場の重賞は構想に入りません）。条件戦では ○ の馬場を優先しつつ、− の馬場も代替として使います。また、前走と違う馬場のレースは少し後回しになるので、芝・ダートを行き来するローテにはなりにくくなっています。");
   h += sec("💕 繁殖と配合",
-    "種付けは2〜6月だけ。繁殖牝馬は4〜16歳が対象で、受胎率は9歳まで85%、その後下がって16歳で45%。14歳から出産のリスクが上がり、17歳で繁殖を引退します（死亡はありません）。子は年始に生まれます。<br>配合では相性（系統の特性の重なりなど）が産駒に影響します。種牡馬は世代交代していき（引退年齢は個体ごとに決まっていて、産駒が活躍すると延長されます）、引退した分は架空の新種牡馬が補充されます。");
+    "種付けは2〜6月だけ。繁殖牝馬は4〜16歳が対象で、受胎率は9歳まで85%、その後下がって16歳で45%。14歳から出産のリスクが上がり、17歳で繁殖を引退します（死亡はありません）。子は年始に生まれます。<br>配合では相性（系統の特性の重なりなど）が産駒に影響します。種牡馬は世代交代していき（引退年齢は個体ごとに決まっていて、産駒が活躍すると延長されます）、引退した分は架空の新種牡馬が補充されます。<br><b>インブリード</b>：父母に共通の祖先がいると、その近さ（○×○）で危険度が付きます。ちゃんと走れる限界は <b>3×3</b> で、3×3でも故障リスクは少し上がります。それより近い配合は受胎率が下がり、故障リスクも大きく上がります（1×2は危険度・極高）。素質「タフガイ」の仔は故障リスクが1段軽くなり、3×2までなら走れます。配合画面の候補一覧と馬のページに危険度が表示されます。共通の祖先が2頭重なる配合（全兄妹など）は1段重く扱います。近交の仔はパラメータの振れ幅も大きく、上にも下にも振れる博打になります。");
   h += sec("🌳 系統と牝系",
     "父系の系統特性（早熟寄り・スタミナ寄りなど）は言葉だけで表示され、配合に薄く影響します（母父は半分の効き）。<br>牝系は牝馬の子孫の広がりで育ちます。直仔5頭以上・子孫25頭以上・ポイント20以上で「候補」になり、そこから2年続けて頭数シェアなどの条件を満たすと「○○系」として成立します。成立した称号は消えませんが、細ると「衰退中」と表示されます。血統タブで牝系の広がりが見られます。<br>牡馬の分家（子系統）：産駒からG1級勝ち馬が3頭出た種牡馬は、自分の系統（○○系）を立てます。分家にはファウンダーの競走特性から決まる「色」が2つ付き（裏側の弱さもセット）、配合では大系統の色に代わって一番近い分家の色が効きます（母父側は半分）。分家の下に分家が増えると親系統・祖系統・大系統へ格が上がりますが、色の強さは変わりません。種牡馬が1頭もいなくなった分家は消滅します。血統タブの「牡馬系統」で見られます。<br>メルトスイートとカルストンライトオを組み合わせると...？");
   h += sec("🏇 騎手",
@@ -6702,6 +6767,7 @@ function openHorse(id){
     + (h.coat ? "<dt>毛色</dt><dd>"+h.coat+"</dd>" : "")
     + (h.matureWeight != null ? "<dt>馬体重</dt><dd>"+weightNow(h)+"kg <span class='sub'>（成熟時は約"+h.matureWeight+"kg）</span></dd>" : "")
     + "<dt>適性</dt><dd>"+surfText(h)+"（"+h.surface+"） "+h.distMin+"-"+h.distMax+"m・"+h.growth+"</dd>" /* v3.9：馬場適性は面ごとのマークを明示 */
+    + inbredRowHtml(h) /* v7.3：インブリード危険度 */
     + ((h.status==="yearling" || h.status==="racehorse") ? "<dt>所属</dt><dd>"+(h.stable ? h.stable+"トレーニングセンター（変更できません）"+(h.stayRegion ? "／現在は遠征先に滞在中" : "") : "未定です <button id='stableMihoBtn'>美浦にする</button> <button id='stableRittoBtn'>栗東にする</button> <span class='sub'>一度決めると現役の間は変更できません</span>")+"</dd>" : "")
     + affinitySection(h)
     + traitSection(h) /* v6.0 */
@@ -6889,6 +6955,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v7.2.1</footer>
+<footer>競馬シミュレーター（趣味） v7.3</footer>
 </body>
 </html>
