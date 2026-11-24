@@ -1141,7 +1141,7 @@ function monthlyTraining(){
    経営費：頭数によらない牧場の固定費（開始直後から毎月かかる）。
    引退した牡馬（種牡馬入りしなかった馬）は旧設計でも維持費の対象外だったため、経費もかからない（そのまま据え置き）。
    資金はマイナスになってもペナルティなし（従来どおり） */
-const COST_ITAKU = 50, COST_IKUSEI = 20, COST_KEIYO = 20, COST_KEIEI = 100; /* 万円／月 */
+const COST_ITAKU = 35, COST_IKUSEI = 20, COST_KEIYO = 20, COST_KEIEI = 100; /* 万円／月。委託費は v8.1 で 50→35 に軽減（オーナー指示） */
 function monthlyCosts(prevMonth){
   const nItaku = S.horses.filter(h=>h.status==="racehorse" && !h.retired).length;
   const nIkusei = S.horses.filter(h=>h.status==="foal" || h.status==="yearling").length;
@@ -1155,8 +1155,15 @@ function monthlyCosts(prevMonth){
   parts.push("経営費 " + man(COST_KEIEI));
   const upF = facilityUpkeepMonthly(); /* v7.0：施設の維持費（レベル比例） */
   if(upF > 0){ parts.push("施設維持費 " + man(upF)); total += upF; }
+  /* v8.1（オーナー指示）：開始10年（2026〜2035年）は固定費が半額になる開業支援。対象は月次コストと施設維持費。観光収入は相殺前の満額 */
+  if(S.year - 2026 < 10){
+    const disc = Math.floor(total / 2);
+    if(disc > 0){ parts.push("開業支援（開始10年は半額） −" + man(disc)); total -= disc; }
+  }
   const tour = tourismMonthly(); /* v8.0：観光収入（年額の月割り）を相殺する */
   if(tour > 0){ parts.push("観光収入 −" + man(tour)); total -= tour; }
+  const board = boardingMonthly(); /* v8.1：預託収入を相殺する */
+  if(board > 0){ parts.push("預託収入 −" + man(board)); total -= board; }
   S.funds -= total;
   topic("💰 " + prevMonth + "月分の経費を精算しました：" + parts.join("／") + "｜合計 " + man(total));
   return total;
@@ -1217,6 +1224,10 @@ function tourismAnnual(){
   return Math.min(TOURISM_CAP, Math.round(total));
 }
 function tourismMonthly(){ return Math.round(tourismAnnual() / 12); }
+/* 預託収入（v8.1・オーナー設計）：他所の馬を預かって月15万円／頭。診療所があると馬が集まり、
+   受け入れ枠は厩舎のレベル×5頭。預託馬は他人の馬なので頭数にも経費にも数えない（収入のみ） */
+function boardingHeads(){ return facilityLevel("clinic") > 0 ? facilityLevel("stable") * 5 : 0; }
+function boardingMonthly(){ return boardingHeads() * 15; } /* 万円／月 */
 function growthStage(h){
   if(h.status==="foal") return "当歳・成長中";
   if(h.status==="yearling") return "1歳・成長中";
@@ -1415,15 +1426,25 @@ function makeTemplateMare(t){
   m.rank = t.rank; m.price = rankPrice(t.rank); m.template = true; m.group = t.group;
   return m;
 }
-/* 繁殖牝馬セールの年次更新（v0.43）：毎年10頭、テンプレ（血統グループ別・一度出たら二度出ない）優先、尽きたらランダム生成 */
+/* 繁殖牝馬セールの年次更新（v0.43／v8.1・オーナー指示）：毎年15頭、テンプレ（血統グループ別・一度出たら二度出ない）優先、尽きたらランダム生成。
+   ランクの割合は固定しない（Sだけは1〜2頭を必ず入れる）。セール牝馬は受胎済みで出現する（相手は供用中の種牡馬から抽選し、出産は翌年始） */
+function saleCoverSireName(){
+  const act = activeStallions();
+  const pool = act.length ? act : S.stallions;
+  return pool.length ? pick(pool).name : DATA.stallions[0].name;
+}
 function refreshSale(){
   S.saleYear = S.year;
   if(!S.usedTemplates) S.usedTemplates = [];
-  const wantRanks = ["S","A","A","B","B","B","B","C","C","C"].sort(()=>Math.random()-0.5);
+  const wantRanks = [];
+  const nS = irnd(1, 2);
+  for(let i = 0; i < nS; i++) wantRanks.push("S");
+  while(wantRanks.length < 15){ const r = Math.random(); wantRanks.push(r < 0.25 ? "A" : r < 0.70 ? "B" : "C"); }
+  wantRanks.sort(()=>Math.random()-0.5);
   const groups = ["sunday","kingmambo","overseas","other"];
   let rest = (DATA.mareTemplates||[]).filter(t=>!S.usedTemplates.includes(t.name));
   const pool = [];
-  for(let i=0;i<10;i++){
+  for(let i=0;i<15;i++){
     const wantRank = wantRanks[i];
     const forceGroup = i<4 ? groups[i] : null;
     let cand = rest.filter(t=>(!forceGroup || t.group===forceGroup) && t.rank===wantRank);
@@ -1440,6 +1461,7 @@ function refreshSale(){
       pool.push(makeMare(actSts.length ? actSts : S.stallions, wantRank));
     }
   }
+  for(const m of pool) m.pregnant = { sire: saleCoverSireName(), dueYear: S.year + 1 };
   S.salePool = pool;
 }
 /* ================= 種牡馬の世代交代（v3.0） =================
@@ -1778,7 +1800,8 @@ const FACILITIES = {
   onsen: { name: "温泉・馬プール", costs: [11400, 20000, 28600, 42900, 57100], upkeep: 21300, desc: "疲労の回復が速くなります（Lv5で+25%）" },
   clinic: { name: "診療所", costs: [17100, 30000, 42900, 64300, 85700], upkeep: 32000, desc: "故障の期間が短くなり、重い故障の能力低下を防ぎます（Lv5で期間×0.70・回避50%）。競走寿命の見立てもここで見られます" },
   foaling: { name: "分娩舎・繁殖施設", costs: [7100, 12500, 17900, 26800, 35700], upkeep: 13300, desc: "12歳以上の繁殖牝馬の受胎率が上がります（Lv5で+10ポイント）" },
-  training: { name: "調教用設備", costs: [14300, 25000, 35700, 53600, 71400], upkeep: 26700, desc: "育成の到達度と調教の伸びが上がります（Lv5で育成40%・調教+10%）" } /* v8.0 */
+  training: { name: "調教用設備", costs: [14300, 25000, 35700, 53600, 71400], upkeep: 26700, desc: "育成の到達度と調教の伸びが上がります（Lv5で育成40%・調教+10%）" }, /* v8.0 */
+  stable: { name: "厩舎", costs: [7100, 12500, 17900, 26800, 35700], upkeep: 10000, desc: "他所の馬を預かる厩舎。1レベルごとに預託の受け入れ枠が5頭増えます。診療所があると預託馬が集まり、預託収入（1頭あたり月15万円）が入ります" } /* v8.1 */
 };
 const FACILITY_BUILD_WEEKS = 8;
 const FACILITY_MAX_LV = 5;
@@ -1835,6 +1858,7 @@ function facilityEffectText(key, lv){
   if(key === "onsen") return "回復 +" + (lv * 5) + "%";
   if(key === "clinic") return "期間 ×" + (1 - 0.06 * lv).toFixed(2) + "・回避 " + (lv * 10) + "%";
   if(key === "training") return "育成 " + Math.round(ikuseiCap() * 100) + "%・調教 +" + (lv * 2) + "%";
+  if(key === "stable") return "預託枠 " + (lv * 5) + "頭";
   return "受胎 +" + (lv * 2) + "pt";
 }
 function facilitiesHtml(){
@@ -4318,6 +4342,7 @@ function chooseMare(id){
   m.breedingSince = S.year; /* v3.4 */
   S.horses.push(m);
   S.salePool = S.candidates.filter(x=>x.id!==id);
+  for(const m of S.salePool) m.pregnant = { sire: saleCoverSireName(), dueYear: S.year + 1 }; /* v8.1：セールに出る候補も受胎済みで出現する */
   S.candidates = [];
   S.phase = "play";
   topic("🌸 " + m.name + " が牧場の最初の繁殖牝馬になりました。2月からの繁殖シーズンに種付けしましょう");
@@ -5032,7 +5057,7 @@ function drawEntryList(){
 function saleView(){
   if(!S.salePool || !S.salePool.length || S.month < 11) return "";
   const rows = S.salePool.map(m =>
-    "<tr><td>"+m.name+"</td><td>"+ageOf(m)+"歳</td><td>父 "+m.sire+"／母父 "+m.bms+(m.gbms?"／母母父 "+m.gbms:"")+"</td><td>"+m.surface+" "+m.distMin+"-"+m.distMax+"m・"+m.growth+"</td><td>"+(m.rank?"ランク"+m.rank+"｜":"")+evalComment(m)+"</td><td>"+man(m.price)+"</td><td><button data-buy='"+m.id+"'>購入する</button></td></tr>").join("");
+    "<tr><td>"+m.name+"</td><td>"+ageOf(m)+"歳</td><td>父 "+m.sire+"／母父 "+m.bms+(m.gbms?"／母母父 "+m.gbms:"")+(m.pregnant?"<br><b>受胎済み（相手："+m.pregnant.sire+"）</b>":"")+"</td><td>"+m.surface+" "+m.distMin+"-"+m.distMax+"m・"+m.growth+"</td><td>"+(m.rank?"ランク"+m.rank+"｜":"")+evalComment(m)+"</td><td>"+man(m.price)+"</td><td><button data-buy='"+m.id+"'>購入する</button></td></tr>").join("");
   setTimeout(()=>{ document.querySelectorAll("[data-buy]").forEach(btn => btn.onclick = () => buyMare(btn.getAttribute("data-buy"))); }, 0);
   return "<h3>繁殖牝馬セール（11〜12月）</h3><div class='sub'>繁殖牝馬は最大"+mareLimitOf()+"頭まで（現在"+mareCount()+"頭）。売却はいつでも各馬のページからできます</div><table><tr><th>馬名</th><th>年齢</th><th>血統</th><th>適性</th><th>評価</th><th>価格</th><th></th></tr>"+rows+"</table>";
 }
@@ -5644,9 +5669,9 @@ function viewManual(){
   h += sec("🐴 このゲームについて／はじめ方",
     "2026年から始まる、ゴールなしの牧場経営サンドボックスです。あなたは生産者兼馬主で、週単位で時間を進めながら何年でも遊べます。最初に繁殖牝馬を1頭選び、配合→出産→育成→出走→引退→次の世代へ、という循環を回していくのが基本です。初年度は4月に2歳馬2頭（素質持ち）、12月に1歳牝馬1頭と当歳牡馬1頭の贈呈があります（受け取りは任意）。初期資金は5億円です。");
   h += sec("🗓 週の進め方と1年の流れ",
-    "「週を進める」で1週進みます。1年は日曜起算の52週です。主な季節イベント：<br>・<b>2〜6月</b>：繁殖シーズン（種付けはこの期間だけ）<br>・<b>年始</b>：出産と全馬の加齢<br>・<b>6月</b>：2歳馬のデビューが始まります（早い馬から。晩成は12月〜年明け、超晩成は3歳の春先）<br>・<b>11〜12月</b>：繁殖牝馬セール（毎年10頭出品）<br>・<b>年末</b>：引退判定と年次決算<br>「次のイベントまで」で区切りまで一気に進められます。");
+    "「週を進める」で1週進みます。1年は日曜起算の52週です。主な季節イベント：<br>・<b>2〜6月</b>：繁殖シーズン（種付けはこの期間だけ）<br>・<b>年始</b>：出産と全馬の加齢<br>・<b>6月</b>：2歳馬のデビューが始まります（早い馬から。晩成は12月〜年明け、超晩成は3歳の春先）<br>・<b>11〜12月</b>：繁殖牝馬セール（毎年15頭出品・全頭受胎済みで、買えば年始に出産します）<br>・<b>年末</b>：引退判定と年次決算<br>「次のイベントまで」で区切りまで一気に進められます。");
   h += sec("💴 お金",
-    "収入の中心は賞金です。賞金は馬主80%／調教師10%／騎手5%／厩務員5%に配分され、馬主分からは50万円を超える部分に10.21%の源泉徴収がかかります。G1勝ち賞金の目安は2億円、未勝利戦は550万円です。<br>レース以外の収入も2つあります。外種付け：産駒実績のある自家製種牡馬には、春によその牝馬が種付けに来て種付け料が入ります（実績で料金ランクS〜Cと頭数が決まり、実績のない種牡馬には来ません）。観光収入：競走を引退して牧場にいる20歳までの馬の実績に応じて人が集まり、毎月入ります（有名な馬ほど大きく、牧場全体で年5億円が上限です）。<br>支出：種付料（ランク制：S 3,000万円／A 1,500万円／B 800万円／C 400万円、自家製種牡馬は無料）、海外遠征費（1頭1レース1,000万円）、月次コスト（委託費：現役馬1頭50万円、育成費：0〜1歳1頭20万円、繋養費：繁殖牝馬・自家製種牡馬1頭20万円、経営費：月100万円）。<br>資金はマイナスになってもゲームオーバーにはなりません。<br>牧場施設（任意・年表タブから建設）：4施設とも5段階まで強化でき、効果はレベルで段階的に上がります（今の効果が最大のLv5）。温泉・馬プール（疲労の回復が速い）、診療所（故障の期間短縮と能力低下の回避。競走寿命の見立てもLv1から見られます）、分娩舎・繁殖施設（12歳以上の受胎率アップ）、調教用設備（育成の到達度と調教の伸び。Lv5で育成40%・調教+10%）。費用はレベルごとに嵩み（全部を最大までで総額約70億円）、維持費が毎月かかります（全部最大で年約9.3億円）。1段階の工事は約2ヶ月で、工事中も今のレベルの効果は効きます。");
+    "収入の中心は賞金です。賞金は馬主80%／調教師10%／騎手5%／厩務員5%に配分され、馬主分からは50万円を超える部分に10.21%の源泉徴収がかかります。G1勝ち賞金の目安は2億円、未勝利戦は550万円です。<br>レース以外の収入も3つあります。外種付け：産駒実績のある自家製種牡馬には、春によその牝馬が種付けに来て種付け料が入ります（実績で料金ランクS〜Cと頭数が決まり、実績のない種牡馬には来ません）。観光収入：競走を引退して牧場にいる20歳までの馬の実績に応じて人が集まり、毎月入ります（有名な馬ほど大きく、牧場全体で年5億円が上限です）。預託収入：厩舎を建てて診療所があると、他所の馬を預かって1頭あたり月15万円が入ります（受け入れ枠は厩舎のレベルで増えます）。<br>支出：種付料（ランク制：S 3,000万円／A 1,500万円／B 800万円／C 400万円、自家製種牡馬は無料）、海外遠征費（1頭1レース1,000万円）、月次コスト（委託費：現役馬1頭35万円、育成費：0〜1歳1頭20万円、繋養費：繁殖牝馬・自家製種牡馬1頭20万円、経営費：月100万円。開始から10年間は施設維持費も含めて半額になります）。<br>資金はマイナスになってもゲームオーバーにはなりません。<br>牧場施設（任意・年表タブから建設）：5施設とも5段階まで強化でき、効果はレベルで段階的に上がります（今の効果が最大のLv5）。温泉・馬プール（疲労の回復が速い）、診療所（故障の期間短縮と能力低下の回避。競走寿命の見立てもLv1から見られます）、分娩舎・繁殖施設（12歳以上の受胎率アップ）、調教用設備（育成の到達度と調教の伸び。Lv5で育成40%・調教+10%）、厩舎（他所の馬の預託を受け入れる。診療所があると預託収入が入ります）。費用はレベルごとに嵩み（全部を最大までで総額約80億円）、維持費が毎月かかります（全部最大で年約10.3億円）。1段階の工事は約2ヶ月で、工事中も今のレベルの効果は効きます。");
   h += sec("📊 能力の見方（ランク表示）",
     "能力は数字ではなくランクでだけ表示されます。スピード／スタミナ／根性は <b>S〜G</b>、第4の要素 <b>パワー</b> は <b>C〜Sの4段階</b> で、どれも内部的には100点満点です。パワーは距離や馬場から決まるものではなく、その馬の個性です。力の要る競馬場（中山・阪神の坂、洋芝など）や重馬場、前に行く脚質で効いてきます。<br>各パラメータには「素質（上限）」があり、生まれたときの能力はごく小さいところから始まります。育成と調教で上限へ近づけていくのが育て方で、上限そのものは配合で決まります。");
   h += sec("🏋 育成と調教",
@@ -7468,6 +7493,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v8.0</footer>
+<footer>競馬シミュレーター（趣味） v8.1</footer>
 </body>
 </html>
