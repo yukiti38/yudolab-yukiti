@@ -1155,10 +1155,68 @@ function monthlyCosts(prevMonth){
   parts.push("経営費 " + man(COST_KEIEI));
   const upF = facilityUpkeepMonthly(); /* v7.0：施設の維持費（レベル比例） */
   if(upF > 0){ parts.push("施設維持費 " + man(upF)); total += upF; }
+  const tour = tourismMonthly(); /* v8.0：観光収入（年額の月割り）を相殺する */
+  if(tour > 0){ parts.push("観光収入 −" + man(tour)); total -= tour; }
   S.funds -= total;
   topic("💰 " + prevMonth + "月分の経費を精算しました：" + parts.join("／") + "｜合計 " + man(total));
   return total;
 }
+/* ================= レース以外の収入（v8.0・オーナー設計 2026-11-24） =================
+   ①外種付け：産駒実績のある自家製種牡馬には、春によその牝馬が種付けに来て種付け料が入る。
+     実績のない種牡馬には来ない（種牡馬が増えるだけでは稼げない）。料金は既存の種付料ランクと同額、
+     頭数はランク帯の中で抽選。相手の産駒は他牧場の馬なのでゲームには現れない（収入のみ）。
+   ②観光収入：競走を引退して牧場にいる20歳までの馬の実績で人が集まる。年額を月割りで受け取り、
+     集計はスター中心（1位100%／2位60%／3位40%／4位20%、5頭目以降は数えない）、
+     牧場全体で年5億円が上限（オーナー：ノーザンホースパークが年15億規模なら生産牧場は5億まで）。 */
+const STUD_FEE_BY_GRADE = { S: 3000, A: 1500, B: 800, C: 400 }; /* 万円 */
+const STUD_MARES_RANGE = { S: [16, 24], A: [10, 16], B: [6, 10], C: [3, 6] };
+function studFeeGradeOf(h){
+  if(!h || h.status !== "stallion" || h.studRetired) return null;
+  const a = sireProgenyOf(h.name);
+  if(a.g1Winners >= 3) return "S";
+  if(a.g1Winners >= 1 || a.gradedWinners >= 4) return "A";
+  if(a.gradedWinners >= 1 || a.earnings >= 30000) return "B";
+  if(a.winners >= 3 || a.earnings >= 10000) return "C";
+  return null;
+}
+function outsideStudPass(){
+  let total = 0, head = 0;
+  for(const h of S.horses){
+    const g = studFeeGradeOf(h);
+    if(!g) continue;
+    const mares = irnd(STUD_MARES_RANGE[g][0], STUD_MARES_RANGE[g][1]);
+    const income = STUD_FEE_BY_GRADE[g] * mares;
+    h.studBook = { year: S.year, grade: g, fee: STUD_FEE_BY_GRADE[g], mares: mares, income: income };
+    total += income; head += mares;
+  }
+  if(total > 0){
+    S.funds += total;
+    topic("🐴 今春の外種付け：" + head + "頭を受け入れ、種付け料 " + man(total) + " が入りました");
+  }
+  return total;
+}
+function tourismFame(h){
+  let f = g1WinCount(h) * 1000 + gradedWinList(h).length * 250 + Math.floor((h.earnings || 0) / 10000) * 100;
+  if(isHof(h)) f = Math.round(f * 1.5);
+  return f;
+}
+const TOURISM_CAP = 50000; /* 万円／年 */
+function tourismAnnual(){
+  const fames = [];
+  for(const h of S.horses){
+    if(h.status === "racehorse" || h.status === "foal" || h.status === "yearling") continue;
+    const a = ageOf(h);
+    if(a < 3 || a > 20) continue;
+    const f = tourismFame(h);
+    if(f > 0) fames.push(f);
+  }
+  fames.sort((x, y) => y - x);
+  const W = [1, 0.6, 0.4, 0.2];
+  let total = 0;
+  for(let i = 0; i < Math.min(4, fames.length); i++) total += fames[i] * W[i];
+  return Math.min(TOURISM_CAP, Math.round(total));
+}
+function tourismMonthly(){ return Math.round(tourismAnnual() / 12); }
 function growthStage(h){
   if(h.status==="foal") return "当歳・成長中";
   if(h.status==="yearling") return "1歳・成長中";
@@ -1257,7 +1315,8 @@ function youngPrice(h){
   return clamp(Math.round(base * ageF * noise / 10) * 10, 100, 12000);
 }
 /* 種牡馬入りの資格（v0.30・オーナー決定）：牡馬で、重賞勝ちがあるか通算獲得賞金1億円（10000万円）以上。
-   資格がある馬は引退時に「種牡馬にするか」を選べる（従来は重賞勝ちで自動入りだった） */
+   v8.0（オーナー指示）：手動の引退では、どの牡馬でも種牡馬入りを選べるようにした。
+   この資格は「自動引退（まったり）が種牡馬入りさせる条件」と、資格あり表示のためだけに残す */
 function canEnterStud(h){
   return h.sex==="牡" && (!!h.gradedWin || (h.earnings||0) >= 10000);
 }
@@ -1716,10 +1775,10 @@ function syncMattariHeader(){
    レベル比例で毎月かかる（全MAXで年約10億円）。1段階の工期は約2ヶ月で、工事中も完成済み
    レベルの効果はそのまま効く。旧セーブの {done} 形式は facilityLevel が Lv5 として読む */
 const FACILITIES = {
-  onsen: { name: "温泉・馬プール", costs: [11400, 20000, 28600, 42900, 57100], upkeep: 32000, desc: "疲労の回復が速くなります（Lv5で+25%）" },
-  clinic: { name: "診療所", costs: [17100, 30000, 42900, 64300, 85700], upkeep: 48000, desc: "故障の期間が短くなり、重い故障の能力低下を防ぎます（Lv5で期間×0.70・回避50%）。競走寿命の見立てもここで見られます" },
-  foaling: { name: "分娩舎・繁殖施設", costs: [7100, 12500, 17900, 26800, 35700], upkeep: 20000, desc: "12歳以上の繁殖牝馬の受胎率が上がります（Lv5で+10ポイント）" },
-  training: { name: "調教用設備", costs: [14300, 25000, 35700, 53600, 71400], upkeep: 40000, desc: "育成の到達度と調教の伸びが上がります（Lv5で育成40%・調教+10%）" } /* v8.0 */
+  onsen: { name: "温泉・馬プール", costs: [11400, 20000, 28600, 42900, 57100], upkeep: 21300, desc: "疲労の回復が速くなります（Lv5で+25%）" },
+  clinic: { name: "診療所", costs: [17100, 30000, 42900, 64300, 85700], upkeep: 32000, desc: "故障の期間が短くなり、重い故障の能力低下を防ぎます（Lv5で期間×0.70・回避50%）。競走寿命の見立てもここで見られます" },
+  foaling: { name: "分娩舎・繁殖施設", costs: [7100, 12500, 17900, 26800, 35700], upkeep: 13300, desc: "12歳以上の繁殖牝馬の受胎率が上がります（Lv5で+10ポイント）" },
+  training: { name: "調教用設備", costs: [14300, 25000, 35700, 53600, 71400], upkeep: 26700, desc: "育成の到達度と調教の伸びが上がります（Lv5で育成40%・調教+10%）" } /* v8.0 */
 };
 const FACILITY_BUILD_WEEKS = 8;
 const FACILITY_MAX_LV = 5;
@@ -3284,6 +3343,7 @@ function advanceWeek(){
      週に入った瞬間ではないので、その週はまず手動で種付けでき、残りが週末に自動で埋まる。
      スキップで2月第1週に着いた時点ではまだ種付けされていない */
   if(S.month===2 && S.week===1) autoMatePass(false);
+  if(S.month===2 && S.week===1) outsideStudPass(); /* v8.0：外種付けは種付けシーズンの頭に年1回 */
   if(S.month===4 && S.week===1) autoMatePass(true);
   // 3) カレンダーを進める
   const prevMonth = S.month;
@@ -5391,6 +5451,7 @@ function progenyRecordHtml(h){
   return "<h3>🌸 繁殖成績</h3>"
     + "<div>産駒 " + a.foals + "頭／出走 " + a.runners + "頭／勝ち馬 " + a.winners + "頭（" + a.wins + "勝）／重賞勝ち馬 " + a.gradedWinners + "頭／G1勝ち馬 " + a.g1Winners + "頭／産駒通算 " + man(a.earnings) + "</div>"
     + (rp ? "<div>代表産駒：<span class='horse-link' data-horse='" + rp.id + "'>" + rp.name + "</span>（" + (rp.results ? rp.results.length : 0) + "戦" + (rp.wins || 0) + "勝／" + man(rp.earnings || 0) + (hasDerbyWin(rp) ? "／日本ダービー勝ち" : "") + "）</div>" : "")
+    + (h.studBook && h.sex === "牡" ? "<div>外種付け（" + h.studBook.year + "年）：よその牝馬 " + h.studBook.mares + "頭 × " + man(h.studBook.fee) + " ＝ " + man(h.studBook.income) + "（料金ランク " + h.studBook.grade + "）</div>" : "")
     + "<table><tr><th>馬名</th><th>性</th><th>世代</th><th>" + (h.sex === "牝" ? "父" : "母") + "</th><th>成績</th><th>獲得賞金</th><th>現況</th></tr>" + rows + "</table>";
 }
 function openStallion(name){
@@ -5585,7 +5646,7 @@ function viewManual(){
   h += sec("🗓 週の進め方と1年の流れ",
     "「週を進める」で1週進みます。1年は日曜起算の52週です。主な季節イベント：<br>・<b>2〜6月</b>：繁殖シーズン（種付けはこの期間だけ）<br>・<b>年始</b>：出産と全馬の加齢<br>・<b>6月</b>：2歳馬のデビューが始まります（早い馬から。晩成は12月〜年明け、超晩成は3歳の春先）<br>・<b>11〜12月</b>：繁殖牝馬セール（毎年10頭出品）<br>・<b>年末</b>：引退判定と年次決算<br>「次のイベントまで」で区切りまで一気に進められます。");
   h += sec("💴 お金",
-    "収入は基本的に賞金だけです。賞金は馬主80%／調教師10%／騎手5%／厩務員5%に配分され、馬主分からは50万円を超える部分に10.21%の源泉徴収がかかります。G1勝ち賞金の目安は2億円、未勝利戦は550万円です。<br>支出：種付料（ランク制：S 3,000万円／A 1,500万円／B 800万円／C 400万円、自家製種牡馬は無料）、海外遠征費（1頭1レース1,000万円）、月次コスト（委託費：現役馬1頭50万円、育成費：0〜1歳1頭20万円、繋養費：繁殖牝馬・自家製種牡馬1頭20万円、経営費：月100万円）。<br>資金はマイナスになってもゲームオーバーにはなりません。<br>牧場施設（任意・年表タブから建設）：4施設とも5段階まで強化でき、効果はレベルで段階的に上がります（今の効果が最大のLv5）。温泉・馬プール（疲労の回復が速い）、診療所（故障の期間短縮と能力低下の回避。競走寿命の見立てもLv1から見られます）、分娩舎・繁殖施設（12歳以上の受胎率アップ）、調教用設備（育成の到達度と調教の伸び。Lv5で育成40%・調教+10%）。費用はレベルごとに嵩み（全部を最大までで総額約70億円）、維持費が毎月かかります（全部最大で年約14億円）。1段階の工事は約2ヶ月で、工事中も今のレベルの効果は効きます。");
+    "収入の中心は賞金です。賞金は馬主80%／調教師10%／騎手5%／厩務員5%に配分され、馬主分からは50万円を超える部分に10.21%の源泉徴収がかかります。G1勝ち賞金の目安は2億円、未勝利戦は550万円です。<br>レース以外の収入も2つあります。外種付け：産駒実績のある自家製種牡馬には、春によその牝馬が種付けに来て種付け料が入ります（実績で料金ランクS〜Cと頭数が決まり、実績のない種牡馬には来ません）。観光収入：競走を引退して牧場にいる20歳までの馬の実績に応じて人が集まり、毎月入ります（有名な馬ほど大きく、牧場全体で年5億円が上限です）。<br>支出：種付料（ランク制：S 3,000万円／A 1,500万円／B 800万円／C 400万円、自家製種牡馬は無料）、海外遠征費（1頭1レース1,000万円）、月次コスト（委託費：現役馬1頭50万円、育成費：0〜1歳1頭20万円、繋養費：繁殖牝馬・自家製種牡馬1頭20万円、経営費：月100万円）。<br>資金はマイナスになってもゲームオーバーにはなりません。<br>牧場施設（任意・年表タブから建設）：4施設とも5段階まで強化でき、効果はレベルで段階的に上がります（今の効果が最大のLv5）。温泉・馬プール（疲労の回復が速い）、診療所（故障の期間短縮と能力低下の回避。競走寿命の見立てもLv1から見られます）、分娩舎・繁殖施設（12歳以上の受胎率アップ）、調教用設備（育成の到達度と調教の伸び。Lv5で育成40%・調教+10%）。費用はレベルごとに嵩み（全部を最大までで総額約70億円）、維持費が毎月かかります（全部最大で年約9.3億円）。1段階の工事は約2ヶ月で、工事中も今のレベルの効果は効きます。");
   h += sec("📊 能力の見方（ランク表示）",
     "能力は数字ではなくランクでだけ表示されます。スピード／スタミナ／根性は <b>S〜G</b>、第4の要素 <b>パワー</b> は <b>C〜Sの4段階</b> で、どれも内部的には100点満点です。パワーは距離や馬場から決まるものではなく、その馬の個性です。力の要る競馬場（中山・阪神の坂、洋芝など）や重馬場、前に行く脚質で効いてきます。<br>各パラメータには「素質（上限）」があり、生まれたときの能力はごく小さいところから始まります。育成と調教で上限へ近づけていくのが育て方で、上限そのものは配合で決まります。");
   h += sec("🏋 育成と調教",
@@ -5615,7 +5676,7 @@ function viewManual(){
   h += sec("🏇 騎手",
     "騎手には実在の騎手をモデルにした26人がいて（名前は架空）、歳を取り、50歳で引退します。引退すると、同苗字の二世か新人の騎手がデビューします。よく乗せる騎手は騎乗経験を積んで少しずつレベルが上がります（最大Lv5）。上がり方には個人差があり、若いうちに伸びるタイプ、晩年に伸びるタイプ、上限が低めのタイプがいます。レベルと、その馬の主戦騎手かどうかが、わずかに着差を後押しします。<br>各馬に一番多く乗った騎手が主戦です。馬のページと出走登録画面で騎手を指定でき、指定した騎手は自動出走でも優先して乗ります。騎手タブで現役騎手の成績が見られます。");
   h += sec("🏁 引退と種牡馬入り",
-    "引退の目安は成長型で違います（早熟は4歳前後、普通は6歳前後、晩成は7歳以降）。10歳のシーズン終了が全馬の上限です。自動引退がONのときは毎月判定され、目安に達した馬はシーズン途中でも引退します（手動の場合は年末に確認します）。G1を勝った馬は、衰えが見えたら通常の目安より早く引退します（5勝以上の馬はさらに早めです）。<br>競走寿命の目安は、診療所を建設すると馬ページに「○歳の○ごろ」と表示され、目安が今年に来る馬は年始に通知されます。診療所を建設するとこの仕組み全体（見立て表示・年始通知・寿命引退）が動き始めます。自動引退がONの場合、目安に達した時点で前年まで好成績（1勝以上、または重賞で3着以内）だった馬は、好成績のまま引退します。4歳になって未勝利の馬は年末に引退します。<br>牡馬は重賞勝ちか生涯賞金1億円以上で種牡馬入りの資格があり、引退時に「種牡馬入り／売却／そのまま残す」から選べます。牝馬は繁殖入り（頭数上限内）か売却です。引退した馬は「牧場年表」タブの引退馬リストに残ります。<br>引退から50年が経つと、その馬の詳細ページは閉じられます（記録データ自体は残ります）。殿堂馬の詳細は無期限で残ります。");
+    "引退の目安は成長型で違います（早熟は4歳前後、普通は6歳前後、晩成は7歳以降）。10歳のシーズン終了が全馬の上限です。自動引退がONのときは毎月判定され、目安に達した馬はシーズン途中でも引退します（手動の場合は年末に確認します）。G1を勝った馬は、衰えが見えたら通常の目安より早く引退します（5勝以上の馬はさらに早めです）。<br>競走寿命の目安は、診療所を建設すると馬ページに「○歳の○ごろ」と表示され、目安が今年に来る馬は年始に通知されます。診療所を建設するとこの仕組み全体（見立て表示・年始通知・寿命引退）が動き始めます。自動引退がONの場合、目安に達した時点で前年まで好成績（1勝以上、または重賞で3着以内）だった馬は、好成績のまま引退します。4歳になって未勝利の馬は年末に引退します。<br>牡馬は引退時に、どの馬でも「種牡馬入り／売却／そのまま残す」から選べます（自動引退の場合は、重賞勝ちか生涯賞金1億円以上の馬だけが種牡馬入りします）。牝馬は繁殖入り（頭数上限内）か売却です。引退した馬は「牧場年表」タブの引退馬リストに残ります。<br>引退から50年が経つと、その馬の詳細ページは閉じられます（記録データ自体は残ります）。殿堂馬の詳細は無期限で残ります。");
   h += sec("🏆 殿堂入り",
     "殿堂入りは、引退済みで <b>生涯賞金10億円以上</b>、または <b>G1（JpnI・海外G1含む）5勝以上</b> のどちらかを満たした馬です。牧場で初めて重賞を勝った馬と初めてG1を勝った馬は、条件にかかわらず殿堂入りします。<b>日本ダービーを勝った馬は、初制覇でなくても全員が称号「牧場の優駿」を得て殿堂入りします</b>。年表タブに殿堂馬が並びます。条件を満たさなくても、引退した馬のページや年末の引退確認から任意で殿堂入りさせることもできます（取り消しも可能で、任意の殿堂馬は詳細も無期限で残ります）。");
   h += sec("🌙 まったりモード",
@@ -6694,7 +6755,7 @@ function viewLineage(){
   return html;
 }
 /* 牡馬の引退メニュー（v0.57・オーナー決定）：牝馬の引退（v0.33）と対称の3択にする。
-   種牡馬入り（資格馬のみ）／引退馬として残る／売却して引退。
+   種牡馬入り／引退馬として残る／売却して引退。v8.0：種牡馬入りはどの牡馬でも選べる。
    売却額はページを開いた時点で確定してメニューに表示＝売却価格（牝馬の引退売却と同じ凍結方式）。
    価格式は marePrice ではなく youngPrice（若馬売却の大改修式：8×e^(0.08×3パラ平均)、100〜12000万円）を使う。
    marePrice は繁殖牝馬の相場（繁殖牝馬の購入価格帯に連動し、呼ぶたび乱数が入る牝馬専用の式）のため */
@@ -6702,7 +6763,8 @@ function coltRetireMenuHtml(h, price){
   const stud = canEnterStud(h);
   const why = stud ? ((h.gradedWin ? "重賞勝ち" : "") + (h.gradedWin && h.earnings>=10000 ? "・" : "") + (h.earnings>=10000 ? "通算賞金1億円以上" : "")) : "";
   return "<details class='sellmenu'><summary>引退させる</summary><div class='sellmenu-body'>"
-    + (stud ? "<div class='sub'>この馬は種牡馬入りの資格があります（"+why+"）</div><button id='retireStudBtn'>種牡馬として引退する</button> " : "")
+    + (stud ? "<div class='sub'>この馬は種牡馬入りの資格があります（"+why+"）</div>" : "")
+    + "<button id='retireStudBtn'>種牡馬として引退する</button> "
     + "<button id='retirePlainBtn' class='ghost'>引退馬として残る</button> <button id='retireSellColtBtn' class='ghost'>売却して引退する</button>"
     + "<span class='sub'>売却する場合は、そのまま <b>"+man(price)+"</b> で売却されます</span>"
     + "</div></details>";
@@ -7075,7 +7137,7 @@ function openRetireQueue(){
     + "<div style='margin-top:8px;'><label><input type='checkbox' id='rqHof'> 🏆 引退と同時に、任意で殿堂入りさせる</label></div>"
     + "<div class='flex' style='margin-top:10px;'>";
   if(h.sex === "牡"){
-    if(canEnterStud(h)) html += "<button data-rq='stud'>種牡馬として引退する</button>";
+    html += "<button data-rq='stud'>種牡馬として引退する</button>"; /* v8.0：どの牡馬でも選べる（自動引退の判定は従来どおり資格制） */
     html += "<button data-rq='plain' class='ghost'>引退馬として残る</button><button data-rq='sell' class='ghost'>売却して引退する（" + man(youngPrice(h)) + "）</button>";
   } else {
     html += mareCapReached()
@@ -7406,6 +7468,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） pre8.0</footer>
+<footer>競馬シミュレーター（趣味） v8.0</footer>
 </body>
 </html>
