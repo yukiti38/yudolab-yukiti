@@ -40,7 +40,8 @@
    "grandam": "オトメゴコロ",
    "gbms": "ジャッジアンジェルーチ",
    "weight": 540,
-   "age2026": 14
+   "age2026": 14,
+   "pow": "S"
   },
   {
    "dist": [
@@ -68,7 +69,8 @@
     "ヘイロー"
    ],
    "weight": 510,
-   "age2026": 16
+   "age2026": 16,
+   "pow": "A"
   },
   {
    "dist": [
@@ -96,7 +98,8 @@
     "Fappiano"
    ],
    "weight": 462,
-   "age2026": 9
+   "age2026": 9,
+   "pow": "B"
   },
   {
    "dist": [
@@ -124,7 +127,8 @@
     "ヘイロー"
    ],
    "weight": 482,
-   "age2026": 10
+   "age2026": 10,
+   "pow": "A"
   },
   {
    "dist": [
@@ -152,7 +156,8 @@
     "メジロアサマ"
    ],
    "weight": 452,
-   "age2026": 18
+   "age2026": 18,
+   "pow": "S"
   },
   {
    "dist": [
@@ -181,7 +186,8 @@
    ],
    "jizoku": true,
    "weight": 522,
-   "age2026": 17
+   "age2026": 17,
+   "pow": "S"
   },
   {
    "dist": [
@@ -209,7 +215,8 @@
     "カラムーン"
    ],
    "weight": 512,
-   "age2026": 19
+   "age2026": 19,
+   "pow": "A"
   },
   {
    "dist": [
@@ -232,7 +239,8 @@
    "grandam": "レディブロンド",
    "gbms": "Seeking the Gold",
    "weight": 488,
-   "age2026": 12
+   "age2026": 12,
+   "pow": "B"
   },
   {
    "dist": [
@@ -260,7 +268,8 @@
     "Fappiano"
    ],
    "weight": 514,
-   "age2026": 12
+   "age2026": 12,
+   "pow": "A"
   },
   {
    "dist": [
@@ -288,7 +297,8 @@
     "Mr. Prospector"
    ],
    "weight": 492,
-   "age2026": 14
+   "age2026": 14,
+   "pow": "A"
   },
   {
    "dist": [
@@ -316,7 +326,8 @@
     "Nijinsky"
    ],
    "weight": 452,
-   "age2026": 11
+   "age2026": 11,
+   "pow": "B"
   },
   {
    "dist": [
@@ -344,7 +355,8 @@
     "Sadler's Wells"
    ],
    "weight": 464,
-   "age2026": 8
+   "age2026": 8,
+   "pow": "S"
   },
   {
    "dist": [
@@ -372,7 +384,8 @@
     "Literat"
    ],
    "weight": 474,
-   "age2026": 10
+   "age2026": 10,
+   "pow": "B"
   },
   {
    "dist": [
@@ -396,7 +409,8 @@
    "gbms": "Nureyev",
    "jizoku": true,
    "weight": 476,
-   "age2026": 14
+   "age2026": 14,
+   "pow": "A"
   },
   {
    "dist": [
@@ -425,7 +439,8 @@
     "リファール"
    ],
    "weight": 472,
-   "age2026": 7
+   "age2026": 7,
+   "pow": "A"
   },
   {
    "dist": [
@@ -448,7 +463,8 @@
    "grandam": "サラトガデュー",
    "gbms": "Cormorant",
    "weight": 504,
-   "age2026": 18
+   "age2026": 18,
+   "pow": "A"
   },
   {
    "dist": [
@@ -476,7 +492,8 @@
     "Northern Dancer"
    ],
    "weight": 508,
-   "age2026": 15
+   "age2026": 15,
+   "pow": "A"
   },
   {
    "dist": [
@@ -504,7 +521,8 @@
     "Fortino"
    ],
    "weight": 470,
-   "age2026": 15
+   "age2026": 15,
+   "pow": "B"
   },
   {
    "dist": [
@@ -532,7 +550,8 @@
     "Mr. Prospector"
    ],
    "weight": 482,
-   "age2026": 10
+   "age2026": 10,
+   "pow": "B"
   },
   {
    "dist": [
@@ -560,7 +579,8 @@
     "Nijinsky"
    ],
    "weight": 512,
-   "age2026": 9
+   "age2026": 9,
+   "pow": "B"
   },
   {
    "dist": [
@@ -588,7 +608,8 @@
     "Fappiano"
    ],
    "weight": 484,
-   "age2026": 8
+   "age2026": 8,
+   "pow": "C"
   },
   {
    "dist": [
@@ -611,7 +632,8 @@
    "grandam": "Relish",
    "gbms": "Sadler's Wells",
    "weight": 522,
-   "age2026": 15
+   "age2026": 15,
+   "pow": "A"
   },
   {
    "dist": [
@@ -639,7 +661,8 @@
     "ダンジグ"
    ],
    "weight": 482,
-   "age2026": 15
+   "age2026": 15,
+   "pow": "B"
   },
   {
    "dist": [
@@ -667,7 +690,8 @@
     "ヘイロー"
    ],
    "weight": 492,
-   "age2026": 13
+   "age2026": 13,
+   "pow": "B"
   },
   {
    "dist": [
@@ -696,7 +720,8 @@
     "ニアークティック"
    ],
    "weight": 522,
-   "age2026": 25
+   "age2026": 25,
+   "pow": "A"
   },
   {
    "dist": [
@@ -724,7 +749,8 @@
     "Speak John"
    ],
    "weight": 502,
-   "age2026": 18
+   "age2026": 18,
+   "pow": "A"
   },
   {
    "dist": [
@@ -752,7 +778,8 @@
     "Deputy Minister"
    ],
    "weight": 512,
-   "age2026": 13
+   "age2026": 13,
+   "pow": "A"
   },
   {
    "dist": [
@@ -775,7 +802,8 @@
    "grandam": "Spinning Round",
    "gbms": "Dixieland Band",
    "weight": 505,
-   "age2026": 21
+   "age2026": 21,
+   "pow": "A"
   },
   {
    "dist": [
@@ -802,7 +830,8 @@
     "Vice Regent"
    ],
    "weight": 520,
-   "age2026": 23
+   "age2026": 23,
+   "pow": "S"
   },
   {
    "dist": [
@@ -830,7 +859,8 @@
     "Blushing Groom"
    ],
    "weight": 532,
-   "age2026": 17
+   "age2026": 17,
+   "pow": "S"
   },
   {
    "dist": [
@@ -858,7 +888,8 @@
     "Mr. Prospector"
    ],
    "weight": 512,
-   "age2026": 16
+   "age2026": 16,
+   "pow": "S"
   },
   {
    "dist": [
@@ -886,7 +917,8 @@
     "ヘイルトゥリーズン"
    ],
    "weight": 532,
-   "age2026": 21
+   "age2026": 21,
+   "pow": "S"
   },
   {
    "dist": [
@@ -914,7 +946,8 @@
     "Northern Dancer"
    ],
    "weight": 492,
-   "age2026": 15
+   "age2026": 15,
+   "pow": "B"
   },
   {
    "dist": [
@@ -942,7 +975,8 @@
     "Deputy Minister"
    ],
    "weight": 482,
-   "age2026": 13
+   "age2026": 13,
+   "pow": "A"
   },
   {
    "dist": [
@@ -970,7 +1004,8 @@
     "Halo"
    ],
    "weight": 492,
-   "age2026": 9
+   "age2026": 9,
+   "pow": "B"
   },
   {
    "dist": [
@@ -998,7 +1033,8 @@
     "Northern Dancer"
    ],
    "weight": 512,
-   "age2026": 18
+   "age2026": 18,
+   "pow": "S"
   },
   {
    "dist": [
@@ -1026,7 +1062,8 @@
     "Mill Reef"
    ],
    "weight": 482,
-   "age2026": 24
+   "age2026": 24,
+   "pow": "A"
   },
   {
    "dist": [
@@ -1054,7 +1091,8 @@
     "Raise a Native"
    ],
    "weight": 502,
-   "age2026": 20
+   "age2026": 20,
+   "pow": "A"
   },
   {
    "dist": [
@@ -1082,7 +1120,8 @@
     "Mr. Prospector"
    ],
    "weight": 502,
-   "age2026": 15
+   "age2026": 15,
+   "pow": "C"
   },
   {
    "dist": [
@@ -1110,7 +1149,8 @@
     "Derring-Do"
    ],
    "weight": 494,
-   "age2026": 18
+   "age2026": 18,
+   "pow": "B"
   },
   {
    "dist": [
@@ -1138,7 +1178,8 @@
     "Northern Dancer"
    ],
    "weight": 484,
-   "age2026": 19
+   "age2026": 19,
+   "pow": "C"
   },
   {
    "dist": [
@@ -1166,7 +1207,8 @@
     "Mr. Prospector"
    ],
    "weight": 502,
-   "age2026": 19
+   "age2026": 19,
+   "pow": "B"
   },
   {
    "dist": [
@@ -1194,7 +1236,8 @@
     "Icecapade"
    ],
    "weight": 502,
-   "age2026": 21
+   "age2026": 21,
+   "pow": "A"
   },
   {
    "dist": [
@@ -1222,7 +1265,8 @@
     "Deputy Minister"
    ],
    "weight": 562,
-   "age2026": 11
+   "age2026": 11,
+   "pow": "S"
   },
   {
    "dist": [
@@ -1245,7 +1289,8 @@
    "grandam": "Quiet Dance",
    "gbms": "Quiet American",
    "weight": 512,
-   "age2026": 13
+   "age2026": 13,
+   "pow": "S"
   },
   {
    "name": "ドウデュース",
@@ -1274,7 +1319,8 @@
     "Bold Reasoning"
    ],
    "weight": 472,
-   "age2026": 7
+   "age2026": 7,
+   "pow": "B"
   },
   {
    "name": "エフフォーリア",
@@ -1298,7 +1344,8 @@
    "grandam": "ケイティーズファースト",
    "gbms": "Kris",
    "weight": 506,
-   "age2026": 8
+   "age2026": 8,
+   "pow": "A"
   },
   {
    "name": "シャフリヤール",
@@ -1327,7 +1374,8 @@
     "A.P. Indy"
    ],
    "weight": 452,
-   "age2026": 8
+   "age2026": 8,
+   "pow": "C"
   },
   {
    "name": "ソールオリエンス",
@@ -1356,7 +1404,8 @@
     "Sadler's Wells"
    ],
    "weight": 472,
-   "age2026": 6
+   "age2026": 6,
+   "pow": "C"
   },
   {
    "name": "タスティエーラ",
@@ -1385,7 +1434,8 @@
     "ヘイロー"
    ],
    "weight": 482,
-   "age2026": 6
+   "age2026": 6,
+   "pow": "B"
   },
   {
    "name": "カルストンライトオ",
@@ -1411,7 +1461,8 @@
     "ヘイルトゥリーズン"
    ],
    "weight": 470,
-   "age2026": 28
+   "age2026": 28,
+   "pow": "C"
   },
   {
    "name": "デュランダル",
@@ -1437,7 +1488,8 @@
     "ニアークティック"
    ],
    "weight": 478,
-   "age2026": 27
+   "age2026": 27,
+   "pow": "C"
   },
   {
    "name": "ディープボンド",
@@ -1466,7 +1518,8 @@
    ],
    "jizoku": true,
    "weight": 484,
-   "age2026": 9
+   "age2026": 9,
+   "pow": "B"
   },
   {
    "name": "メルトスイート",
@@ -1495,7 +1548,8 @@
     "デピュティミニスター"
    ],
    "weight": 486,
-   "age2026": 6
+   "age2026": 6,
+   "pow": "C"
   },
   {
    "name": "チュウワウィザード",
@@ -1523,7 +1577,8 @@
     "ヘイロー"
    ],
    "weight": 496,
-   "age2026": 11
+   "age2026": 11,
+   "pow": "A"
   },
   {
    "name": "ジオグリフ",
@@ -1552,7 +1607,8 @@
     "ミスタープロスペクター"
    ],
    "weight": 486,
-   "age2026": 7
+   "age2026": 7,
+   "pow": "B"
   },
   {
    "name": "ピクシーナイト",
@@ -1580,7 +1636,8 @@
     "リファール"
    ],
    "weight": 492,
-   "age2026": 8
+   "age2026": 8,
+   "pow": "B"
   },
   {
    "name": "アダイヤー",
@@ -1608,7 +1665,8 @@
     "Seeking the Gold"
    ],
    "weight": 510,
-   "age2026": 8
+   "age2026": 8,
+   "pow": "A"
   },
   {
    "name": "サンダースノー",
@@ -1637,7 +1695,8 @@
     "ミスタープロスペクター"
    ],
    "weight": 502,
-   "age2026": 12
+   "age2026": 12,
+   "pow": "A"
   },
   {
    "name": "タワーオブロンドン",
@@ -1667,7 +1726,8 @@
     "Shirley Heights"
    ],
    "weight": 490,
-   "age2026": 11
+   "age2026": 11,
+   "pow": "B"
   },
   {
    "name": "サトノダイヤモンド",
@@ -1690,7 +1750,8 @@
    "fee_tier": "C",
    "region": "domestic",
    "weight": 506,
-   "age2026": 13
+   "age2026": 13,
+   "pow": "B"
   },
   {
    "name": "リアルスティール",
@@ -1713,7 +1774,8 @@
    "fee_tier": "A",
    "region": "domestic",
    "weight": 506,
-   "age2026": 14
+   "age2026": 14,
+   "pow": "B"
   },
   {
    "name": "ジャスタウェイ",
@@ -1736,7 +1798,8 @@
    "fee_tier": "B",
    "region": "domestic",
    "weight": 498,
-   "age2026": 17
+   "age2026": 17,
+   "pow": "C"
   },
   {
    "name": "ダノンスコーピオン",
@@ -1759,7 +1822,8 @@
    "fee_tier": "C",
    "region": "overseas",
    "weight": 460,
-   "age2026": 7
+   "age2026": 7,
+   "pow": "B"
   },
   {
    "name": "キセキ",
@@ -1782,7 +1846,8 @@
    "fee_tier": "C",
    "region": "domestic",
    "weight": 508,
-   "age2026": 12
+   "age2026": 12,
+   "pow": "A"
   },
   {
    "name": "レモンポップ",
@@ -1805,7 +1870,8 @@
    "fee_tier": "B",
    "region": "domestic",
    "weight": 518,
-   "age2026": 8
+   "age2026": 8,
+   "pow": "S"
   },
   {
    "name": "パンサラッサ",
@@ -1828,7 +1894,8 @@
    "fee_tier": "B",
    "region": "domestic",
    "weight": 480,
-   "age2026": 9
+   "age2026": 9,
+   "pow": "A"
   },
   {
    "name": "ウシュバテソーロ",
@@ -1851,7 +1918,8 @@
    "fee_tier": "B",
    "region": "domestic",
    "weight": 524,
-   "age2026": 9
+   "age2026": 9,
+   "pow": "S"
   },
   {
    "name": "オーギュストロダン",
@@ -1874,7 +1942,8 @@
    "fee_tier": "A",
    "region": "overseas",
    "weight": 454,
-   "age2026": 6
+   "age2026": 6,
+   "pow": "A"
   },
   {
    "name": "フライトライン",
@@ -1897,7 +1966,8 @@
    "fee_tier": "S",
    "region": "overseas",
    "weight": 508,
-   "age2026": 8
+   "age2026": 8,
+   "pow": "S"
   },
   {
    "name": "ダノンプレミアム",
@@ -1920,7 +1990,8 @@
    "fee_tier": "C",
    "region": "domestic",
    "weight": 498,
-   "age2026": 11
+   "age2026": 11,
+   "pow": "B"
   },
   {
    "name": "アルアイン",
@@ -1943,7 +2014,8 @@
    "fee_tier": "C",
    "region": "domestic",
    "weight": 518,
-   "age2026": 12
+   "age2026": 12,
+   "pow": "B"
   },
   {
    "name": "マカヒキ",
@@ -1966,7 +2038,8 @@
    "fee_tier": "C",
    "region": "domestic",
    "weight": 502,
-   "age2026": 13
+   "age2026": 13,
+   "pow": "B"
   },
   {
    "name": "ジャスティンミラノ",
@@ -1989,7 +2062,8 @@
    "fee_tier": "A",
    "region": "domestic",
    "weight": 512,
-   "age2026": 5
+   "age2026": 5,
+   "pow": "C"
   },
   {
    "name": "グローリーヴェイズ",
@@ -2012,7 +2086,8 @@
    "fee_tier": "C",
    "region": "domestic",
    "weight": 456,
-   "age2026": 11
+   "age2026": 11,
+   "pow": "B"
   },
   {
    "name": "ステファノス",
@@ -2035,7 +2110,8 @@
    "fee_tier": "C",
    "region": "overseas",
    "weight": 486,
-   "age2026": 15
+   "age2026": 15,
+   "pow": "C"
   },
   {
    "name": "セリフォス",
@@ -2058,7 +2134,8 @@
    "fee_tier": "B",
    "region": "domestic",
    "weight": 486,
-   "age2026": 7
+   "age2026": 7,
+   "pow": "C"
   },
   {
    "name": "ダノンキングリー",
@@ -2081,7 +2158,8 @@
    "fee_tier": "C",
    "region": "domestic",
    "weight": 456,
-   "age2026": 10
+   "age2026": 10,
+   "pow": "C"
   },
   {
    "name": "グレーターロンドン",
@@ -2104,7 +2182,8 @@
    "fee_tier": "C",
    "region": "domestic",
    "weight": 468,
-   "age2026": 14
+   "age2026": 14,
+   "pow": "C"
   },
   {
    "name": "ヴィクトワールピサ",
@@ -2127,7 +2206,8 @@
    "fee_tier": "B",
    "region": "overseas",
    "weight": 512,
-   "age2026": 19
+   "age2026": 19,
+   "pow": "A"
   },
   {
    "name": "ダノンスマッシュ",
@@ -2150,7 +2230,8 @@
    "fee_tier": "B",
    "region": "domestic",
    "weight": 472,
-   "age2026": 11
+   "age2026": 11,
+   "pow": "B"
   },
   {
    "name": "アジアエクスプレス",
@@ -2173,7 +2254,8 @@
    "fee_tier": "C",
    "region": "domestic",
    "weight": 534,
-   "age2026": 15
+   "age2026": 15,
+   "pow": "A"
   },
   {
    "name": "モズアスコット",
@@ -2196,7 +2278,8 @@
    "fee_tier": "B",
    "region": "domestic",
    "weight": 488,
-   "age2026": 12
+   "age2026": 12,
+   "pow": "B"
   },
   {
    "name": "アラビアンナイト",
@@ -2219,7 +2302,8 @@
    "fee_tier": "B",
    "region": "overseas",
    "weight": 508,
-   "age2026": 6
+   "age2026": 6,
+   "pow": "B"
   },
   {
    "name": "スマートファルコン",
@@ -2242,7 +2326,8 @@
    "fee_tier": "C",
    "region": "domestic",
    "weight": 513,
-   "age2026": 21
+   "age2026": 21,
+   "pow": "S"
   },
   {
    "name": "ルヴァンスレーヴ",
@@ -2265,7 +2350,8 @@
    "fee_tier": "B",
    "region": "domestic",
    "weight": 490,
-   "age2026": 11
+   "age2026": 11,
+   "pow": "A"
   },
   {
    "name": "ダノンレジェンド",
@@ -2288,7 +2374,8 @@
    "fee_tier": "C",
    "region": "domestic",
    "weight": 445,
-   "age2026": 16
+   "age2026": 16,
+   "pow": "B"
   },
   {
    "name": "ベストウォーリア",
@@ -2311,7 +2398,8 @@
    "fee_tier": "C",
    "region": "domestic",
    "weight": 506,
-   "age2026": 16
+   "age2026": 16,
+   "pow": "B"
   },
   {
    "name": "アメリカンファラオ",
@@ -2334,7 +2422,8 @@
    "fee_tier": "S",
    "region": "overseas",
    "weight": 516,
-   "age2026": 14
+   "age2026": 14,
+   "pow": "S"
   },
   {
    "name": "コンスティテューション",
@@ -2357,7 +2446,8 @@
    "fee_tier": "A",
    "region": "overseas",
    "weight": 508,
-   "age2026": 15
+   "age2026": 15,
+   "pow": "A"
   },
   {
    "name": "クオリティロード",
@@ -2380,7 +2470,8 @@
    "fee_tier": "A",
    "region": "overseas",
    "weight": 508,
-   "age2026": 20
+   "age2026": 20,
+   "pow": "A"
   },
   {
    "name": "カーリン",
@@ -2403,7 +2494,8 @@
    "fee_tier": "A",
    "region": "overseas",
    "weight": 516,
-   "age2026": 22
+   "age2026": 22,
+   "pow": "A"
   },
   {
    "name": "ノットディスタイム",
@@ -2426,7 +2518,8 @@
    "fee_tier": "A",
    "region": "overseas",
    "weight": 508,
-   "age2026": 12
+   "age2026": 12,
+   "pow": "B"
   },
   {
    "name": "ライフイズグッド",
@@ -2449,7 +2542,8 @@
    "fee_tier": "B",
    "region": "overseas",
    "weight": 508,
-   "age2026": 8
+   "age2026": 8,
+   "pow": "A"
   },
   {
    "name": "エリートパワー",
@@ -2472,7 +2566,8 @@
    "fee_tier": "B",
    "region": "overseas",
    "weight": 500,
-   "age2026": 8
+   "age2026": 8,
+   "pow": "A"
   },
   {
    "name": "フォルテ",
@@ -2495,7 +2590,8 @@
    "fee_tier": "B",
    "region": "overseas",
    "weight": 508,
-   "age2026": 6
+   "age2026": 6,
+   "pow": "B"
   },
   {
    "name": "アルカンジェロ",
@@ -2518,7 +2614,8 @@
    "fee_tier": "B",
    "region": "overseas",
    "weight": 516,
-   "age2026": 6
+   "age2026": 6,
+   "pow": "B"
   },
   {
    "name": "ジャッキーズウォリアー",
@@ -2541,7 +2638,8 @@
    "fee_tier": "B",
    "region": "overseas",
    "weight": 508,
-   "age2026": 8
+   "age2026": 8,
+   "pow": "A"
   },
   {
    "name": "シティオブトロイ",
@@ -2564,7 +2662,8 @@
    "fee_tier": "A",
    "region": "overseas",
    "weight": 506,
-   "age2026": 5
+   "age2026": 5,
+   "pow": "A"
   },
   {
    "name": "パディントン",
@@ -2587,7 +2686,8 @@
    "fee_tier": "B",
    "region": "overseas",
    "weight": 498,
-   "age2026": 6
+   "age2026": 6,
+   "pow": "B"
   },
   {
    "name": "エースインパクト",
@@ -2610,7 +2710,8 @@
    "fee_tier": "A",
    "region": "overseas",
    "weight": 514,
-   "age2026": 6
+   "age2026": 6,
+   "pow": "B"
   },
   {
    "name": "ブルーポイント",
@@ -2633,7 +2734,8 @@
    "fee_tier": "A",
    "region": "overseas",
    "weight": 490,
-   "age2026": 12
+   "age2026": 12,
+   "pow": "A"
   },
   {
    "name": "トゥーダーンホット",
@@ -2656,7 +2758,8 @@
    "fee_tier": "A",
    "region": "overseas",
    "weight": 498,
-   "age2026": 10
+   "age2026": 10,
+   "pow": "A"
   },
   {
    "name": "ピナトゥボ",
@@ -2679,7 +2782,8 @@
    "fee_tier": "B",
    "region": "overseas",
    "weight": 498,
-   "age2026": 9
+   "age2026": 9,
+   "pow": "C"
   },
   {
    "name": "ガイヤース",
@@ -2702,7 +2806,8 @@
    "fee_tier": "B",
    "region": "overseas",
    "weight": 514,
-   "age2026": 11
+   "age2026": 11,
+   "pow": "S"
   },
   {
    "name": "セントマークスバシリカ",
@@ -2725,7 +2830,8 @@
    "fee_tier": "B",
    "region": "overseas",
    "weight": 506,
-   "age2026": 8
+   "age2026": 8,
+   "pow": "B"
   },
   {
    "name": "キャメロット",
@@ -2748,7 +2854,8 @@
    "fee_tier": "B",
    "region": "overseas",
    "weight": 506,
-   "age2026": 17
+   "age2026": 17,
+   "pow": "B"
   },
   {
    "name": "ノーネイネヴァー",
@@ -2771,7 +2878,8 @@
    "fee_tier": "A",
    "region": "overseas",
    "weight": 490,
-   "age2026": 15
+   "age2026": 15,
+   "pow": "A"
   },
   {
    "name": "ゾウスター",
@@ -2794,7 +2902,8 @@
    "fee_tier": "A",
    "region": "overseas",
    "weight": 490,
-   "age2026": 16
+   "age2026": 16,
+   "pow": "A"
   },
   {
    "name": "アイアムインヴィンシブル",
@@ -2817,7 +2926,8 @@
    "fee_tier": "S",
    "region": "overseas",
    "weight": 490,
-   "age2026": 22
+   "age2026": 22,
+   "pow": "A"
   },
   {
    "name": "トロナド",
@@ -2840,7 +2950,8 @@
    "fee_tier": "B",
    "region": "overseas",
    "weight": 498,
-   "age2026": 16
+   "age2026": 16,
+   "pow": "B"
   },
   {
    "name": "ザオータムサン",
@@ -2863,7 +2974,8 @@
    "fee_tier": "B",
    "region": "overseas",
    "weight": 498,
-   "age2026": 11
+   "age2026": 11,
+   "pow": "C"
   },
   {
    "name": "デュンデル",
@@ -2886,7 +2998,8 @@
    "fee_tier": "B",
    "region": "overseas",
    "weight": 506,
-   "age2026": 17
+   "age2026": 17,
+   "pow": "B"
   },
   {
    "name": "ステイインサイド",
@@ -2909,7 +3022,8 @@
    "fee_tier": "B",
    "region": "overseas",
    "weight": 490,
-   "age2026": 8
+   "age2026": 8,
+   "pow": "B"
   },
   {
    "name": "エクストリームチョイス",
@@ -2932,7 +3046,8 @@
    "fee_tier": "S",
    "region": "overseas",
    "weight": 490,
-   "age2026": 13
+   "age2026": 13,
+   "pow": "A"
   },
   {
    "name": "キャピタリスト",
@@ -2955,7 +3070,8 @@
    "fee_tier": "B",
    "region": "overseas",
    "weight": 490,
-   "age2026": 13
+   "age2026": 13,
+   "pow": "B"
   },
   {
    "name": "オールトゥーハード",
@@ -2978,7 +3094,8 @@
    "fee_tier": "C",
    "region": "overseas",
    "weight": 498,
-   "age2026": 17
+   "age2026": 17,
+   "pow": "B"
   },
   {
    "name": "ハリーエンジェル",
@@ -3001,7 +3118,8 @@
    "fee_tier": "B",
    "region": "overseas",
    "weight": 490,
-   "age2026": 12
+   "age2026": 12,
+   "pow": "A"
   },
   {
    "name": "キズナ",
@@ -3024,7 +3142,8 @@
    "fee_tier": "S",
    "region": "domestic",
    "weight": 480,
-   "age2026": 16
+   "age2026": 16,
+   "pow": "B"
   },
   {
    "name": "ジャックドール",
@@ -3047,7 +3166,8 @@
    "fee_tier": "C",
    "region": "domestic",
    "weight": 512,
-   "age2026": 8
+   "age2026": 8,
+   "pow": "A"
   },
   {
    "name": "シュネルマイスター",
@@ -3070,7 +3190,8 @@
    "fee_tier": "B",
    "region": "domestic",
    "weight": 480,
-   "age2026": 8
+   "age2026": 8,
+   "pow": "C"
   },
   {
    "name": "エイシンヒカリ",
@@ -3093,7 +3214,8 @@
    "fee_tier": "C",
    "region": "domestic",
    "weight": 504,
-   "age2026": 15
+   "age2026": 15,
+   "pow": "A"
   },
   {
    "name": "ミッキーロケット",
@@ -3116,7 +3238,8 @@
    "fee_tier": "C",
    "region": "domestic",
    "weight": 476,
-   "age2026": 13
+   "age2026": 13,
+   "pow": "B"
   },
   {
    "name": "シルバーステート",
@@ -3139,7 +3262,8 @@
    "fee_tier": "B",
    "region": "domestic",
    "weight": 496,
-   "age2026": 13
+   "age2026": 13,
+   "pow": "B"
   },
   {
    "name": "ルクセンブルク",
@@ -3162,7 +3286,8 @@
    "fee_tier": "C",
    "region": "overseas",
    "weight": 506,
-   "age2026": 7
+   "age2026": 7,
+   "pow": "B"
   },
   {
    "name": "アップトゥザマーク",
@@ -3185,7 +3310,8 @@
    "fee_tier": "B",
    "region": "overseas",
    "weight": 506,
-   "age2026": 7
+   "age2026": 7,
+   "pow": "C"
   },
   {
    "name": "コーディーズウィッシュ",
@@ -3208,7 +3334,8 @@
    "fee_tier": "B",
    "region": "overseas",
    "weight": 508,
-   "age2026": 8
+   "age2026": 8,
+   "pow": "B"
   },
   {
    "name": "カフェファラオ",
@@ -3231,7 +3358,8 @@
    "fee_tier": "B",
    "region": "domestic",
    "weight": 520,
-   "age2026": 9
+   "age2026": 9,
+   "pow": "A"
   },
   {
    "name": "メイショウハリオ",
@@ -3254,7 +3382,8 @@
    "fee_tier": "C",
    "region": "domestic",
    "weight": 502,
-   "age2026": 9
+   "age2026": 9,
+   "pow": "A"
   },
   {
    "name": "ジュンライトボルト",
@@ -3277,7 +3406,8 @@
    "fee_tier": "C",
    "region": "domestic",
    "weight": 486,
-   "age2026": 9
+   "age2026": 9,
+   "pow": "A"
   },
   {
    "name": "ナショナルトレジャー",
@@ -3300,7 +3430,8 @@
    "fee_tier": "B",
    "region": "overseas",
    "weight": 516,
-   "age2026": 6
+   "age2026": 6,
+   "pow": "B"
   },
   {
    "name": "シエラレオーネ",
@@ -3323,7 +3454,8 @@
    "fee_tier": "A",
    "region": "overseas",
    "weight": 516,
-   "age2026": 5
+   "age2026": 5,
+   "pow": "B"
   },
   {
    "name": "ドルノック",
@@ -3346,7 +3478,8 @@
    "fee_tier": "B",
    "region": "overseas",
    "weight": 516,
-   "age2026": 5
+   "age2026": 5,
+   "pow": "B"
   },
   {
    "name": "ロザリオン",
@@ -3369,7 +3502,8 @@
    "fee_tier": "B",
    "region": "overseas",
    "weight": 498,
-   "age2026": 5
+   "age2026": 5,
+   "pow": "C"
   },
   {
    "name": "ノータブルスピーチ",
@@ -3392,7 +3526,8 @@
    "fee_tier": "B",
    "region": "overseas",
    "weight": 498,
-   "age2026": 5
+   "age2026": 5,
+   "pow": "C"
   },
   {
    "name": "アナモー",
@@ -3415,7 +3550,8 @@
    "fee_tier": "A",
    "region": "overseas",
    "weight": 498,
-   "age2026": 8
+   "age2026": 8,
+   "pow": "B"
   },
   {
    "name": "ホームアフェアーズ",
@@ -3438,7 +3574,8 @@
    "fee_tier": "A",
    "region": "overseas",
    "weight": 490,
-   "age2026": 8
+   "age2026": 8,
+   "pow": "A"
   }
  ]
 }
