@@ -10075,6 +10075,10 @@
   "race_page_url": null,
   "source_url": "https://racedb.com/grade/2025/g2-uk.htm",
   "detail_source": "WP10",
+  "prize_first_local": 141775,
+  "prize_currency": "GBP",
+  "prize_first_jpy": 2750,
+  "prize_source": "manual_2025_verified",
   "weight_type": "定量"
  },
  {
@@ -22830,11 +22834,11 @@
   "distance_raw": "2100メートル",
   "race_page_url": null,
   "source_url": "https://racedb.com/grade/2025/g1-sau.htm",
-  "note": "racedbにサウジアラビアのグレード一覧ページ（g1/g2/g3-sau）が存在することをユーザーが提示しタイトルで確認（本文テキスト抽出は空振りのため、グレードは2025年サウジカップデーの実施報道でも照合）。UAEはドバイのみ。 2026年にG1へ昇格したため、ゲーム内ではG1として扱う（オーナー指摘 2026-11-12）。",
-  "prize_first_local": 1200000,
+  "note": "racedbにサウジアラビアのグレード一覧ページ（g1/g2/g3-sau）が存在することをユーザーが提示しタイトルで確認（本文テキスト抽出は空振りのため、グレードは2025年サウジカップデーの実施報道でも照合）。UAEはドバイのみ。 2026年にG1へ昇格したため、ゲーム内ではG1として扱う（オーナー指摘 2026-11-12）。賞金は2026年の増額後（総額300万ドル・1着180万ドル、JCSA公式発表/結果で確認）を例外的に採用（2026-11-24の賞金監査）。",
+  "prize_first_local": 1800000,
   "prize_currency": "USD",
-  "prize_first_jpy": 18000,
-  "prize_source": "racedb_2025",
+  "prize_first_jpy": 27000,
+  "prize_source": "manual_2026_verified",
   "weight_type": "定量"
  },
  {
