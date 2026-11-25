@@ -197,7 +197,7 @@ def ov_access(r):
 dom_out = []
 for r in dom:
     dt = datetime.date.fromisoformat(r["date"])
-    cond = r["conditions"].replace("3（4）歳以上", "3歳以上")
+    cond = r["conditions"].replace("3（4）歳以上", "4歳以上")  # 「3（4）」は満3歳＝数え4歳の表記。レース時点では4歳以上が正しい（2026-11-25 オーナー指摘で修正。以前は3歳以上に変換され、年明けの3歳馬が入れてしまっていた）
     mon, wom = month_wom(dt)
     dom_out.append({
         "name": r["name"], "grade": r["grade"], "sector": r["sector"], "category": r["category"],
