@@ -294,7 +294,9 @@ for r in ov:
 
 mt = json.load(open(os.path.join(DATA, "mare_templates.json")))
 cr = json.load(open(os.path.join(DATA, "course_records.json"))) # v6.4：JRAコースレコード（基準タイム）
-data = {"domestic": dom_out, "overseas": ov_out, "stallions": st["stallions"], "mareTemplates": mt["mareTemplates"], "courseRecords": cr}
+rrl = json.load(open(os.path.join(BASE, "..", "race-records", "race_records.json"))) # v8.5：レースレコード（協力者作成・334レース）
+rr = {r["name"]: {"course": r["racecourse"], "surface": r["surface"], "dist": r["distance_m"], "t": r["record_time_sec"], "holder": r["holder"], "year": r["year"], "venue": r.get("venue_record")} for r in rrl}
+data = {"domestic": dom_out, "overseas": ov_out, "stallions": st["stallions"], "mareTemplates": mt["mareTemplates"], "courseRecords": cr, "raceRecords": rr}
 blob = "const DATA = " + json.dumps(data, ensure_ascii=False) + ";"
 html = tpl.replace("/*__DATA__*/", blob)
 out = os.path.join(BASE, "index.html")
