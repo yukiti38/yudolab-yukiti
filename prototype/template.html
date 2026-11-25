@@ -6144,7 +6144,7 @@ function viewManual(){
   h += sec("💕 繁殖と配合",
     "種付けは2〜6月だけ。繁殖牝馬は4〜16歳が対象で、受胎率は9歳まで85%、その後下がって16歳で45%。14歳から出産のリスクが上がり、17歳で繁殖を引退します（死亡はありません）。子は年始に生まれます。<br>配合では相性（系統の特性の重なりなど）が産駒に影響します。種牡馬は世代交代していき（引退年齢は個体ごとに決まっていて、産駒が活躍すると延長されます）、引退した分は架空の新種牡馬が補充されます。<br><b>インブリード</b>：父母に共通の祖先がいると、その近さ（○×○）で危険度が付きます。ちゃんと走れる限界は <b>3×3</b> で、3×3でも故障リスクは少し上がります。それより近い配合は受胎率が下がり、故障リスクも大きく上がります（1×2は危険度・極高）。素質「タフガイ」の仔は故障リスクが1段軽くなり、3×2までなら走れます。配合画面の候補一覧と馬のページに危険度が表示されます。共通の祖先が2頭重なる配合（全兄妹など）は1段重く扱います。近い配合は自動種付けでの評価も下がり、選ばれにくくなります。なお、同じ祖先が3代目と4代目にいる配合（3×4／4×3）は「奇跡の血量」（血量18.75%）と呼ばれ、ペナルティなしで産駒の能力の中心が少し上がります。馬のページの血統には、危険度に関係なくすべてのクロスと血量が表示されます。近交の仔はパラメータの振れ幅も少し大きくなります。<br><b>継承性</b>：種牡馬には A〜C の「継承性」があり、産駒の能力の振れ幅を決めます。A は振れ幅が小さく、仔が父母の中心の近くに固まります。C は振れ幅が大きく、中心から大きく外れた大物も凡馬も出ます（中央に寄る性質自体は変わりません）。想定外の名馬は、幅の広い種牡馬の仔から生まれてきます。継承性は種牡馬の一覧と詳細で見られます。自家製種牡馬の継承性は、種牡馬入りのときに父の段階を中心とした抽選で決まります。メルトスイートだけは例外で、継承性は G——最もバラバラに振れます。<br>継承性は距離と馬場にも効きます。継承性が高いほど産駒の適性は父母の適性の範囲に収まり、低いほどズレます。ただし、どの種牡馬からも低い確率で「外の山」——父母の適性から大きく外れた産駒が生まれます。A の種牡馬からでも、1600m中心の配合から 2500m がベストの仔が生まれることがあります。G は段違いで、適性が大きく外れる産駒がかなりの割合で生まれます。");
   h += sec("🌳 系統と牝系",
-    "父系の系統特性（早熟寄り・スタミナ寄りなど）は言葉だけで表示され、配合に薄く影響します（母父は半分の効き）。<br>牝系は牝馬の子孫の広がりで育ちます。直仔5頭以上・子孫25頭以上・ポイント50以上で「候補」になり、そこから2年続けて頭数シェアなどの条件を満たすと「○○系」として成立します。成立した称号は消えませんが、細ると「衰退中」と表示されます。血統タブで牝系の広がりが見られます。<br>牡馬の分家（子系統）：産駒からG1級勝ち馬が3頭出た種牡馬は、自分の系統（○○系）を立てます。分家にはファウンダーの競走特性から決まる「色」が2つ付き（裏側の弱さもセット）、配合では大系統の色に代わって一番近い分家の色が効きます（母父側は半分）。分家の下に分家が増えると親系統・祖系統・大系統へ格が上がりますが、色の強さは変わりません。種牡馬が1頭もいなくなった分家は消滅します。血統タブの「牡馬系統」で見られます。なお、現実に実績のある父系（ディープインパクト系・キングカメハメハ系など10系統）は、ゲーム開始時点から成立済みとして置かれています。<br>メルトスイートとカルストンライトオを組み合わせると...？");
+    "父系の系統特性（早熟寄り・スタミナ寄りなど）は言葉だけで表示され、配合に薄く影響します（母父は半分の効き）。<br>牝系は牝馬の子孫の広がりで育ちます。直仔5頭以上・子孫25頭以上・ポイント50以上で「候補」になり、年末時点で「3世代が同時に生きていて、直近25年の子孫にG1勝ち馬1頭と重賞勝ち馬2頭がいる」か、「重賞勝ち馬が出ている世代が3つある」と「○○系」として成立します。成立した称号は消えませんが、細ると「衰退中」と表示されます。血統タブで牝系の広がりが見られます。<br>牡馬の分家（子系統）：産駒からG1級勝ち馬が3頭出た種牡馬は、自分の系統（○○系）を立てます。分家にはファウンダーの競走特性から決まる「色」が2つ付き（裏側の弱さもセット）、配合では大系統の色に代わって一番近い分家の色が効きます（母父側は半分）。分家の下に分家が増えると親系統・祖系統・大系統へ格が上がりますが、色の強さは変わりません。種牡馬が1頭もいなくなった分家は消滅します。血統タブの「牡馬系統」で見られます。なお、現実に実績のある父系（ディープインパクト系・キングカメハメハ系など10系統）は、ゲーム開始時点から成立済みとして置かれています。<br>メルトスイートとカルストンライトオを組み合わせると...？");
   h += sec("🏇 騎手",
     "騎手には実在の騎手をモデルにした26人がいて（名前は架空）、歳を取り、50歳で引退します。引退すると、同苗字の二世か新人の騎手がデビューします。よく乗せる騎手は騎乗経験を積んで少しずつレベルが上がります（最大Lv5）。上がり方には個人差があり、若いうちに伸びるタイプ、晩年に伸びるタイプ、上限が低めのタイプがいます。レベルと、その馬の主戦騎手かどうかが、わずかに着差を後押しします。<br>各馬に一番多く乗った騎手が主戦です。馬のページと出走登録画面で騎手を指定でき、指定した騎手は自動出走でも優先して乗ります。騎手タブで現役騎手の成績が見られます。");
   h += sec("🏁 引退と種牡馬入り",
@@ -7099,13 +7099,26 @@ function femaleLines(){
   _linesCache = { key: ck, val: lines };
   return lines;
 }
-/* 牝系の確立（v3.4・協力者案＋オーナー委任で実装）：累積条件は「候補」まで。確立は年末の
-   スナップショット（今いるか）を2年連続で満たした年に決まり、一度確立すれば称号は永久。
-   ただし繁殖・現役が細った状態が10年続くと「衰退中」と別表示する（歴史と現在の勢いは分ける）。
-   旧セーブ（lineGf）では、移行時点で累積条件を満たす系統をそのまま確立扱いにする */
+/* 牝系の確立（v3.4・協力者案＋オーナー委任で実装）：累積条件は「候補」まで。確立は年末判定で、
+   ①スナップショット（今の厚み：3世代同時生存＋直近25年の実績）か、②世代別重賞勝利
+   （重賞勝ち馬のいる世代が3つ）のどちらかを満たした年に決まり、
+   一度確立すれば称号は永久。ただし繁殖・現役が細った状態が10年続くと「衰退中」と
+   別表示する（歴史と現在の勢いは分ける）。
+   旧セーブ（lineGf）では、移行時点で累積条件を満たす系統をそのまま確立扱いにする
+   【項目254（オーナー決定 2026-11-26）：%系のシェア条件（繁殖枠15%・現役10%）と2年連続を廃止し、
+   オーナー案（2026-11-20・POST_SIM 136）の世代連続ルートを併用に追加。ポイント50は据え置きで様子見】 */
 /* 候補の頭数条件は「血の広がり」で見るため、売却済みの子・子孫も数える（directKidsAll / descAll）。
    ポイントは戦績のある実在の子孫だけで数える */
 function lineCandidate(L){ return (L.directKidsAll || L.directKids).length>=5 && (L.descAll != null ? L.descAll : L.descendants.length)>=25 && L.points>=50; } /* v7.9.2（オーナー決定 2026-11-24）：候補のポイント境界を20→50に引き上げ（実績のあるラインは100点超が普通で、20では緩すぎた） */
+/* 世代別重賞勝利：重賞勝ち馬がいる世代の数を数える（全世代対象・飛び飛びでもよい）。
+   実在の子孫のみ（ポイントと同じ）。
+   【項目254改訂（オーナー指示 2026-11-26）：当初は直仔・孫・曾孫の3世代固定→任意の連続3世代と
+   変遷した後、「世代別に変える（飛びOK）」との指示で、連続を問わず3世代に確定】 */
+function lineWinGens(L){
+  const winDepths = new Set();
+  for(const h of L.descendants){ if(gradedWinList(h).length) winDepths.add(L.depthOf.get(h.id) || 1); }
+  return winDepths.size;
+}
 function lineStateOf(id){
   if(!S.lineState) S.lineState = {};
   if(!S.lineState[id]) S.lineState[id] = { streak:0, estYear:null, decline:0 };
@@ -7114,17 +7127,14 @@ function lineStateOf(id){
 function lineSnapshot(L){
   const mares = L.members.filter(h=>h.status==="broodmare");
   const active = L.members.filter(h=>(h.status==="racehorse" && !h.retired) || h.status==="foal" || h.status==="yearling");
-  const bandDenom = mareLimitOf() > 0 ? mareLimitOf() : Math.max(1, mareCount());
-  const pool = S.horses.filter(h=>(h.status==="racehorse" && !h.retired) || h.status==="foal" || h.status==="yearling").length;
   const gens = new Set();
   for(const h of mares.concat(active)){ const d = h.id===L.founder.id ? 0 : (L.depthOf.get(h.id) || 0); gens.add(d); }
   const recent = L.descendants.filter(h=>S.year - h.birthYear <= 25);
   const recentG1 = recent.filter(h=>hasG1Win(h)).length;
   const recentGraded = recent.filter(h=>gradedWinList(h).length>0).length;
-  const need = { mares: Math.ceil(0.15 * bandDenom), active: Math.max(3, Math.ceil(0.10 * Math.max(1, pool))) };
-  const ok = mares.length >= need.mares && active.length >= need.active && gens.size >= 3 && recentG1 >= 1 && recentGraded >= 2;
-  return { ok, mares: mares.length, needMares: need.mares, active: active.length, needActive: need.active,
-    gens: gens.size, recentG1, recentGraded };
+  /* 項目254：%系（繁殖シェア15%・現役シェア10%）は廃止。mares/active の頭数は衰退判定用に残す */
+  const ok = gens.size >= 3 && recentG1 >= 1 && recentGraded >= 2;
+  return { ok, mares: mares.length, active: active.length, gens: gens.size, recentG1, recentGraded };
 }
 function evaluateLinesYearEnd(){
   if(!S.lineState) S.lineState = {};
@@ -7137,10 +7147,9 @@ function evaluateLinesYearEnd(){
       continue;
     }
     if(S.lineGf && lineCandidate(L)){ st.estYear = S.year; st.streak = 2; continue; } /* 経過措置：移行時点で成立中の系統はそのまま確立 */
-    if(lineCandidate(L) && lineSnapshot(L).ok){
-      st.streak = (st.streak || 0) + 1;
-      if(st.streak >= 2){ st.estYear = S.year; topic("🌸 " + L.name + " が確立しました（" + S.year + "年）"); }
-    } else st.streak = 0;
+    if(lineCandidate(L) && (lineSnapshot(L).ok || lineWinGens(L) >= 3)){
+      st.estYear = S.year; topic("🌸 " + L.name + " が確立しました（" + S.year + "年）");
+    } /* 項目254：2年連続は廃止。スナップショット（厚み）か世代連続（3世代）のどちらかで確立 */
   }
   if(S.lineGf) S.lineGf = false; /* 経過措置は最初の年末判定までで終わり */
 }
@@ -7205,7 +7214,7 @@ function viewLineage(){
   let html = "<h3>🌳 血統</h3>"
     + branchTreeHtml()
     + "<h3 style='margin-top:24px;'>牝系図</h3>"
-    + "<div class='sub'>牝系の確立は二段構えです。まず累積の条件（根元牝馬の直仔5頭以上・子孫25頭以上・50ポイント以上）で「確立候補」になり、そこから年末のスナップショット条件（繁殖牝馬が枠の15%以上・現役＋デビュー前が全体の1割以上・3世代が同時に生存・直近25年の子孫にG1勝ち1頭と重賞勝ち2頭）を2年連続で満たすと確立します。一度確立した称号は剥奪されませんが、繁殖・現役が細った状態が10年続くと「衰退中」と表示されます。ポイントは子孫の重賞勝ち馬を世代で重み付けしたもの（直仔1点・孫2点・曾孫以降3点、G1勝ち馬は2倍）です。世代は左から右へ進み、横線が親→子です。カードをタップするとその馬のページが開きます。「－／＋」で枝を畳んだり開いたりできます。</div>";
+    + "<div class='sub'>牝系の確立は二段構えです。まず累積の条件（根元牝馬の直仔5頭以上・子孫25頭以上・50ポイント以上）で「確立候補」になり、年末の判定で次のどちらかを満たすと確立します。①今の厚み：3世代が同時に生存し、直近25年の子孫にG1勝ち1頭と重賞勝ち2頭がいる。②世代の広がり：重賞勝ち馬が出ている世代が3つある（世代が飛んでいてもよい）。一度確立した称号は剥奪されませんが、繁殖・現役が細った状態が10年続くと「衰退中」と表示されます。ポイントは子孫の重賞勝ち馬を世代で重み付けしたもの（直仔1点・孫2点・曾孫以降3点、G1勝ち馬は2倍）です。世代は左から右へ進み、横線が親→子です。カードをタップするとその馬のページが開きます。「－／＋」で枝を畳んだり開いたりできます。</div>";
   const kids = {};
   { const all = childrenByDam(); const realIds = new Set(S.horses.map(h=>h.id));
     for(const k in all) kids[k] = all[k].filter(n=>realIds.has(n.id || "")); }
@@ -7219,16 +7228,15 @@ function viewLineage(){
   if(cands.length){
     html += "<h3 style='margin-top:22px;'>🌱 確立候補</h3>";
     for(const L of cands){
-      const st = lineStateOf(L.founder.id);
       const snap = lineSnapshot(L);
+      const chain = lineWinGens(L);
       const lack = [];
-      if(snap.mares < snap.needMares) lack.push("繁殖牝馬 "+snap.mares+"/"+snap.needMares+"頭");
-      if(snap.active < snap.needActive) lack.push("現役＋デビュー前 "+snap.active+"/"+snap.needActive+"頭");
       if(snap.gens < 3) lack.push("同時生存 "+snap.gens+"/3世代");
       if(snap.recentG1 < 1) lack.push("直近25年のG1勝ち "+snap.recentG1+"/1頭");
       if(snap.recentGraded < 2) lack.push("直近25年の重賞勝ち "+snap.recentGraded+"/2頭");
+      if(chain < 3) lack.push("重賞勝ち馬のいる世代 "+chain+"/3世代");
       html += "<div class='sub' style='margin-top:6px;'>"+L.name+"（子孫"+L.descendants.length+"頭／"+L.points+"ポイント）"
-        + (snap.ok ? " — 条件を満たしています（あと"+(2-(st.streak||0))+"年の継続で確立）" : " — 不足："+lack.join("・"))
+        + ((snap.ok || chain >= 3) ? " — 条件を満たしています（年末の判定で確立します）" : " — 不足："+lack.join("・"))
         + "</div>";
     }
   }
@@ -7985,6 +7993,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v8.7</footer>
+<footer>競馬シミュレーター（趣味） v8.8</footer>
 </body>
 </html>
