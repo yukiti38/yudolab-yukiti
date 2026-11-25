@@ -2144,7 +2144,8 @@ async function boot(){
   ensureParams(); render();
 }
 /* v0.29 移行：単一スロット登録（enteredRaceKey）→週別登録（entries）、成長型の内部細分化（gtype）付与、若馬売却の個体ノイズ付与 */
-function migrateV029(){ invalidateIdx(); /* v7.6：読み込み・移行のたびに索引を作り直す */
+function migrateV029(){ trimClosedDetails(); /* v8.4：既存セーブの閉じた馬も読み込み時に落とす */
+  invalidateIdx(); /* v7.6：読み込み・移行のたびに索引を作り直す */
   if(S.horses) for(const h of S.horses){ if(h.policy === "train") h.policy = "slope"; } /* v8.2：旧デフォルト方針 "train" は調教メニューに無い値なので坂路に寄せる */
   if(!S) return;
   S._skipAuto = false; /* v3.2：スキップ中フラグは読み込み時に必ず落とす（途中保存されても引き継がない） */
@@ -2390,6 +2391,19 @@ function detailClosed(h){
   if(!isAlumni(h)) return false;
   if(isHof(h)) return false;
   return (S.year - careerEndYear(h)) >= 50;
+}
+/* Detail trim (v8.4, オーナー decision): once a horse's detail is closed, strip the heavy
+   per-race display fields from its results. Aggregates (graded/G1 wins, progeny records,
+   female lines, jockey career counts) read only the kept fields, so they are unaffected.
+   A horse inducted afterwards reopens without the stripped fields (オーナー's call:
+   what cannot be seen has no meaning). */
+const RESULT_TRIM_DROP = ["pass", "comment", "pace", "style", "time", "agari", "winTime", "bodyWeight", "weightDiff", "transport", "jockey", "weight"];
+function trimClosedDetails(){
+  for(const h of S.horses){
+    if(h.trimmed || !detailClosed(h)) continue;
+    for(const r of (h.results || [])) for(const k of RESULT_TRIM_DROP) delete r[k];
+    h.trimmed = true;
+  }
 }
 /* v4.1（オーナー指示 2026-11-18）：初制覇馬のラベル。牧場初の重賞勝ち馬は「牧場初の快挙」、
    牧場初のG1勝ち馬は「牧場初の英雄」。両方を同じ馬が取ることもある */
@@ -3505,6 +3519,7 @@ function inheritGrowth(a, b){
   return g;
 }
 function onNewYear(){
+  trimClosedDetails(); /* v8.4：詳細が閉じた馬の重い項目を落とす */
   snapshotRanks();
   nickYearEnd(); /* v6.2：ニックス候補の昇格（約5%）・消滅の年末判定 */
   branchYearEnd(); /* v7.0：子系統の昇格・消滅の年末判定 */
@@ -7683,6 +7698,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v8.3</footer>
+<footer>競馬シミュレーター（趣味） v8.4</footer>
 </body>
 </html>
