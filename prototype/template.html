@@ -5853,7 +5853,16 @@ function viewStallions(){
    特別戦〜重賞を月ごとに、中央・NKC／地方・TKC／海外・WHC に分けて一覧する。一般戦（自動生成）は除く */
 let calMonth = 0; // 0 = 現在の月
 let calRecords = false; /* v6.4：コースタイム表示中か */
-let calFilter = { sector: "all", grade: "all", surface: "all", unconquered: false, marked: false }; /* v6.4：カレンダーの絞り込み */
+let calFilter = { sectors: [], grades: [], surfaces: [], unconquered: false, marked: false }; /* v6.4：カレンダーの絞り込み／v8.5.2：複数選択（空＝すべて） */
+let recFilter = { sectors: [], grades: [], surfaces: [] }; /* v8.5.2：レースレコード一覧の絞り込み */
+function filterChips(attr, state, kind, pairs){ return pairs.map(pp => "<button data-" + attr + "='" + kind + ":" + pp[0] + "'" + (state[kind].includes(pp[0]) ? "" : " class='ghost'") + ">" + pp[1] + "</button>").join(""); }
+function toggleFilterVal(state, key, val){ const a = state[key]; const i = a.indexOf(val); if(i >= 0) a.splice(i, 1); else a.push(val); }
+function filterOk(state, r){
+  if(state.sectors.length && !state.sectors.includes(r.sector)) return false;
+  if(state.grades.length && !state.grades.some(g => calGradeOk(r.grade, g))) return false;
+  if(state.surfaces.length){ const sf = isJumpRace(r) ? "障害" : r.surface; if(!state.surfaces.includes(sf)) return false; }
+  return true;
+}
 const CAL_GRADE_GROUPS = { G1: ["GI", "G1"], G2: ["GII", "G2"], G3: ["GIII", "G3"], JpnJ: ["JpnI", "JpnII", "JpnIII", "J-GI", "J-GII", "J-GIII"], L: ["L"] };
 function calGradeOk(grade, sel){
   if(sel === "all") return true;
@@ -5888,11 +5897,28 @@ function recordLogHtml(){
   const rows = [...log].reverse().map(e => "<tr><td>" + e.y + "年" + e.m + "月第" + e.w + "週</td><td>" + e.course + "</td><td>" + e.surface + e.dist + "m</td><td>" + fmtTime(e.t) + "</td><td>" + (e.name || "―") + "</td></tr>").join("");
   return h + "<table><tr><th>年月</th><th>コース</th><th>距離</th><th>タイム</th><th>馬名</th></tr>" + rows + "</table>";
 }
+/* Race records list (v8.5.2): shown under the course records in the calendar's record
+   view. Current holder = the real record until a race in this save breaks it. */
+function raceRecordsHtml(){
+  const seen = new Set(); const rows = [];
+  for(const r of DATA.domestic){
+    if(seen.has(r.name)) continue; seen.add(r.name);
+    const cur = raceRecordOf(r.name); if(!cur) continue;
+    if(!filterOk(recFilter, r)) continue;
+    rows.push("<tr><td>" + r.name + "（" + (r.grade || "") + "）</td><td>" + courseOf(r, S.year) + "</td><td>" + r.surface + r.distance_m + "m</td><td>" + fmtTime(cur.t) + "</td><td>" + (cur.name ? (cur.year ? cur.year + "年 " : "") + cur.name : "<span class='sub'>対抗馬</span>") + "</td></tr>");
+  }
+  let h = "<h3 style='margin-top:14px;'>🏆 レースレコード（" + rows.length + "件）</h3>"
+    + "<div class='flex' style='margin-bottom:6px;'><span>絞込み：</span><span class='sub'>組織</span>" + filterChips("recchip", recFilter, "sectors", [["central", "中央"], ["regional", "地方"]])
+    + "<span class='sub'>格</span>" + filterChips("recchip", recFilter, "grades", [["G1", "G1"], ["G2", "G2"], ["G3", "G3"], ["JpnJ", "Jpn・J級"], ["L", "リステッド"], ["SP", "特別"]])
+    + "<span class='sub'>馬場</span>" + filterChips("recchip", recFilter, "surfaces", [["芝", "芝"], ["ダート", "ダート"], ["障害", "障害"]]) + "</div>";
+  if(!rows.length) return h + "<div class='sub'>条件に合うレースがありません。</div>";
+  return h + "<table><tr><th>レース</th><th>コース</th><th>距離</th><th>タイム</th><th>保持</th></tr>" + rows.join("") + "</table>";
+}
 function viewCalendar(){
   const m = calMonth || S.month;
   setTimeout(()=>{ document.querySelectorAll("[data-calmonth]").forEach(b=>b.onclick=()=>{ calMonth = +b.getAttribute("data-calmonth"); render(); }); document.querySelectorAll("[data-calrecords]").forEach(b=>b.onclick=()=>{ calRecords = !calRecords; render(); });
-    const bindCal = (id, key) => { const el = document.querySelector(id); if(el) el.onchange = () => { calFilter[key] = el.value; render(); }; };
-    bindCal("#calfSector", "sector"); bindCal("#calfGrade", "grade"); bindCal("#calfSurface", "surface");
+    document.querySelectorAll("[data-calchip]").forEach(b => b.onclick = () => { const p = b.getAttribute("data-calchip").split(":"); toggleFilterVal(calFilter, p[0], p[1]); render(); });
+    document.querySelectorAll("[data-recchip]").forEach(b => b.onclick = () => { const p = b.getAttribute("data-recchip").split(":"); toggleFilterVal(recFilter, p[0], p[1]); render(); });
     const cu = document.querySelector("#calfUnconq"); if(cu) cu.onchange = () => { calFilter.unconquered = cu.checked; render(); };
     const cm = document.querySelector("#calfMarked"); if(cm) cm.onchange = () => { calFilter.marked = cm.checked; render(); };
   }, 0);
@@ -5909,7 +5935,7 @@ function viewCalendar(){
   for(const h of S.horses){ if(h.status!=="racehorse" || h.retired) continue; for(const k of allRotationKeys(h)) (desig[k] = desig[k] || []).push(h.name); }
   const winIdx = gradedWinIndex(); /* v4.4：重賞の制覇マーク用（表示のみ・自動出走には無関係） */
   const winMark = r => { if(!CONQUEST_GRADES.includes(r.grade)) return ""; const w = winIdx[r.name + "|" + (rotGroupOf(r) ? "" : (r.racecourse || ""))]; return w ? " <span class='ok'>🏆 制覇" + (w.count > 1 ? w.count + "勝" : "") + "（" + w.latestYear + "年 " + w.latestHorse + "）</span>" : ""; };
-  const recLine = r => { if(r.sector === "overseas" || isJumpRace(r) || !r.distance_m) return ""; const rc = courseRecordOf(r.racecourse, r.surface, r.distance_m); return rc && rc.t != null ? "<br><span class='sub'>⏱ レコード " + fmtTime(rc.t) + (rc.name ? "（" + rc.year + "年 " + rc.name + "）" : "（実在）") + "</span>" : ""; }; /* v6.4：レースタイムと同居 */
+  const recLine = r => { if(r.sector === "overseas" || isJumpRace(r) || !r.distance_m) return ""; const rr = raceRecordOf(r.name); if(rr && rr.t != null) return "<br><span class='sub'>⏱ レースレコード " + fmtTime(rr.t) + (rr.name ? "（" + (rr.year ? rr.year + "年 " : "") + rr.name + "）" : "（対抗馬）") + "</span>"; const rc = courseRecordOf(r.racecourse, r.surface, r.distance_m); return rc && rc.t != null ? "<br><span class='sub'>⏱ コースレコード " + fmtTime(rc.t) + (rc.name ? "（" + rc.year + "年 " + rc.name + "）" : "（実在）") + "</span>" : ""; }; /* v6.4：レースタイムと同居／v8.5.2：名前付きレースはレースレコードを出す（オーナー指摘） */
   const rowOf = r => {
     const key = raceKeyOf(absOf(S.year, m, r.wom), r);
     const en = entered[key];
@@ -5918,19 +5944,17 @@ function viewCalendar(){
   };
   let html = "<div class='flex' style='margin-bottom:6px;'><label>月：</label>"
     + Array.from({length:12},(_,i)=>i+1).map(mm=>"<button data-calmonth='"+mm+"'"+(mm===m?"":" class='ghost'")+">"+mm+"月</button>").join("")
-    + "<button data-calrecords='1'" + (calRecords ? "" : " class='ghost'") + ">⏱ コースタイム</button>"
+    + "<button data-calrecords='1'" + (calRecords ? "" : " class='ghost'") + ">⏱ レコード</button>"
     + "<span class='sub'>特別戦〜重賞の年間カレンダーです（一般戦は除く）。表示中の月が今月の場合、登録中の馬も表示します。🏆制覇は過去に勝ったことのある重賞です</span></div>";
-  if(calRecords) return html + courseRecordsHtml(); /* v6.4：コースタイムだけ見る */
-  const fselC = (id, cur, pairs) => "<select id='" + id + "'>" + pairs.map(pp => "<option value='" + pp[0] + "'" + (cur === pp[0] ? " selected" : "") + ">" + pp[1] + "</option>").join("") + "</select>";
+  if(calRecords) return html + courseRecordsHtml() + raceRecordsHtml(); /* v6.4：レコードだけ見る（v8.5.2：レースレコードも） */
   html += "<div class='flex' style='margin-bottom:6px;'><span>絞込み：</span>"
-    + fselC("calfSector", calFilter.sector, [["all", "組織すべて"], ["central", "中央"], ["regional", "地方"], ["overseas", "海外"]])
-    + fselC("calfGrade", calFilter.grade, [["all", "格すべて"], ["G1", "G1"], ["G2", "G2"], ["G3", "G3"], ["JpnJ", "Jpn・J級"], ["L", "リステッド"], ["SP", "特別"]])
-    + fselC("calfSurface", calFilter.surface, [["all", "馬場すべて"], ["芝", "芝"], ["ダート", "ダート"], ["障害", "障害"]])
+    + "<span class='sub'>組織</span>" + filterChips("calchip", calFilter, "sectors", [["central", "中央"], ["regional", "地方"], ["overseas", "海外"]])
+    + "<span class='sub'>格</span>" + filterChips("calchip", calFilter, "grades", [["G1", "G1"], ["G2", "G2"], ["G3", "G3"], ["JpnJ", "Jpn・J級"], ["L", "リステッド"], ["SP", "特別"]])
+    + "<span class='sub'>馬場</span>" + filterChips("calchip", calFilter, "surfaces", [["芝", "芝"], ["ダート", "ダート"], ["障害", "障害"]])
     + "<label><input type='checkbox' id='calfUnconq'" + (calFilter.unconquered ? " checked" : "") + "> 🏆未制覇だけ</label>"
     + "<label><input type='checkbox' id='calfMarked'" + (calFilter.marked ? " checked" : "") + "> 登録・🎯指定あり</label></div>";
   const calRaceOk = r => {
-    if(!calGradeOk(r.grade, calFilter.grade)) return false;
-    if(calFilter.surface !== "all"){ if(calFilter.surface === "障害" ? !isJumpRace(r) : (isJumpRace(r) || r.surface !== calFilter.surface)) return false; }
+    if(!filterOk(calFilter, r)) return false;
     if(calFilter.unconquered){ if(!CONQUEST_GRADES.includes(r.grade)) return false; if(winIdx[r.name + "|" + (rotGroupOf(r) ? "" : (r.racecourse || ""))]) return false; }
     if(calFilter.marked){ const key = raceKeyOf(absOf(S.year, m, r.wom), r); if(!entered[key] && !desig[rotationKeyOf(r)]) return false; }
     return true;
@@ -5940,7 +5964,7 @@ function viewCalendar(){
      （v2.2 で「ローテ設定」から改称：ローテーションは出走指定の名前になったため） */
   /* v4.4.2：カレンダーは表示専用（自動出走設定は出走登録タブへ集約、オーナー指示） */
   for(const [sec, label] of [["central","中央・NKC"],["regional","地方・TKC"],["overseas","海外・WHC"]]){
-    if(calFilter.sector !== "all" && calFilter.sector !== sec) continue; /* v6.4：組織の絞り込み */
+    if(calFilter.sectors.length && !calFilter.sectors.includes(sec)) continue; /* v6.4：組織の絞り込み */
     const list = (sec==="overseas" ? DATA.overseas : DATA.domestic.filter(r=>r.sector===sec))
       .filter(r=>r.month===m && calRaceOk(r))
       .sort((a,b)=> (a.wom-b.wom) || ((GRADE_RANK[a.grade]!=null?GRADE_RANK[a.grade]:9)-(GRADE_RANK[b.grade]!=null?GRADE_RANK[b.grade]:9)) || ((a.distance_m||0)-(b.distance_m||0)));
@@ -6007,7 +6031,7 @@ function viewManual(){
   h += sec("🏟 馬場適性（芝／ダート）",
     "馬場適性は芝とダート別々のマークで、<b>生まれた時から表示</b>されます（例：芝○ ダート✕）。係数は <b>○ 1.00／− 0.90／✕ 0.78</b> で、✕の馬場では勝負になりません。−の馬場では重賞級は苦しく、条件戦〜OPが主戦場になります。<br>受け継がれ方：両刀（○○）が配合に入ると、産駒はもう片方の適性に引っ張られます。確率の目安は次の通りです（どの結果も最低5%）。<br>・芝×芝 → 芝90%／両刀5%／ダート5%<br>・ダート×ダート → ダート90%／両刀5%／芝5%<br>・芝×ダート → 父側45%／母側45%／両刀約10%（系統の寄りで父側が最大±25%ずれる）<br>・両刀×芝 → 芝85%／両刀10%／ダート5%<br>・両刀×ダート → ダート85%／両刀10%／芝5%<br>・両刀×両刀 → 芝45%／ダート45%／両刀10%<br>両刀が絡んだ配合で生まれた専門型は、裏側のマークが − になります（○−型）。自動出走は ✕ の馬場のレースを避けます（手動登録は可能です）。また重賞については、その馬の「いい方の馬場」のレースが自動の対象です（ベストが − の馬は − の馬場の重賞に出ます。条件戦では ○ の馬場を優先しつつ − の馬場も使います）。さらに自動出走には「今のレベル」があり、近走の結果（その格で勝てば1つ上、大敗が続けば1つ下）と今の能力で決まります。充実して能力が届いた馬は実績を飛び越えて上の格に挑戦できますが、その格で大敗が続けば挑戦は止まります。レベルを超える古馬重賞には自動で入らないため、力の足りない馬が G1 に出続けることはありません（世代限定重賞と手動登録・指定は従来どおりです）。<br><b>適正調教</b>：方針で「適正調教（距離を伸ばす）」を選ぶと、能力ではなく距離適性が広がります。半年で1段階ずつ、長い方へ +100m ずつ（合計 +400m まで）。馬場の適性は、調教メニューの芝／ダートを続けることで、その馬場に少しずつ慣れていきます（半年で1段階）。ただし既に片方に ○ がある馬は − までで、後から両刀にはなりません（両刀は生まれつきだけ）。距離は1歳9月からピークを迎えるまで、馬場は3歳いっぱいまでです。距離の適正調教の間は通常の調教が止まり、疲労が溜まりやすくなります。調教で広げた適性は後天的なものなので、産駒には引き継がれません。");
   h += sec("🐎 レースと出走登録",
-    "レースは中央（JRA）・地方（Jpn重賞のみ）・海外（G1〜G3）があります。出走登録は3週先まで先行登録できます。<br>・未勝利の馬は新馬・未勝利戦だけに出られます<br>・海外の重賞に出るには、国内の重賞かリステッドで勝つか3着以内に入る必要があります<br>・クラスは勝ち数で上がり、4勝以上か重賞勝ちでオープン入りです<br>・レースでは毎回、故障の判定があります。基礎の確率は疲労で大きく変わり（30以下で0.4%、65で2.5%、85で15%、95超で28%）、調子が悪い（40以下）と1.5倍、斤量が重いと少し上がります。インブリードの濃い馬は疲労が低くても故障しやすく、最も濃い配合では1戦ごとに+8%されます。故障には名前があり（軽症：球節炎・蹄挫傷・フレグモーネ・鼻出血／重症：屈腱炎・骨折・蹄葉炎・繋靭帯炎）、名前ごとに休養期間と能力への影響が違います。故障歴は馬のページに残ります<br>・輸送でも疲労します。遠くの競馬場ほど大きく、2歳馬は1.5倍です<br>・カレンダータブでは、過去に勝ったことのある重賞に「🏆制覇」の印が付きます（勝ち数と、最近勝った年・馬名も表示）。まだ勝っていない重賞探しに使えます<br>・馬の選択は、名前検索と絞り込み（⭐お気に入り／登録済みの馬だけ／出走できる馬だけ）と並び替え（年齢順・クラス順・名前順）ができます。⭐はお気に入りの印で、馬ごとに付け外しできます<br>・三冠路線（クラシック三冠・牝馬三冠・秋古馬三冠）は、脚を勝つと残りの脚が自動でローテーション指定され、その直前は路線外のレースを自動で足さなくなります<br>・牝馬は自動出走・自動指定では牝馬限定戦の路線を優先します（オークスや秋華賞など）。G1を勝った馬やトップレベルの馬は、ダービーなど牡馬路線にもそのまま挑戦します<br>・3歳馬は自動出走では宝塚記念を使わず、自動指定でも避けます（手動登録とプレイヤーの指定では出走できます）<br>・JBC（クラシック／スプリント／レディスクラシック）とブリーダーズカップは開催地が毎年持ち回りになります（JBC2歳優駿は門別固定）<br>・G1級のレースを走った馬は8週間「休養」になり、その間は自動出走・自動指定がG1以外のレースを拾いません（手動登録とプレイヤーの指定はいつも通り出走できます）<br>・自動出走・自動指定では、見込み斤量が基準より3kg以上重くなるレース（ハンデ・別定）には入らない<br>・国内の平地レースには勝ち時計が付き、成績欄で上がり3Fも見られます。上がりは脚質と末脚の強さで決まります<br>・コースレコード（競馬場×馬場×距離）はカレンダータブの「⏱ コースタイム」で見られます。更新の履歴は牧場年表タブの一番下に残ります<br>・レースレコード（レースごとの歴代最速、対象は国内の名前付きレース）は勝ち時計で更新され、馬の戦歴ではレコードのタイムが赤字＋Rで表示され、寸評にも残ります<br>・名馬列伝タブでは、G1級5勝以上かつ生涯賞金10億円以上の名馬の列伝が読めます。牧場初の重賞・G1勝ち馬は条件を問わず対象で、殿堂馬は馬のページから任意で追加もできます。列伝は現役を終えた時に自動で書かれ、繁殖・種牡馬を終えると産駒編が追記されます。馬のページではメモも書けます。一覧から除外すると列伝文は削除されます");
+    "レースは中央（JRA）・地方（Jpn重賞のみ）・海外（G1〜G3）があります。出走登録は3週先まで先行登録できます。<br>・未勝利の馬は新馬・未勝利戦だけに出られます<br>・海外の重賞に出るには、国内の重賞かリステッドで勝つか3着以内に入る必要があります<br>・クラスは勝ち数で上がり、4勝以上か重賞勝ちでオープン入りです<br>・レースでは毎回、故障の判定があります。基礎の確率は疲労で大きく変わり（30以下で0.4%、65で2.5%、85で15%、95超で28%）、調子が悪い（40以下）と1.5倍、斤量が重いと少し上がります。インブリードの濃い馬は疲労が低くても故障しやすく、最も濃い配合では1戦ごとに+8%されます。故障には名前があり（軽症：球節炎・蹄挫傷・フレグモーネ・鼻出血／重症：屈腱炎・骨折・蹄葉炎・繋靭帯炎）、名前ごとに休養期間と能力への影響が違います。故障歴は馬のページに残ります<br>・輸送でも疲労します。遠くの競馬場ほど大きく、2歳馬は1.5倍です<br>・カレンダータブでは、過去に勝ったことのある重賞に「🏆制覇」の印が付きます（勝ち数と、最近勝った年・馬名も表示）。まだ勝っていない重賞探しに使えます<br>・馬の選択は、名前検索と絞り込み（⭐お気に入り／登録済みの馬だけ／出走できる馬だけ）と並び替え（年齢順・クラス順・名前順）ができます。⭐はお気に入りの印で、馬ごとに付け外しできます<br>・三冠路線（クラシック三冠・牝馬三冠・秋古馬三冠）は、脚を勝つと残りの脚が自動でローテーション指定され、その直前は路線外のレースを自動で足さなくなります<br>・牝馬は自動出走・自動指定では牝馬限定戦の路線を優先します（オークスや秋華賞など）。G1を勝った馬やトップレベルの馬は、ダービーなど牡馬路線にもそのまま挑戦します<br>・3歳馬は自動出走では宝塚記念を使わず、自動指定でも避けます（手動登録とプレイヤーの指定では出走できます）<br>・JBC（クラシック／スプリント／レディスクラシック）とブリーダーズカップは開催地が毎年持ち回りになります（JBC2歳優駿は門別固定）<br>・G1級のレースを走った馬は8週間「休養」になり、その間は自動出走・自動指定がG1以外のレースを拾いません（手動登録とプレイヤーの指定はいつも通り出走できます）<br>・自動出走・自動指定では、見込み斤量が基準より3kg以上重くなるレース（ハンデ・別定）には入らない<br>・国内の平地レースには勝ち時計が付き、成績欄で上がり3Fも見られます。上がりは脚質と末脚の強さで決まります<br>・コースレコード（競馬場×馬場×距離）とレースレコード（レースごと）はカレンダータブの「⏱ レコード」で見られます。更新の履歴は牧場年表タブの一番下に残ります<br>・レースレコード（レースごとの歴代最速、対象は国内の名前付きレース）は勝ち時計で更新され、馬の戦歴ではレコードのタイムが赤字＋Rで表示され、寸評にも残ります<br>・名馬列伝タブでは、G1級5勝以上かつ生涯賞金10億円以上の名馬の列伝が読めます。牧場初の重賞・G1勝ち馬は条件を問わず対象で、殿堂馬は馬のページから任意で追加もできます。列伝は現役を終えた時に自動で書かれ、繁殖・種牡馬を終えると産駒編が追記されます。馬のページではメモも書けます。一覧から除外すると列伝文は削除されます");
   h += sec("🐴 障害競走",
     "平地とは別のキャリアとして、障害競走があります。舞台は中山・東京・京都・阪神・新潟・小倉・福島・中京で、障害未勝利（月に2〜3週だけ開催、週1〜2鞍）→ 障害オープン（年に20本ほど＋実名のOP特別）→ 障害重賞（J-GIII〜J-GI）の順に上がっていきます。<br>障害に出られるのは<b>距離適性の上限が3000m以上</b>の馬だけです（素質『稀代のジャンパー』の馬は例外で、距離適性に関係なく転向できます）。各馬には隠れた「障害適性」（○／−／✕）があり、相性欄にスタッフ予想が出て、障害を走ると確定します。障害ではスタミナと根性がものを言います。落馬・競走中止もあり、確率は適性で変わります（○1%／−3%／✕7%）。落馬した馬は半分の確率で故障します。<br>障害の賞金・勝ち数は平地と合算され、平地のクラスも上がります（平地の未勝利戦は、平地で勝っていなければ出られます）。J-GI（中山大障害・中山グランドジャンプ）はG1級として数え、殿堂入りの条件や制覇マークの対象になります。通常の自動出走は障害を対象にしませんが、馬ごとに「障害のみ出走」をONにした馬は障害レースだけを年4〜5戦（J-GI・J-GII中心）で自動出走します（この設定の馬は未勝利のまま4歳を迎えても引退しません。ONの間は平地のローテーション指定も、自動・手動を問わず登録されません）。それ以外の馬の障害出走は手動登録かローテーション指定で。<br>自動転向もあります。未勝利馬は4歳の年始に、障害に行ける適性（距離上限3000m以上。ジャンパー持ちは不問）があれば引退ではなく障害へ転向します。勝ち馬でも、4歳の7月に平地の直近3走が全部6着以下だと、適性のある馬は障害へ転向します。");
   h += sec("💰 国内G1の出走ライン",
@@ -7821,6 +7845,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v8.5.1</footer>
+<footer>競馬シミュレーター（趣味） v8.5.2</footer>
 </body>
 </html>
