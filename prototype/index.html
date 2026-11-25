@@ -2447,6 +2447,8 @@ function denCareerText(h){
     const ry = parseInt(rw.when, 10);
     t += "中でも" + (isNaN(ry) ? "" : ry + "年の") + rw.race + "は代表作として語り継がれる。";
   }
+  if(h.firstG1) t += "牧場に初めてのG1制覇をもたらした記念すべき一頭である。";
+  else if(h.firstGraded) t += "牧場に初めての重賞制覇をもたらした記念すべき一頭である。";
   const tn = talentName(h);
   if(tn) t += "『" + tn + "』と呼ばれた素質の持ち主でもあった。";
   return t;
@@ -2475,7 +2477,8 @@ function denProgenyText(h){
 }
 function denPass(){
   for(const h of S.horses){
-    if(h.denExcluded || !denEligible(h)) continue;
+    if(h.denExcluded) continue;
+    if(!(denEligible(h) || h.hofLegend || h.denManual)) continue; /* v8.6：牧場初（hofLegend）は問答無用で対象。殿堂馬の任意追加（denManual）も */
     if(h.status === "racehorse" || h.status === "foal" || h.status === "yearling") continue;
     if(!h.den) h.den = { text: denCareerText(h), progeny: false, memo: "" };
     if(!h.den.progeny && isAlumni(h)){ h.den.text += denProgenyText(h); h.den.progeny = true; }
@@ -5330,6 +5333,8 @@ function autoAuctionBuyPass(){
   for(const h of sorted){
     if(bought >= 2) break;
     if(S.funds - auctionPriceOf(h) < 5000) continue;
+    const cohort = S.horses.filter(x => x.birthYear === h.birthYear && (x.status === "foal" || x.status === "yearling" || x.status === "racehorse") && !x.retired).length;
+    if(cohort >= debutLimitOf()) continue; /* v8.6（オーナー指示）：その世代がデビュー上限に達していたら自動購入しない */
     const before = S.horses.length;
     buyYoung(h.id);
     if(S.horses.length > before) bought++;
@@ -6002,7 +6007,7 @@ function viewManual(){
   h += sec("🏟 馬場適性（芝／ダート）",
     "馬場適性は芝とダート別々のマークで、<b>生まれた時から表示</b>されます（例：芝○ ダート✕）。係数は <b>○ 1.00／− 0.90／✕ 0.78</b> で、✕の馬場では勝負になりません。−の馬場では重賞級は苦しく、条件戦〜OPが主戦場になります。<br>受け継がれ方：両刀（○○）が配合に入ると、産駒はもう片方の適性に引っ張られます。確率の目安は次の通りです（どの結果も最低5%）。<br>・芝×芝 → 芝90%／両刀5%／ダート5%<br>・ダート×ダート → ダート90%／両刀5%／芝5%<br>・芝×ダート → 父側45%／母側45%／両刀約10%（系統の寄りで父側が最大±25%ずれる）<br>・両刀×芝 → 芝85%／両刀10%／ダート5%<br>・両刀×ダート → ダート85%／両刀10%／芝5%<br>・両刀×両刀 → 芝45%／ダート45%／両刀10%<br>両刀が絡んだ配合で生まれた専門型は、裏側のマークが − になります（○−型）。自動出走は ✕ の馬場のレースを避けます（手動登録は可能です）。また重賞については、その馬の「いい方の馬場」のレースが自動の対象です（ベストが − の馬は − の馬場の重賞に出ます。条件戦では ○ の馬場を優先しつつ − の馬場も使います）。さらに自動出走には「今のレベル」があり、近走の結果（その格で勝てば1つ上、大敗が続けば1つ下）と今の能力で決まります。充実して能力が届いた馬は実績を飛び越えて上の格に挑戦できますが、その格で大敗が続けば挑戦は止まります。レベルを超える古馬重賞には自動で入らないため、力の足りない馬が G1 に出続けることはありません（世代限定重賞と手動登録・指定は従来どおりです）。<br><b>適正調教</b>：方針で「適正調教（距離を伸ばす）」を選ぶと、能力ではなく距離適性が広がります。半年で1段階ずつ、長い方へ +100m ずつ（合計 +400m まで）。馬場の適性は、調教メニューの芝／ダートを続けることで、その馬場に少しずつ慣れていきます（半年で1段階）。ただし既に片方に ○ がある馬は − までで、後から両刀にはなりません（両刀は生まれつきだけ）。距離は1歳9月からピークを迎えるまで、馬場は3歳いっぱいまでです。距離の適正調教の間は通常の調教が止まり、疲労が溜まりやすくなります。調教で広げた適性は後天的なものなので、産駒には引き継がれません。");
   h += sec("🐎 レースと出走登録",
-    "レースは中央（JRA）・地方（Jpn重賞のみ）・海外（G1〜G3）があります。出走登録は3週先まで先行登録できます。<br>・未勝利の馬は新馬・未勝利戦だけに出られます<br>・海外の重賞に出るには、国内の重賞かリステッドで勝つか3着以内に入る必要があります<br>・クラスは勝ち数で上がり、4勝以上か重賞勝ちでオープン入りです<br>・レースでは毎回、故障の判定があります。基礎の確率は疲労で大きく変わり（30以下で0.4%、65で2.5%、85で15%、95超で28%）、調子が悪い（40以下）と1.5倍、斤量が重いと少し上がります。インブリードの濃い馬は疲労が低くても故障しやすく、最も濃い配合では1戦ごとに+8%されます。故障には名前があり（軽症：球節炎・蹄挫傷・フレグモーネ・鼻出血／重症：屈腱炎・骨折・蹄葉炎・繋靭帯炎）、名前ごとに休養期間と能力への影響が違います。故障歴は馬のページに残ります<br>・輸送でも疲労します。遠くの競馬場ほど大きく、2歳馬は1.5倍です<br>・カレンダータブでは、過去に勝ったことのある重賞に「🏆制覇」の印が付きます（勝ち数と、最近勝った年・馬名も表示）。まだ勝っていない重賞探しに使えます<br>・馬の選択は、名前検索と絞り込み（⭐お気に入り／登録済みの馬だけ／出走できる馬だけ）と並び替え（年齢順・クラス順・名前順）ができます。⭐はお気に入りの印で、馬ごとに付け外しできます<br>・三冠路線（クラシック三冠・牝馬三冠・秋古馬三冠）は、脚を勝つと残りの脚が自動でローテーション指定され、その直前は路線外のレースを自動で足さなくなります<br>・牝馬は自動出走・自動指定では牝馬限定戦の路線を優先します（オークスや秋華賞など）。G1を勝った馬やトップレベルの馬は、ダービーなど牡馬路線にもそのまま挑戦します<br>・3歳馬は自動出走では宝塚記念を使わず、自動指定でも避けます（手動登録とプレイヤーの指定では出走できます）<br>・JBC（クラシック／スプリント／レディスクラシック）とブリーダーズカップは開催地が毎年持ち回りになります（JBC2歳優駿は門別固定）<br>・G1級のレースを走った馬は8週間「休養」になり、その間は自動出走・自動指定がG1以外のレースを拾いません（手動登録とプレイヤーの指定はいつも通り出走できます）<br>・自動出走・自動指定では、見込み斤量が基準より3kg以上重くなるレース（ハンデ・別定）には入らない<br>・国内の平地レースには勝ち時計が付き、成績欄で上がり3Fも見られます。上がりは脚質と末脚の強さで決まります<br>・コースレコード（競馬場×馬場×距離）はカレンダータブの「⏱ コースタイム」で見られます。更新の履歴は牧場年表タブの一番下に残ります<br>・レースレコード（レースごとの歴代最速、対象は国内の名前付きレース）は勝ち時計で更新され、馬の戦歴ではレコードのタイムが赤字＋Rで表示され、寸評にも残ります<br>・名馬列伝タブでは、G1級5勝以上かつ生涯賞金10億円以上の名馬の列伝が読めます。列伝は現役を終えた時に自動で書かれ、繁殖・種牡馬を終えると産駒編が追記されます。馬のページではメモも書けます。一覧から除外すると列伝文は削除されます");
+    "レースは中央（JRA）・地方（Jpn重賞のみ）・海外（G1〜G3）があります。出走登録は3週先まで先行登録できます。<br>・未勝利の馬は新馬・未勝利戦だけに出られます<br>・海外の重賞に出るには、国内の重賞かリステッドで勝つか3着以内に入る必要があります<br>・クラスは勝ち数で上がり、4勝以上か重賞勝ちでオープン入りです<br>・レースでは毎回、故障の判定があります。基礎の確率は疲労で大きく変わり（30以下で0.4%、65で2.5%、85で15%、95超で28%）、調子が悪い（40以下）と1.5倍、斤量が重いと少し上がります。インブリードの濃い馬は疲労が低くても故障しやすく、最も濃い配合では1戦ごとに+8%されます。故障には名前があり（軽症：球節炎・蹄挫傷・フレグモーネ・鼻出血／重症：屈腱炎・骨折・蹄葉炎・繋靭帯炎）、名前ごとに休養期間と能力への影響が違います。故障歴は馬のページに残ります<br>・輸送でも疲労します。遠くの競馬場ほど大きく、2歳馬は1.5倍です<br>・カレンダータブでは、過去に勝ったことのある重賞に「🏆制覇」の印が付きます（勝ち数と、最近勝った年・馬名も表示）。まだ勝っていない重賞探しに使えます<br>・馬の選択は、名前検索と絞り込み（⭐お気に入り／登録済みの馬だけ／出走できる馬だけ）と並び替え（年齢順・クラス順・名前順）ができます。⭐はお気に入りの印で、馬ごとに付け外しできます<br>・三冠路線（クラシック三冠・牝馬三冠・秋古馬三冠）は、脚を勝つと残りの脚が自動でローテーション指定され、その直前は路線外のレースを自動で足さなくなります<br>・牝馬は自動出走・自動指定では牝馬限定戦の路線を優先します（オークスや秋華賞など）。G1を勝った馬やトップレベルの馬は、ダービーなど牡馬路線にもそのまま挑戦します<br>・3歳馬は自動出走では宝塚記念を使わず、自動指定でも避けます（手動登録とプレイヤーの指定では出走できます）<br>・JBC（クラシック／スプリント／レディスクラシック）とブリーダーズカップは開催地が毎年持ち回りになります（JBC2歳優駿は門別固定）<br>・G1級のレースを走った馬は8週間「休養」になり、その間は自動出走・自動指定がG1以外のレースを拾いません（手動登録とプレイヤーの指定はいつも通り出走できます）<br>・自動出走・自動指定では、見込み斤量が基準より3kg以上重くなるレース（ハンデ・別定）には入らない<br>・国内の平地レースには勝ち時計が付き、成績欄で上がり3Fも見られます。上がりは脚質と末脚の強さで決まります<br>・コースレコード（競馬場×馬場×距離）はカレンダータブの「⏱ コースタイム」で見られます。更新の履歴は牧場年表タブの一番下に残ります<br>・レースレコード（レースごとの歴代最速、対象は国内の名前付きレース）は勝ち時計で更新され、馬の戦歴ではレコードのタイムが赤字＋Rで表示され、寸評にも残ります<br>・名馬列伝タブでは、G1級5勝以上かつ生涯賞金10億円以上の名馬の列伝が読めます。牧場初の重賞・G1勝ち馬は条件を問わず対象で、殿堂馬は馬のページから任意で追加もできます。列伝は現役を終えた時に自動で書かれ、繁殖・種牡馬を終えると産駒編が追記されます。馬のページではメモも書けます。一覧から除外すると列伝文は削除されます");
   h += sec("🐴 障害競走",
     "平地とは別のキャリアとして、障害競走があります。舞台は中山・東京・京都・阪神・新潟・小倉・福島・中京で、障害未勝利（月に2〜3週だけ開催、週1〜2鞍）→ 障害オープン（年に20本ほど＋実名のOP特別）→ 障害重賞（J-GIII〜J-GI）の順に上がっていきます。<br>障害に出られるのは<b>距離適性の上限が3000m以上</b>の馬だけです（素質『稀代のジャンパー』の馬は例外で、距離適性に関係なく転向できます）。各馬には隠れた「障害適性」（○／−／✕）があり、相性欄にスタッフ予想が出て、障害を走ると確定します。障害ではスタミナと根性がものを言います。落馬・競走中止もあり、確率は適性で変わります（○1%／−3%／✕7%）。落馬した馬は半分の確率で故障します。<br>障害の賞金・勝ち数は平地と合算され、平地のクラスも上がります（平地の未勝利戦は、平地で勝っていなければ出られます）。J-GI（中山大障害・中山グランドジャンプ）はG1級として数え、殿堂入りの条件や制覇マークの対象になります。通常の自動出走は障害を対象にしませんが、馬ごとに「障害のみ出走」をONにした馬は障害レースだけを年4〜5戦（J-GI・J-GII中心）で自動出走します（この設定の馬は未勝利のまま4歳を迎えても引退しません。ONの間は平地のローテーション指定も、自動・手動を問わず登録されません）。それ以外の馬の障害出走は手動登録かローテーション指定で。<br>自動転向もあります。未勝利馬は4歳の年始に、障害に行ける適性（距離上限3000m以上。ジャンパー持ちは不問）があれば引退ではなく障害へ転向します。勝ち馬でも、4歳の7月に平地の直近3走が全部6着以下だと、適性のある馬は障害へ転向します。");
   h += sec("💰 国内G1の出走ライン",
@@ -6038,7 +6043,7 @@ function viewManual(){
 function viewDen(){
   setTimeout(() => { document.querySelectorAll("[data-den-exclude]").forEach(b => b.onclick = () => { denExclude(b.getAttribute("data-den-exclude")); render(); }); }, 0);
   const list = S.horses.filter(h => h.den && !h.denExcluded).sort((a, b) => (b.earnings || 0) - (a.earnings || 0));
-  let html = "<h2>🏆 名馬列伝</h2><div class='sub'>G1級5勝以上、かつ生涯賞金10億円以上を挙げた名馬の列伝です（" + list.length + "頭）。</div>";
+  let html = "<h2>🏆 名馬列伝</h2><div class='sub'>G1級5勝以上、かつ生涯賞金10億円以上を挙げた名馬の列伝です。牧場初の重賞・G1勝ち馬と、馬のページから任意で追加した殿堂馬も残ります（" + list.length + "頭）。</div>";
   if(!list.length) html += "<div class='sub' style='margin-top:10px;'>まだ列伝に残る名馬はいません。</div>";
   for(const h of list){
     html += "<div style='border:1px solid #ccc; border-radius:8px; padding:12px; margin-top:12px;'><div class='flex' style='justify-content:space-between;'><h3 style='margin:0;'><span class='horse-link' data-horse='" + h.id + "'>" + h.name + "</span> <span class='sub'>" + (h.birthYear || "") + "年生・" + h.sex + "・父 " + (h.sire || "―") + "／" + ((h.results ? h.results.length : 0) + (h.preStarts || 0)) + "戦" + (h.wins || 0) + "勝・" + man(h.earnings || 0) + "</span></h3><button class='ghost' data-den-exclude='" + h.id + "'>一覧から除外</button></div>"
@@ -7624,6 +7629,7 @@ function openHorse(id){
   if(h.retired || h.status === "broodmare" || h.status === "stallion"){
     if(h.hofManual) actions += "<div class='topic' style='margin-top:10px;'>🏆 任意で殿堂入りしています <button id='hofManualBtn' class='ghost'>取り消す</button></div>";
     else if(!isHof(h)) actions += "<div style='margin-top:10px;'><button id='hofManualBtn'>🏆 任意で殿堂入りさせる</button> <span class='sub'>条件を満たしていなくても、思い入れのある馬を殿堂に残せます（詳細も無期限で残ります）</span></div>";
+    if(isHof(h) && !h.den && !h.denExcluded) actions += "<div style='margin-top:10px;'><button id='denAddBtn'>📖 列伝に追加する</button> <span class='sub'>殿堂馬は条件（G1級5勝・生涯10億円）を満たしていなくても列伝に残せます</span></div>"; /* v8.6 */
     if(h.den && !h.denExcluded) actions += "<div class='topic' style='margin-top:10px;'><b>🏆 名馬列伝</b><p style='line-height:1.9; margin:6px 0;'>" + h.den.text + "</p><textarea id='denMemo' rows='2' style='width:100%; box-sizing:border-box;' placeholder='この馬へのメモ（自由に書けます）'>" + denEsc(h.den.memo || "") + "</textarea><div style='margin-top:4px;'><button id='denMemoBtn' class='ghost'>メモを保存</button> <button id='denExcludeBtn' class='ghost'>一覧から除外</button></div></div>"; /* v8.5 */
   }
   $("#horseModalBox").innerHTML = "<div class='flex' style='justify-content:space-between;'><h2 style='margin:0;'>" + h.name + legendBadgeHtml(h) + titleBadgeHtml(h) + talentBadgeHtml(h) + "</h2><button onclick='document.querySelector(\"#horseModal\").style.display=\"none\"'>閉じる</button></div>"
@@ -7710,6 +7716,7 @@ function openHorse(id){
     $("#horseModal").style.display = "none"; save(); render();
   };
   const hmb = $("#hofManualBtn"); if(hmb) hmb.onclick = () => { toggleHofManual(h); openHorse(h.id); render(); };
+  const dab = $("#denAddBtn"); if(dab) dab.onclick = () => { h.denManual = true; denPass(); notice(h.den ? "📖 " + h.name + " を名馬列伝に追加しました" : "📖 " + h.name + " は現役を終えた時点で名馬列伝に残ります"); openHorse(h.id); render(); }; /* v8.6 */
   const dmb = $("#denMemoBtn"); if(dmb) dmb.onclick = () => { if(h.den){ h.den.memo = $("#denMemo").value; notice("✎ " + h.name + " のメモを保存しました"); } openHorse(h.id); render(); }; /* v8.5 */
   const deb = $("#denExcludeBtn"); if(deb) deb.onclick = () => { denExclude(h.id); openHorse(h.id); render(); }; /* v8.5 */
   const sb = $("#sellMareBtn"); if(sb) sb.onclick = () => {
@@ -7814,6 +7821,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v8.5</footer>
+<footer>競馬シミュレーター（趣味） v8.5.1</footer>
 </body>
 </html>
