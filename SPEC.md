@@ -454,3 +454,4 @@
 - 【同日修正（オーナー指示）】上限拡張は5頭ずつ（費用＝拡張頭数×max(現在上限,5)×300万円）。拡張UIは牧場施設タブ（独立タブ data-tab="facility"、viewFacility = limitsHtml + facilitiesHtml）に移設し、年表から施設の折りたたみを撤去。若馬セリの自動購入は mattari.auto.auction トグル（既定ON、autoAuctionBuyPass：能力順・最大2頭・残高5,000万円キープ）。⚙その他に自動操作設定ボタン（autoCfgBtn → openMattariSettings）を常設。冠名の placeholder 例を削除。
 - 【同日修正（オーナー指示）】まったり起動：ヘッダーボタンは openMattariSettings のみ。ON/OFF はモーダル内 #mattariToggleBtn で切り替える。
 - 【v8.3（未公開）牝馬デバフ】混合戦のみ牝馬のレーススコア ×0.99（sexFactor）。牝馬限定戦は対象外、斤量−2kgは従来どおり。
+- 【詳細トリム（オーナー決定）】詳細が閉じた馬のレース結果は重い表示項目を落とし、集計用の項目だけ残す（読み込み時・年末に自動）。殿堂入りで詳細は戻るが、落とした項目は復活しない。
