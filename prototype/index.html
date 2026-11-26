@@ -2661,8 +2661,12 @@ function isFarCourse(h, race){
   if(region === "hokkaido") return true;
   return region !== stableHomeRegion(h);
 }
-function transportBase(h, race){
-  if(race.sector === "overseas") return 20; // 海外は出発週の+10とは別に輸送疲労20（オーナー想定。POST_SIM 128：従来は0で未実装だった）
+function transportBase(h, race, atAbs){
+  if(race.sector === "overseas"){
+    const st = stayLocAt(h, atAbs == null ? absWeek() : atAbs); /* 項目256：滞在中は階段（同国5／地域内20／またぐ25） */
+    if(st){ if(race.country === st.country) return 5; if(race.country && ovRegionOf(race.country) === st.region) return 20; return 25; }
+    return 20; // 海外は出発週の+10とは別に輸送疲労20（オーナー想定。POST_SIM 128：従来は0で未実装だった）
+  }
   if(!h.stable) return 0;
   const region = courseRegion(courseOf(race, S.year));
   if(!region) return 12;
@@ -2675,8 +2679,8 @@ function transportBase(h, race){
   }
   return 20;
 }
-function transportFatigue(h, race){
-  let base = transportBase(h, race);
+function transportFatigue(h, race, atAbs){
+  let base = transportBase(h, race, atAbs);
   if(base <= 0) return 0;
   if(ageOf(h) === 2) base = Math.ceil(base * 1.5); // 2歳の輸送は重い
   if(h.aff && h.aff.yuso) base = Math.round(base / 2); // 輸送○（Stage 3 で付与される特性へのフック）
@@ -2687,8 +2691,41 @@ function transportFatigue(h, race){
    遠征費は1レース一律1,000万円（v0.51。従来の800万円は実際には未徴収だった） */
 const EXPEDITION_FEE = 1000;
 function hasOverseasEntryAt(h, a){ const e = h.entries && h.entries[a]; return !!(e && e.sector === "overseas"); }
-function isTravelWeek(h, a){ return hasOverseasEntryAt(h, a + 1); }
 function isReturnWeek(h, a){ return h.expedReturnAbs != null && h.expedReturnAbs === a; }
+/* 海外滞在（項目129・オーナー発案／項目256で実装）：海外レースに出た馬は、その国に8週間滞在できる。
+   滞在中の次の海外レースは、出発・帰国検疫週なしで、移動疲労が距離の階段になる：
+   同じ国 5／同じ地域 20／地域をまたぐ 25。日本からの新規遠征は従来通り（輸送20＋出発週+10）。
+   地域の定義：欧州（英仏愛独伊）／中東（UAE・サウジ。20の階＝地域内扱い、オーナー決定）／アジア（香港）／アメリカ（米・加）／オセアニア（豪・NZ） */
+const OV_GEO = { "イギリス":["欧州"], "フランス":["欧州"], "アイルランド":["欧州"], "ドイツ":["欧州"], "イタリア":["欧州"], "アラブ首長国連邦":["中東"], "サウジアラビア":["中東"], "香港":["アジア"], "アメリカ":["アメリカ"], "カナダ":["アメリカ"], "オーストラリア":["オセアニア"], "ニュージーランド":["オセアニア"] };
+function ovRegionOf(country){ const g = OV_GEO[country]; return g ? g[0] : "その他"; }
+function overseasRaceByName(name){ return DATA.overseas.find(r => r.name === name) || null; }
+/* 週 a の時点で馬が海外に滞在中なら {country, region}、日本にいるなら null を返す。
+   直近の海外出走（結果または登録）から8週間以内で、その後に国内レースを挟んでいないことが条件 */
+function stayLocAt(h, a){
+  let bestAbs = -1, country = null;
+  for(const r of (h.results || [])){
+    if(!r || !r.race) continue;
+    const ra = overseasRaceByName(r.race); if(!ra) continue;
+    const rabs = resultAbsOf(r);
+    if(rabs >= 0 && rabs < a && rabs > bestAbs){ bestAbs = rabs; country = ra.country; }
+  }
+  if(h.entries) for(const k of Object.keys(h.entries)){
+    const e = h.entries[k]; if(!e || e.sector !== "overseas") continue;
+    const ea = +k; if(!(ea < a) || ea <= bestAbs) continue;
+    const ra = overseasRaceByName(e.name); if(ra){ bestAbs = ea; country = ra.country; }
+  }
+  if(bestAbs < 0 || a - bestAbs > 8) return null;
+  for(const r of (h.results || [])){
+    if(!r || !r.race || overseasRaceByName(r.race)) continue;
+    const rabs = resultAbsOf(r); if(rabs > bestAbs && rabs < a) return null;
+  }
+  if(h.entries) for(const k of Object.keys(h.entries)){
+    const e = h.entries[k]; if(!e || e.sector === "overseas") continue;
+    const ea = +k; if(ea > bestAbs && ea < a) return null;
+  }
+  return { country, region: ovRegionOf(country) };
+}
+function isTravelWeek(h, a){ const e = h.entries && h.entries[a + 1]; if(!e || e.sector !== "overseas") return false; return !stayLocAt(h, a + 1); } /* 滞在中の移動に出発・検疫週は要らない */
 /* ================= レース適否 ================= */
 /* 出走ライン賞金（v5.6・オーナー発案／POST_SIM 119）：本物の「出走馬決定賞金」の読み替え。
    全戦績の本賞金×0.5 ＋ 直近1年の分×0.5上乗せ ＋ 直近2年のG1級の分×0.5上乗せ。
@@ -2787,9 +2824,12 @@ function eligibility(h, race, abs){ /* abs（対象開催の絶対週）を渡�
   if(race.sector==="overseas"){
     const key = raceKeyOf(targetAbs, race);
     const already = !!(h.entries && h.entries[targetAbs] && h.entries[targetAbs].key===key);
-    if(targetAbs===absWeek() && !already) return "海外遠征は当週登録できません（前週が出発・検疫週になるため事前登録のみ）";
-    if(h.entries && h.entries[targetAbs-1] && targetAbs-1>=absWeek()) return "出発・検疫週（前週）に別のレース登録があります";
-    if(h.entries && h.entries[targetAbs+1]) return "帰国・検疫週（翌週）に別のレース登録があります";
+    const staying = !!stayLocAt(h, targetAbs); /* 項目256：滞在中は検疫週なし・当週登録可・海外同士の連戦可 */
+    if(!staying && targetAbs===absWeek() && !already) return "海外遠征は当週登録できません（前週が出発・検疫週になるため事前登録のみ）";
+    const prevE = h.entries && h.entries[targetAbs-1];
+    if(prevE && targetAbs-1>=absWeek() && !(staying && prevE.sector==="overseas")) return "出発・検疫週（前週）に別のレース登録があります";
+    const nextE = h.entries && h.entries[targetAbs+1];
+    if(nextE && !(staying && nextE.sector==="overseas")) return "帰国・検疫週（翌週）に別のレース登録があります";
   }
   if(isReturnWeek(h, targetAbs)) return "海外遠征の帰国・検疫週です";
   if(isTravelWeek(h, targetAbs)) return "海外遠征の出発・検疫週です";
@@ -3451,7 +3491,7 @@ function runRace(race, entries){
   const tfMap = new Map();
   for(const h of entries){
     ensureStable(h);
-    if(race.sector==="overseas"){ S.funds -= EXPEDITION_FEE; h.expedReturnAbs = absWeek()+1; if(h.tripsYear === S.year) h.trips = (h.trips || 0) + 1; else { h.tripsYear = S.year; h.trips = 1; } } /* v3.5：遠征回数（年次）を記録。自動出走の年2回ガード用 */
+    if(race.sector==="overseas"){ S.funds -= EXPEDITION_FEE; const contTour = h.entries && Object.keys(h.entries).some(k => +k > absWeek() && h.entries[k] && h.entries[k].sector === "overseas"); if(!contTour) h.expedReturnAbs = absWeek()+1; if(h.tripsYear === S.year) h.trips = (h.trips || 0) + 1; else { h.tripsYear = S.year; h.trips = 1; } } /* v3.5：遠征回数（年次）を記録。自動出走の年2回ガード用。項目256：滞在を続ける（次の海外登録がある）ときは帰国週を立てない */
     const tf = transportFatigue(h, race);
     if(tf>0) h.fatigue = clamp(h.fatigue + tf, 0, 100);
     tfMap.set(h, tf);
@@ -5078,7 +5118,7 @@ function viewHorses(){
   return "<div class='flex listtools' style='margin-bottom:8px;'><label>表示：</label><select id='horseFilterSel'>"+opts+"</select><label>並び替え：</label><select id='horseSortSel'>"+sortOpts+"</select><span class='sub'>"+list.length+"頭（全 "+S.horses.length+" 頭）。繁殖牝馬・種牡馬は「繁殖」「種牡馬」タブでも見られます。引退馬は「牧場年表」タブの引退馬リストにいます</span></div>"
     + bodyHtml + "<div class='sub'>馬名を押すと履歴ページが開きます。</div>";
 }
-let entryHorseId = null, entrySort = "recommend", entryOnlyOk = false, entryWeekAhead = 0;
+let entryHorseId = null, entrySort = "recommend", entryOnlyOk = false, entryWeekAhead = 0, entryFocus = false; /* entryFocus（項目255）：出走画面で馬名を押したら、その馬のレース選択画面に切り替える */
 let entryListMode = "all", entryListSort = "default", entryListQuery = ""; /* v6.3：出走タブの馬ピッカーの絞り込み・並び替え（画面だけの状態） */
 let entryFilter = { sector:"all", grade:"all", surface:"all", dist:"all", label:"all" };
 let trialsFor = null; // トライアル一覧を表示中の対象レース名（WS4d）
@@ -5204,6 +5244,8 @@ function viewEntry(){
     + autoHorsePanelHtml(); /* v4.4.2：馬ごとの自動出走設定は出走登録タブに集約（カレンダーは表示専用に、オーナー指示） */
   if(!racers.length){ setTimeout(bindAutoEntryControls, 0); return autoPanel + "<div class='sub'>出走できる現役馬がまだいません。若馬のデビュー（2歳の6月以降）をお待ちください。</div>"; } /* v8.6+修正（項目252・オーナー指示）：現役馬0頭でも一括設定パネルの結線を行う。結線は後段の setTimeout の中だけにあったため、早期リターンの経路ではパネルの全設定が保存されず初期値に戻っていた */
   if(!entryHorseId || !racers.some(h=>h.id===entryHorseId)) entryHorseId = (racers.find(h=>h.entries && Object.keys(h.entries).length) || racers[0]).id;
+  const focusHorse = entryFocus ? racers.find(x=>x.id===entryHorseId) : null;
+  if(entryFocus && !focusHorse) entryFocus = false;
   /* v6.3（オーナー 指摘・軽い案＋お気に入り）：馬ピッカーを1頭1行の細いリストにし、検索・絞り込み・並び替えと⭐お気に入りを付けた */
   let picker = racers.slice();
   if(entryListMode === "fav") picker = picker.filter(h => h.fav);
@@ -5213,7 +5255,8 @@ function viewEntry(){
   if(entryListSort === "age") picker.sort((a, b) => (b.birthYear - a.birthYear) || ((b.earnings || 0) - (a.earnings || 0)));
   else if(entryListSort === "class") picker.sort((a, b) => (entryClassRank(b) - entryClassRank(a)) || ((b.earnings || 0) - (a.earnings || 0)));
   else if(entryListSort === "name") picker.sort((a, b) => a.name.localeCompare(b.name, "ja"));
-  let html = autoPanel + "<div class='sub' style='margin-bottom:6px;'>まず馬を選びます：</div>"
+  let html = focusHorse ? "<div class='flex' style='margin-bottom:6px;'><button data-entry-back='1'>← 馬の一覧に戻る</button><span class='sub'>出走するレースを選んでください</span></div>"
+    : autoPanel + "<div class='sub' style='margin-bottom:6px;'>まず馬を選びます：</div>"
     + "<div class='flex' style='flex-wrap:wrap;gap:6px;margin-bottom:6px;'>"
     + "<input type='text' id='entryHorseSearch' size='12' placeholder='馬名で検索' value='" + entryListQuery.replace(/"/g, "&quot;") + "'>"
     + "<select id='entryHorseMode'>"
@@ -5222,14 +5265,15 @@ function viewEntry(){
     + "<select id='entryHorseSort'>"
     + [["default", "並び：既定"], ["age", "並び：年齢順"], ["class", "並び：クラス順"], ["name", "並び：名前順"]].map(p => "<option value='" + p[0] + "'" + (entryListSort === p[0] ? " selected" : "") + ">" + p[1] + "</option>").join("")
     + "</select></div>";
-  for(const h of picker){
+  if(!focusHorse) for(const h of picker){
     const sel = h.id===entryHorseId;
     html += "<div class='flex' style='align-items:center;gap:2px;padding:2px 0;border-bottom:1px solid #23281f;'>"
       + "<button data-fav='"+h.id+"' class='ghost' style='padding:2px 6px;' title='お気に入り'>" + (h.fav ? "⭐" : "☆") + "</button>"
       + "<button data-entry-horse='"+h.id+"' style='flex:1;text-align:left;padding:4px 8px;"+(sel?"border-color:var(--acc);background:#22331a;":"")+"'>"+h.name+" <span class='sub'>"+ageOf(h)+"歳"+h.sex+"・"+horseClass(h)+"・"+h.wins+"勝・状態"+Math.round(h.condition)+" 疲労"+Math.round(h.fatigue)+(isResting(h) ? "・休養中" : "")+(h.stable ? "・"+h.stable : "")+(entryListText(h) ? "・登録済（"+entryListText(h)+"）" : "")+"</span></button></div>";
   }
-  if(!picker.length) html += "<div class='sub'>条件に合う馬がいません。</div>";
+  if(!focusHorse && !picker.length) html += "<div class='sub'>条件に合う馬がいません。</div>";
   const h = racers.find(x=>x.id===entryHorseId);
+  if(focusHorse){ /* 項目255：レース選択まわり（適性・脚質・対象週・絞り込み・レース一覧）は、馬を選んだときだけ出す。選んでいないのに下に出ていると邪魔（オーナー指摘 2026-11-26） */
   html += "<div class='sub' style='margin-top:8px;'>"+h.name+" の適性："+surfText(h)+" "+h.distMin+"-"+h.distMax+"m・"+h.growth+"。◎は適性おすすめ、グレーは条件外（理由付き）。<b>最大3週先まで先行登録できます</b>（各週1レースずつ、複数の週に重ねて登録できます。その週が来ると自動で実施されます）。</div>";
   const sCur = h.stylePref || null;
   const styleBtns = STYLES.map(s=>"<button data-style='"+s+"' class='"+(sCur===s?"":"ghost")+"'>"+s+"</button>").join("");
@@ -5253,9 +5297,11 @@ function viewEntry(){
     + fsel("fLabel", entryFilter.label, [["all","ラベルすべて"]].concat([...new Set([...DATA.domestic, ...DATA.overseas].flatMap(r=>r.labels||[]))].sort().map(l=>[l,l])))
     + "</div>";
   html += "<div id='entryList' style='margin-top:10px;'></div>";
+  }
   setTimeout(()=>{
     bindAutoEntryControls();
-    document.querySelectorAll("[data-entry-horse]").forEach(btn => btn.onclick = () => { entryHorseId = btn.getAttribute("data-entry-horse"); render(); });
+    document.querySelectorAll("[data-entry-horse]").forEach(btn => btn.onclick = () => { entryHorseId = btn.getAttribute("data-entry-horse"); entryFocus = true; render(); }); /* 項目255：名前を押したら、その馬のレース選択画面へ */
+    document.querySelectorAll("[data-entry-back]").forEach(btn => btn.onclick = () => { entryFocus = false; render(); });
     document.querySelectorAll("[data-fav]").forEach(btn => btn.onclick = () => { const hh = S.horses.find(x=>x.id===btn.getAttribute("data-fav")); if(hh){ hh.fav = !hh.fav; save(); render(); } }); /* v6.3 */
     const em = document.querySelector("#entryHorseMode"); if(em) em.onchange = () => { entryListMode = em.value; render(); };
     const es2 = document.querySelector("#entryHorseSort"); if(es2) es2.onchange = () => { entryListSort = es2.value; render(); };
@@ -5307,8 +5353,8 @@ function drawEntryList(){
     const wt = weightTypeOf(r);
     const wnote = (wt==="ハンデ" || wt==="別定") ? "<br><span class='sub'>"+wt+"戦：この馬の斤量 "+assignedWeight(r,h).toFixed(1)+"kg（登録前に確認できます。重ければ見送る判断も）</span>" : "";
     /* 輸送・遠征の見込み（v0.51） */
-    const tf = transportFatigue(h, r);
-    const wnote2 = r.sector==="overseas" ? "<br><span class='sub'>✈️ 海外遠征：前週が出発・検疫週（疲労+10）、レース当日に輸送疲労+"+tf+"、翌週が帰国・検疫週。遠征費 "+man(EXPEDITION_FEE)+"／1レース</span>"
+    const tf = transportFatigue(h, r, targetAbs);
+    const wnote2 = r.sector==="overseas" ? (stayLocAt(h, targetAbs) ? "<br><span class='sub'>✈️ 滞在中（"+stayLocAt(h, targetAbs).country+"）からの移動：輸送疲労+"+tf+"（出発・帰国の検疫週なし）。遠征費 "+man(EXPEDITION_FEE)+"／1レース</span>" : "<br><span class='sub'>✈️ 海外遠征：前週が出発・検疫週（疲労+10）、レース当日に輸送疲労+"+tf+"、翌週が帰国・検疫週。遠征費 "+man(EXPEDITION_FEE)+"／1レース</span>")
       : tf>0 ? "<br><span class='sub'>🚚 輸送疲れ見込み +"+tf+"（"+(h.stable ? h.stable+"所属" : "所属未定")+(h.stayRegion && courseRegion(r.racecourse)===h.stayRegion ? "・滞在中" : "")+(ageOf(h)===2 ? "・2歳は重め" : "")+"）</span>" : "";
     const trialsBtn = (r.grade==="GI" || r.grade==="JpnI") ? " <button data-trials='"+r.name+"' class='ghost'>トライアル一覧</button>" : "";
     const goingTxt = (() => { const gt = r.racecourse ? goingLabelFor(absWeek() + entryWeekAhead, courseOf(r, fromAbs(absWeek() + entryWeekAhead)[0]), r.surface) : ""; return gt ? " <span class='sub'>馬場：" + gt + "</span>" : ""; })();
@@ -7804,7 +7850,7 @@ function openHorse(id){
     + (h.matureWeight != null ? "<dt>馬体重</dt><dd>"+weightNow(h)+"kg <span class='sub'>（成熟時は約"+h.matureWeight+"kg）</span></dd>" : "")
     + "<dt>適性</dt><dd>"+surfText(h)+"（"+h.surface+"） "+h.distMin+"-"+h.distMax+"m・"+h.growth+"</dd>" /* v3.9：馬場適性は面ごとのマークを明示 */
     + inbredRowHtml(h) /* v7.3：インブリード危険度 */
-    + ((h.status==="yearling" || h.status==="racehorse") ? "<dt>所属</dt><dd>"+(h.stable ? h.stable+"トレーニングセンター（変更できません）"+(h.stayRegion ? "／現在は遠征先に滞在中" : "") : "未定です <button id='stableMihoBtn'>美浦にする</button> <button id='stableRittoBtn'>栗東にする</button> <span class='sub'>一度決めると現役の間は変更できません</span>")+"</dd>" : "")
+    + ((h.status==="yearling" || h.status==="racehorse") ? "<dt>所属</dt><dd>"+(h.stable ? h.stable+"トレーニングセンター（変更できません）"+(h.stayRegion ? "／現在は遠征先に滞在中" : "")+(()=>{ const s = stayLocAt(h, absWeek()); return s ? "／現在は海外（"+s.country+"）に滞在中" : ""; })() : "未定です <button id='stableMihoBtn'>美浦にする</button> <button id='stableRittoBtn'>栗東にする</button> <span class='sub'>一度決めると現役の間は変更できません</span>")+"</dd>" : "")
     + affinitySection(h)
     + traitSection(h) /* v6.0 */
     + (h.spd != null ? "<dt>パラメータ</dt><dd>スピード <b>"+effRank(h,"spd")+"</b>"+trendMark(h,"spd")+" ／ スタミナ <b>"+effRank(h,"sta")+"</b>"+trendMark(h,"sta")+" ／ 根性 <b>"+effRank(h,"gut")+"</b>"+trendMark(h,"gut")+" ／ パワー <b>"+powGrade(paramNow(h, "pow"))+"</b>"+trendMark(h,"pow")+"（総合 <b>"+rankOf(Math.round(effAvg(h)))+"</b>）<br><span class='sub'>素質（上限）：スピード "+rankOf(h.spd)+" ／ スタミナ "+rankOf(h.sta)+" ／ 根性 "+rankOf(h.gut)+" ／ パワー "+powGrade(h.pow != null ? h.pow : 70)+"（総合 "+rankOf(Math.round(syncAbility(h)))+"）</span></dd>" : "")
@@ -7993,6 +8039,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v8.8</footer>
+<footer>競馬シミュレーター（趣味） v8.9</footer>
 </body>
 </html>
