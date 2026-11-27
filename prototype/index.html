@@ -1834,7 +1834,7 @@ function initState(){ invalidateIdx(); /* v7.6 */
    自動ローテーション＝runRace 内、贈呈馬＝advanceWeek 内）が担う。
    auto の各トグルは個別に ON/OFF でき、ON にする際は必ず設定モーダルを開く */
 function mattariDefault(){
-  return { on:false, speed:4, paused:false, untilYear:null, auto:{ entry:true, retire:true, mate:true, cull:true, train:true, rotation:true, gift:true, sell:true, buy:true, auction:true } };
+  return { on:false, speed:4, paused:false, untilYear:null, auto:{ entry:true, retire:true, mate:true, cull:true, train:true, rotation:true, gift:true, sell:true, buy:true, auction:true, facility:false } }; /* 項目276：施設の自動強化は既定OFF */
 }
 function mattariOn(){ return !!(typeof S!=="undefined" && S && S.mattari && S.mattari.on); }
 /* スキップ中の自動処理（v3.2・オーナー委任で AI 決定）：かんたんスキップ／指定スキップで
@@ -1844,7 +1844,7 @@ function mattariOn(){ return !!(typeof S!=="undefined" && S && S.mattari && S.ma
 function autoActive(){ return mattariOn() || !!(typeof S!=="undefined" && S && S._skipAuto); }
 /* まったり設定モーダル：すべてのオート操作を個別に ON/OFF できる（オーナー指定）。
    ON にする際と、ヘッダーの「まったり設定」からいつでも開ける。変更は即 S.mattari.auto へ保存 */
-const MATTARI_AUTO_LABELS = [["entry","自動出走"],["retire","自動引退"],["mate","自動種付け"],["cull","自動淘汰（繁殖牝馬）"],["train","自動調教"],["rotation","自動ローテーション"],["gift","贈呈馬の自動受け入れ"],["sell","自動売却（頭数上限の超過分）"],["buy","自動購入（セール牝馬）"],["auction","自動購入（若馬セリ）"]]; /* v3.4：buy を追加（牝系飽和対策の外部流入） */
+const MATTARI_AUTO_LABELS = [["entry","自動出走"],["retire","自動引退"],["mate","自動種付け"],["cull","自動淘汰（繁殖牝馬）"],["train","自動調教"],["rotation","自動ローテーション"],["gift","贈呈馬の自動受け入れ"],["sell","自動売却（頭数上限の超過分）"],["buy","自動購入（セール牝馬）"],["auction","自動購入（若馬セリ）"],["facility","施設の自動強化"]]; /* v3.4：buy を追加（牝系飽和対策の外部流入）／項目276：facility を追加 */
 function openMattariSettings(){
   const box = $("#mattariModalBox"), modal = $("#mattariModal");
   if(!box || !modal) return;
@@ -1917,16 +1917,33 @@ function syncMattariHeader(){
 }
 /* ================= 牧場施設（v6.7・オーナー発案／v7.0 レベル制） =================
    3施設を5段階まで強化できる（オーナー 決定 2026-11-22）。v6.7 の効果が最大レベル（Lv5）で、
-   下のレベルは段階的に弱い。費用はレベルごとに嵩み（全MAXの総額は約50億円）、維持費は
-   レベル比例で毎月かかる（全MAXで年約10億円）。1段階の工期は約2ヶ月で、工事中も完成済み
-   レベルの効果はそのまま効く。旧セーブの {done} 形式は facilityLevel が Lv5 として読む */
+   下のレベルは段階的に弱い。費用はレベルごとに嵩み、維持費はレベル比例で毎月かかる。
+   1段階の工期は約2ヶ月で、工事中も完成済みレベルの効果はそのまま効く。旧セーブの {done} 形式は
+   facilityLevel が Lv5 として読む
+   項目275（オーナー決定 2026-11-28）：建設費・維持費をキリのいい数字に改定（建設費は全MAXで
+   総額40億円、維持費は全MAXで年10億円）。あわせてレベル別の強化条件（FACILITY_GATES）を導入 */
 const FACILITIES = {
-  onsen: { name: "温泉・馬プール", costs: [11400, 20000, 28600, 42900, 57100], upkeep: 21300, desc: "疲労の回復が速くなります（Lv5で+25%）" },
-  clinic: { name: "診療所", costs: [17100, 30000, 42900, 64300, 85700], upkeep: 32000, desc: "故障の期間が短くなり、重い故障の能力低下を防ぎます（Lv5で期間×0.70・回避50%）。競走寿命の見立てもここで見られます" },
-  foaling: { name: "分娩舎・繁殖施設", costs: [7100, 12500, 17900, 26800, 35700], upkeep: 13300, desc: "12歳以上の繁殖牝馬の受胎率が上がります（Lv5で+10ポイント）" },
-  training: { name: "調教用設備", costs: [14300, 25000, 35700, 53600, 71400], upkeep: 26700, desc: "育成の到達度と調教の伸びが上がります（Lv5で育成40%・調教+10%）" }, /* v8.0 */
-  stable: { name: "厩舎", costs: [7100, 12500, 17900, 26800, 35700], upkeep: 10000, desc: "他所の馬を預かる厩舎。1レベルごとに預託の受け入れ枠が5頭増えます。診療所があると預託馬が集まり、預託収入（1頭あたり月15万円）が入ります" } /* v8.1 */
+  onsen: { name: "温泉・馬プール", costs: [5000, 10000, 15000, 20000, 30000], upkeep: 20000, desc: "疲労の回復が速くなります（Lv5で+25%）" },
+  clinic: { name: "診療所", costs: [10000, 15000, 20000, 35000, 40000], upkeep: 30000, desc: "故障の期間が短くなり、重い故障の能力低下を防ぎます（Lv5で期間×0.70・回避50%）。競走寿命の見立てもここで見られます" },
+  foaling: { name: "分娩舎・繁殖施設", costs: [5000, 5000, 10000, 10000, 20000], upkeep: 15000, desc: "12歳以上の繁殖牝馬の受胎率が上がります（Lv5で+10ポイント）" },
+  training: { name: "調教用設備", costs: [5000, 10000, 20000, 30000, 35000], upkeep: 25000, desc: "育成の到達度と調教の伸びが上がります（Lv5で育成40%・調教+10%）" }, /* v8.0 */
+  stable: { name: "厩舎", costs: [5000, 5000, 10000, 10000, 20000], upkeep: 10000, desc: "他所の馬を預かる厩舎。1レベルごとに預託の受け入れ枠が5頭増えます。診療所があると預託馬が集まり、預託収入（1頭あたり月15万円）が入ります" } /* v8.1 */
 };
+/* 項目275：レベル別の強化条件（オーナー決定 2026-11-28）。Lv1は無条件、Lv2・3は所持資金のみ、
+   Lv4・5は創業年数＋所持資金。手動・自動の両方に効く（普通プレイも対象）。年数は2026年を創業として数える */
+const FACILITY_GATES = [ null,
+  null,                            /* Lv1：無条件 */
+  { funds: 30000 },                /* Lv2：所持資金3億 */
+  { funds: 100000 },               /* Lv3：所持資金10億 */
+  { years: 10, funds: 300000 },    /* Lv4：創業10年＋所持資金30億 */
+  { years: 25, funds: 800000 }     /* Lv5：創業25年＋所持資金80億 */
+];
+function facilityGate(toLv){ /* 強化先レベル toLv の条件。満たせば null、未達なら理由文を返す */
+  const g = FACILITY_GATES[toLv]; if(!g) return null;
+  if(g.years && (S.year - 2026) < g.years) return "創業" + g.years + "年から（あと" + (g.years - (S.year - 2026)) + "年）";
+  if(g.funds && S.funds < g.funds) return "所持資金" + man(g.funds) + "以上が必要";
+  return null;
+}
 const FACILITY_BUILD_WEEKS = 8;
 const FACILITY_MAX_LV = 5;
 function facilityLevel(key){
@@ -1948,6 +1965,8 @@ function buildFacility(key){
   if(!S.facilities) S.facilities = {};
   const lv = facilityLevel(key);
   if(lv >= FACILITY_MAX_LV || facilityBuilding(key)) return;
+  const gate = facilityGate(lv + 1); /* 項目275：レベル別の強化条件（手動・自動共通） */
+  if(gate){ notice("まだ" + def.name + " をLv" + (lv + 1) + "にできません（" + gate + "）"); return; }
   const cost = def.costs[lv];
   if(S.funds < cost){ notice("資金が足りず、" + def.name + " を" + (lv ? "強化" : "建設") + "できません"); return; }
   S.funds -= cost;
@@ -1970,6 +1989,27 @@ function facilityCompletions(){
       S.facilities[key] = { level: 5 };
       notice("🏗️ " + FACILITIES[key].name + " が完成しました");
     }
+  }
+}
+/* 項目276：施設の自動強化（オーナー要望 2026-11-28）。自動処理が有効（まったりON またはスキップ中）で
+   トグルがONのとき、工事が空いていれば週に1件だけ次レベルへ進める。一番レベルの低い施設を優先し、
+   同レベルなら診療所→温泉→調教→分娩舎→厩舎の順。レベル別条件（項目275）は自動でもそのまま適用し、
+   強化後も所持資金10億は残す（運転資金を切らさないための安全ライン）。手動プレイには影響しない */
+function autoFacilityPass(){
+  if(!autoActive() || !(S.mattari && S.mattari.auto && S.mattari.auto.facility)) return;
+  const order = ["clinic", "onsen", "training", "foaling", "stable"];
+  if(order.some(k => facilityBuilding(k))) return; /* 工事は同時に1件だけ */
+  const cands = order.map(k => ({ key: k, lv: facilityLevel(k) })).filter(c => c.lv < FACILITY_MAX_LV)
+    .sort((a, b) => (a.lv - b.lv) || (order.indexOf(a.key) - order.indexOf(b.key)));
+  for(const c of cands){
+    if(facilityGate(c.lv + 1)) continue; /* 条件未達なら見送り */
+    const cost = FACILITIES[c.key].costs[c.lv];
+    if(S.funds - cost < 100000) continue; /* 安全ライン：強化後も所持資金10億を残す */
+    S.funds -= cost;
+    if(!S.facilities) S.facilities = {};
+    S.facilities[c.key] = { level: c.lv, toLevel: c.lv + 1, startAbs: absWeek(), readyAbs: absWeek() + FACILITY_BUILD_WEEKS };
+    topic("🏗️ " + FACILITIES[c.key].name + " の" + (c.lv ? "強化" : "建設") + "を始めました（自動強化）");
+    return;
   }
 }
 /* v8.0：育成の到達度（入厩時点で、誕生→天井の距離の何割まで育つか）。調教用設備で上がり、最大強化で40%。
@@ -2015,7 +2055,8 @@ function facilitiesHtml(){
     else st = "未建設";
     if(!building && lv < FACILITY_MAX_LV){
       const cost = def.costs[lv];
-      btn = "<button data-facility-build='" + key + "'" + (S.funds < cost ? " disabled" : "") + ">" + (lv ? "強化する（Lv" + (lv + 1) + "・" : "建設する（") + man(cost) + "）</button>";
+      const gate = facilityGate(lv + 1); /* 項目275：条件未達ならボタンを止めて理由を出す */
+      btn = "<button data-facility-build='" + key + "'" + ((S.funds < cost || gate) ? " disabled" : "") + ">" + (lv ? "強化する（Lv" + (lv + 1) + "・" : "建設する（") + man(cost) + "）</button>" + (gate ? "<br><span class='sub'>条件：" + gate + "</span>" : "");
     }
     const up = lv ? man(Math.round(def.upkeep * lv / FACILITY_MAX_LV / 12)) + "/月" : "―";
     return "<tr><td>" + def.name + "<br><span class='sub'>" + def.desc + "</span></td><td>" + (lv ? "Lv" + lv : "―") + "</td><td>" + facilityEffectText(key, lv) + "</td><td>" + up + "</td><td>" + st + "</td><td>" + btn + "</td></tr>";
@@ -2026,6 +2067,8 @@ function chron(text){
   S.chronicle.push({ y:S.year, m:S.month, w:S.week, text });
   if(S.chronicle.length>600) S.chronicle = S.chronicle.slice(-600);
 }
+/* 項目274：年表の馬名には性別を併記する（オーナー指摘：二冠などの告知で牡牝が分からない） */
+function chronName(h){ return h.name + "（" + h.sex + "）"; }
 /* 今週のトピック（v3.7・オーナー決定 2026-11-17）：レースに勝った時だけ流す。まったりモードで
    週が高速に流れる中、登録・引退・故障などの通知が洪水になって勝敗が見えなくなっていたため。
    勝利系以外は topic() を呼んでも記録しない（呼び出し側は無変更）。年表（マイルストーン）や
@@ -2242,6 +2285,7 @@ function migrateV029(){ trimClosedDetails(); /* v8.4：既存セーブの閉じ�
   }
   if(S.mattari && S.mattari.auto && S.mattari.auto.buy == null) S.mattari.auto.buy = true;
   if(S.mattari && S.mattari.auto && S.mattari.auto.auction == null) S.mattari.auto.auction = true; /* v8.3：旧セーブのまったり設定に若馬セリ自動購入の既定（ON）を補う */ /* v3.4：旧セーブのまったり設定に自動購入の既定（ON）を補う */
+  if(S.mattari && S.mattari.auto && S.mattari.auto.facility == null) S.mattari.auto.facility = false; /* 項目276：旧セーブのまったり設定に施設の自動強化の既定（OFF）を補う */
   if(S.horses) for(const h of S.horses){ /* v3.4：繁殖入りの起点が無い旧セーブの牝馬は、初仔の前年（無ければ今年）で補う */
     if(h.status==="broodmare" && h.breedingSince == null){ const fy = mareFirstFoalYear(h); h.breedingSince = fy != null ? fy - 1 : S.year; }
   }
@@ -2604,7 +2648,7 @@ function raceMilestones(h, race, finish, prize){
   if((h.earnings||0) > M.topEarn){
     const newHolder = M.topName !== h.name;
     M.topEarn = h.earnings; M.topName = h.name;
-    if(newHolder && M.topEarn >= 1000000){ chron("【牧場レコード】"+h.name+" が通算獲得賞金の牧場記録を更新（"+man(M.topEarn)+"）"); topic("🏆 "+h.name+" が牧場の賞金レコードを更新しました（"+man(M.topEarn)+"）"); } /* v0.49：牧場レコードは生涯10億円以上の馬から */
+    if(newHolder && M.topEarn >= 1000000){ chron("【牧場レコード】"+chronName(h)+" が通算獲得賞金の牧場記録を更新（"+man(M.topEarn)+"）"); topic("🏆 "+h.name+" が牧場の賞金レコードを更新しました（"+man(M.topEarn)+"）"); } /* v0.49：牧場レコードは生涯10億円以上の馬から */
   }
   if(finish!==1) return;
   S.farmWins++;
@@ -2619,13 +2663,13 @@ function raceMilestones(h, race, finish, prize){
   }
   if((CROWN_COLT.includes(race.name) || CROWN_FILLY.includes(race.name)) && !M.classic){
     M.classic = true;
-    chron("【初制覇】"+h.name+" が "+race.name+" を勝ち、牧場初のクラシック制覇を果たした");
+    chron("【初制覇】"+chronName(h)+" が "+race.name+" を勝ち、牧場初のクラシック制覇を果たした");
   }
   if(isG1ClassRace(race)){
-    if(!M.g1){ M.g1 = true; h.hofLegend = true; h.firstG1 = true; /* v4.1：牧場初のG1勝ち馬は殿堂保証 */ chron("【初制覇】"+h.name+" が "+race.name+" を勝ち、牧場初のG1制覇を果たした"); topic("🏆 牧場初のG1制覇です！"); }
-    if(race.sector==="overseas" && !M.ovsG1){ M.ovsG1 = true; chron("【初制覇】"+h.name+" が "+race.name+" を勝ち、牧場初の海外G1制覇を果たした"); }
-    if(sireIsHomebred(h) && !M.hsG1){ M.hsG1 = true; chron("【初制覇】自家製種牡馬 "+h.sire+" の産駒 "+h.name+" がG1（"+race.name+"）を初めて制覇した"); }
-    if(sireIsHomebred(h) && damIsFarmBorn(h) && !M.hxG1){ M.hxG1 = true; chron("【初制覇】自家生産×自家生産の "+h.name+" がG1（"+race.name+"）を初めて制覇した"); }
+    if(!M.g1){ M.g1 = true; h.hofLegend = true; h.firstG1 = true; /* v4.1：牧場初のG1勝ち馬は殿堂保証 */ chron("【初制覇】"+chronName(h)+" が "+race.name+" を勝ち、牧場初のG1制覇を果たした"); topic("🏆 牧場初のG1制覇です！"); }
+    if(race.sector==="overseas" && !M.ovsG1){ M.ovsG1 = true; chron("【初制覇】"+chronName(h)+" が "+race.name+" を勝ち、牧場初の海外G1制覇を果たした"); }
+    if(sireIsHomebred(h) && !M.hsG1){ M.hsG1 = true; chron("【初制覇】自家製種牡馬 "+h.sire+" の産駒 "+chronName(h)+" がG1（"+race.name+"）を初めて制覇した"); }
+    if(sireIsHomebred(h) && damIsFarmBorn(h) && !M.hxG1){ M.hxG1 = true; chron("【初制覇】自家生産×自家生産の "+chronName(h)+" がG1（"+race.name+"）を初めて制覇した"); }
   }
   /* v4.4：日本ダービー制覇の通知（称号そのものは hasDerbyWin の動的判定で遡及も効く） */
   if(race.name === "日本ダービー") notice("👑 " + h.name + " が日本ダービーを制覇し、殿堂の称号『牧場の優駿』を得ました");
@@ -2635,13 +2679,13 @@ function raceMilestones(h, race, finish, prize){
        王手は最終脚がまだ残っている時（＝今回が最終脚でない時）だけ */
     const route = h.sex==="牝" ? CROWN_FILLY : CROWN_COLT;
     const ohte = route[route.length-1] !== race.name;
-    chron("【二冠】"+h.name+" がクラシック二冠を達成した" + (ohte ? "、三冠に王手をかけた" : ""));
+    chron("【二冠】"+chronName(h)+" がクラシック二冠を達成した" + (ohte ? "、三冠に王手をかけた" : ""));
     topic("👑 "+h.name+" が二冠達成" + (ohte ? "、三冠に王手です" : "です")); }
-  if(legs.length===3 && !h.crown3){ h.crown3 = true; chron("【三冠】"+h.name+" がクラシック三冠を達成した！"); topic("👑👑👑 "+h.name+" が三冠を達成しました！"); }
+  if(legs.length===3 && !h.crown3){ h.crown3 = true; chron("【三冠】"+chronName(h)+" がクラシック三冠を達成した！"); topic("👑👑👑 "+h.name+" が三冠を達成しました！"); }
 }
 function checkHofMilestone(h){
   ensureMile();
-  if(!S.mile.hof && isHof(h)){ S.mile.hof = true; chron("【殿堂入り】"+h.name+" が牧場初の殿堂入りを果たした"); topic("🏆 "+h.name+" が牧場初の殿堂入りです"); }
+  if(!S.mile.hof && isHof(h)){ S.mile.hof = true; chron("【殿堂入り】"+chronName(h)+" が牧場初の殿堂入りを果たした"); topic("🏆 "+h.name+" が牧場初の殿堂入りです"); }
 }
 /* 登録中レースの表示（週ラベルを並べる） */
 function entryListText(h){
@@ -3713,6 +3757,7 @@ function advanceWeek(){
   if(S.month !== prevMonth){ monthlyCosts(prevMonth); monthlyAptTraining(); monthlyTraining(); processMonthlyRetirements(); jumpRouteCheck(); autoExpandLimits(); } /* v7.2：適正調教は能力調教の前に判定（適正調教中の馬は能力が伸びない） */ /* v0.56：月替わりで前月分の経費を精算 */
   // 4) 新しい週のイベント
   facilityCompletions(); /* v6.7：施設の完成判定 */
+  autoFacilityPass(); /* 項目276：施設の自動強化（まったり／スキップ時・トグルONのときだけ） */
   weeklyEvents();
   /* 贈呈馬の自動受け入れ（v3.1・まったりモード）：届いた贈呈馬は辞退せず全て迎える */
   if(autoActive() && S.mattari.auto.gift){ while(S.giftQueue && S.giftQueue.length) acceptGift(S.giftQueue[0].name); }
@@ -6451,7 +6496,7 @@ function viewManual(){
   h += sec("🗓 週の進め方と1年の流れ",
     "「週を進める」で1週進みます。1年は日曜起算の52週です。主な季節イベント：<br>・<b>2〜6月</b>：繁殖シーズン（種付けはこの期間だけ）<br>・<b>年始</b>：出産と全馬の加齢<br>・<b>6月</b>：2歳馬のデビューが始まります（早い馬から。晩成は12月〜年明け、超晩成は3歳の春先）<br>・<b>5月</b>：若馬セリ（当歳・1歳・2歳の売買ができます）<br>・<b>11〜12月</b>：繁殖牝馬セール（毎年15頭出品・全頭受胎済みで、買えば年始に出産します）<br>・<b>頭数上限</b>：繁殖牝馬と、世代ごとのデビュー馬には上限があります（始めた直後は各5頭）。牧場施設タブでお金で5頭ずつ、最大20頭まで拡張できます<br>・<b>年末</b>：引退判定と年次決算<br>「次のイベントまで」で区切りまで一気に進められます。");
   h += sec("💴 お金",
-    "収入の中心は賞金です。賞金は馬主80%／調教師10%／騎手5%／厩務員5%に配分され、馬主分からは50万円を超える部分に10.21%の源泉徴収がかかります。G1勝ち賞金の目安は2億円、未勝利戦は550万円です。<br>レース以外の収入も3つあります。外種付け：産駒実績のある自家製種牡馬には、春によその牝馬が種付けに来て種付け料が入ります（実績で料金ランクS〜Cと頭数が決まり、実績のない種牡馬には来ません）。観光収入：競走を引退して牧場にいる20歳までの馬の実績に応じて人が集まり、毎月入ります（有名な馬ほど大きく、牧場全体で年5億円が上限です）。預託収入：厩舎を建てて診療所があると、他所の馬を預かって1頭あたり月15万円が入ります（受け入れ枠は厩舎のレベルで増えます）。<br>支出：種付料（ランク制：S 3,000万円／A 1,500万円／B 800万円／C 400万円、自家製種牡馬は無料）、海外遠征費（1頭1レース1,000万円）、月次コスト（委託費：現役馬1頭35万円、育成費：0〜1歳1頭20万円、繋養費：繁殖牝馬・自家製種牡馬1頭20万円、経営費：月100万円。開始から10年間は施設維持費も含めて半額になります）。<br>上納金：資金が100億円以上あると、毎年4月に、10億円ごとに1億円（資金の約1割）が差し引かれます。<br>資金はマイナスになってもゲームオーバーにはなりません。<br>牧場施設（任意・牧場施設タブから建設）：5施設とも5段階まで強化でき、効果はレベルで段階的に上がります（今の効果が最大のLv5）。温泉・馬プール（疲労の回復が速い）、診療所（故障の期間短縮と能力低下の回避。競走寿命の見立てもLv1から見られます）、分娩舎・繁殖施設（12歳以上の受胎率アップ）、調教用設備（育成の到達度と調教の伸び。Lv5で育成40%・調教+10%）、厩舎（他所の馬の預託を受け入れる。診療所があると預託収入が入ります）。費用はレベルごとに嵩み（全部を最大までで総額約80億円）、維持費が毎月かかります（全部最大で年約10.3億円）。1段階の工事は約2ヶ月で、工事中も今のレベルの効果は効きます。");
+    "収入の中心は賞金です。賞金は馬主80%／調教師10%／騎手5%／厩務員5%に配分され、馬主分からは50万円を超える部分に10.21%の源泉徴収がかかります。G1勝ち賞金の目安は2億円、未勝利戦は550万円です。<br>レース以外の収入も3つあります。外種付け：産駒実績のある自家製種牡馬には、春によその牝馬が種付けに来て種付け料が入ります（実績で料金ランクS〜Cと頭数が決まり、実績のない種牡馬には来ません）。観光収入：競走を引退して牧場にいる20歳までの馬の実績に応じて人が集まり、毎月入ります（有名な馬ほど大きく、牧場全体で年5億円が上限です）。預託収入：厩舎を建てて診療所があると、他所の馬を預かって1頭あたり月15万円が入ります（受け入れ枠は厩舎のレベルで増えます）。<br>支出：種付料（ランク制：S 3,000万円／A 1,500万円／B 800万円／C 400万円、自家製種牡馬は無料）、海外遠征費（1頭1レース1,000万円）、月次コスト（委託費：現役馬1頭35万円、育成費：0〜1歳1頭20万円、繋養費：繁殖牝馬・自家製種牡馬1頭20万円、経営費：月100万円。開始から10年間は施設維持費も含めて半額になります）。<br>上納金：資金が100億円以上あると、毎年4月に、10億円ごとに1億円（資金の約1割）が差し引かれます。<br>資金はマイナスになってもゲームオーバーにはなりません。<br>牧場施設（任意・牧場施設タブから建設）：5施設とも5段階まで強化でき、効果はレベルで段階的に上がります（今の効果が最大のLv5）。温泉・馬プール（疲労の回復が速い）、診療所（故障の期間短縮と能力低下の回避。競走寿命の見立てもLv1から見られます）、分娩舎・繁殖施設（12歳以上の受胎率アップ）、調教用設備（育成の到達度と調教の伸び。Lv5で育成40%・調教+10%）、厩舎（他所の馬の預託を受け入れる。診療所があると預託収入が入ります）。費用はレベルごとに嵩み（全部を最大までで総額40億円）、維持費が毎月かかります（全部最大で年10億円）。強化にはレベルごとの条件があります（Lv2は所持資金3億円、Lv3は10億円、Lv4は創業10年と所持資金30億円、Lv5は創業25年と所持資金80億円）。1段階の工事は約2ヶ月で、工事中も今のレベルの効果は効きます。自動操作の設定で「施設の自動強化」をONにすると、まったり／スキップ中に条件を満たした施設を自動で強化します（工事は同時に1件だけ、強化後も所持資金10億円は残します）。");
   h += sec("📊 能力の見方（ランク表示）",
     "能力は数字ではなくランクでだけ表示されます。スピード／スタミナ／根性は <b>S〜G</b>、第4の要素 <b>パワー</b> は <b>C〜Sの4段階</b> で、どれも内部的には100点満点です。パワーは距離や馬場から決まるものではなく、その馬の個性です。力の要る競馬場（中山・阪神の坂、洋芝など）や重馬場、前に行く脚質で効いてきます。<br>各パラメータには「素質（上限）」があり、生まれたときの能力はごく小さいところから始まります。育成と調教で上限へ近づけていくのが育て方で、上限そのものは配合で決まります。");
   h += sec("🏋 育成と調教",
@@ -8332,6 +8377,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v8.12</footer>
+<footer>競馬シミュレーター（趣味） v8.13</footer>
 </body>
 </html>
