@@ -87,6 +87,10 @@ TRIALS_DOM = {
     "マイルチャンピオンシップ": ["富士S", "スワンS"],
     "チャンピオンズC": ["みやこS", "武蔵野S"],
 }
+# 国内→海外のトライアル（項目262）：ヒヤシンスSを勝つと UAEダービーへの優先候補が付く
+TRIALS_DOM_OV = {
+    "UAEダービー": ["ヒヤシンスステークス"],
+}
 # 地方シリーズ（v0.29）：NAR公式シリーズ競走（keiba.go.jp/raceseries、2026年度）より。
 # グランダム・ジャパン＝世代別牝馬シリーズ（指定交流＝Jpn格付け分のみ当ゲーム収録）、未来優駿＝秋の2歳シリーズ
 ROUTES_REG = {
@@ -100,6 +104,7 @@ def dom_labels(name):
     labs = [route for route, names in ROUTES_DOM.items() if name in names]
     labs += [route for route, names in ROUTES_REG.items() if name in names]
     labs += ["トライアル：" + t for t, trials in TRIALS_DOM.items() if name in trials]
+    labs += ["トライアル：" + t for t, trials in TRIALS_DOM_OV.items() if name in trials]
     return labs
 
 import unicodedata
