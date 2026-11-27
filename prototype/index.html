@@ -692,10 +692,19 @@ function maturityA(h, a){
   const boost = paceOf(h) < 0 ? -paceOf(h) * 0.22 * (1 - x) * (1 - x) : 0;
   return clamp(base + boost, 0.3, 1);
 }
-/* 回復の衰え（v0.50）：ピーク後2年で疲労回復-20%、4年で-40%。故障率は年齢で変えない */
+/* 回復の衰え（v0.50）：ピーク後2年で疲労回復-20%、4年で-40%。故障率は年齢で変えない
+   項目270で週回復は weeklyRecovery に移行した（この関数は互換のため残置） */
 function recoveryFactor(h){
   const yp = yearsPastPeak(h);
   return yp >= 4 ? 0.6 : yp >= 2 ? 0.8 : 1;
+}
+/* 体質（項目270・オーナー決定 2026-11-27）：出生時に決まる回復の適性。○は回復が速く、✕は遅い */
+function constitutionMul(h){ const m = h.aff && h.aff.recAff; return m === "○" ? 1.2 : m === "✕" ? 0.8 : 1; }
+/* 時期のベース（項目270）：ピークからの年数で 18／16／14／12 と下がる */
+function recoveryStageBase(h){ const yp = yearsPastPeak(h); return yp >= 4 ? 12 : yp >= 2 ? 14 : yp > 0 ? 16 : 18; }
+/* 週の通常回復量（項目270）：時期×体質×疲労の抜け×温泉を 10〜20 に収める。休養・故障は2倍、放牧は1.5倍 */
+function weeklyRecovery(h){
+  return clamp(Math.round(recoveryStageBase(h) * constitutionMul(h) * traitRecoveryMul(h) * (1 + 0.05 * facilityLevel("onsen"))), 10, 20);
 }
 function maturity(h){ return maturityA(h, ageOf(h) + (S.month-1)/12); }
 /* ===== 3パラメータ（スピード／スタミナ／根性、隠し値40〜100・表示はS〜Gランクのみ） ===== */
@@ -772,6 +781,14 @@ function ensureParams(){
     ensureAffinities(h);
     ensureTraits(h); /* v6.0：馬特性（旧セーブの馬にも割り当てる） */
     ensureWeight(h);
+    if(h.ovPts == null){ /* 項目272：遠征凍結ポイントの旧セーブ補完（戦績から再計算。凍結中の国内再証明で0に戻る歩行で数える） */
+      let p = 0; const line = ovFreezeLine() || 4;
+      for(const r of (h.results || [])){
+        if(overseasRaceByName(r.race)) p = Math.max(0, p + ovFinishPoints(r.finish));
+        else if(p >= line && ovReproveOk(r)) p = 0;
+      }
+      h.ovPts = p;
+    }
   }
   for(const st of S.stallions){ stallionGen(st); if(!st.coat) st.coat = randomCoat(); }
 }
@@ -1798,7 +1815,7 @@ function substituteAncestor(name, year, group){
 function initState(){ invalidateIdx(); /* v7.6 */
   S = { year:2026, month:1, week:1, calVer:2, ver:3, funds:50000, horses:[], stallions: JSON.parse(JSON.stringify(DATA.stallions)),
         courseRecords:{}, raceRecords:{}, recordLog:[], chronicle:[], statsBirths:{}, topics:[], notices:[], yearEndDone:false, phase:"choose", candidates:[], salePool:[], saleYear:2026, usedTemplates:[], firstMatingDone:false,
-        giftQueue:[], giftAprDone:false, giftDecDone:false, giftSet:null, favs:[], mile:null, farmWins:0, farmPrize:0, kanmuri:"", soldHorses:[], autoRotDefault:8, autoPolicyDefault:"積極", autoRangePlusDefault:true, autoBulkOpen:false, retiredOpen:false, hofOpen:false, facilitiesOpen:false, branchOpen:false, topicsOpen:false, noticesOpen:false, autoOverseasPolicy:"消極的",
+        giftQueue:[], giftAprDone:false, giftDecDone:false, giftSet:null, favs:[], mile:null, farmWins:0, farmPrize:0, kanmuri:"", soldHorses:[], autoRotDefault:8, autoPolicyDefault:"積極", autoRangePlusDefault:true, autoBulkOpen:false, retiredOpen:false, hofOpen:false, facilitiesOpen:false, branchOpen:false, topicsOpen:false, noticesOpen:false, autoOverseasPolicy:"消極的", ovFreezeLine:4,
         mattari: mattariDefault(), retirePolicyDefault:"logic", retireQueue:[], mareLimit:5, debutLimit:5, auctionYear:0, auctionPool:[],
         lineState:{}, lineGf:false, hofGf:true, hofGf2:true, meltNickUsed:false, nicks:{}, nickCand:{}, nickRecord:{}, lineNickStat:{}, branches:{}, branchRecord:{}, branchSeq:0, jockeys: seedJockeys(), jockeySeq: 26, jockeyOpen: false }; /* v7.0：子系統／騎手 */ /* v6.2：ニックス成立（個体）／候補／実績／初期ニックスの+2対象（セーブ別ランダム） */ /* v6.2：特別ニックス（メルトスイート×カルストンライトオ）の初回使用フラグ */ /* v4.2.1：新規セーブは殿堂の経過措置スタンプの対象外（最初から移行済みにしておく） */ /* v3.4：牝系の確立状態（始祖ID→{streak, estYear, decline}）。lineGf は旧セーブの経過措置フラグ */ /* v3.1：まったりモード（自動運転）と引退方針・年末確認キュー。頭数上限（繁殖牝馬／1世代のデビュー馬）はプレイヤー設定可・既定20・最小値なし */
   initStallionRoster(); /* v3.0：各エントリに birthYear／retireAge／retired／fictional と bmsLine を用意する */
@@ -2322,6 +2339,7 @@ function migrateV029(){ trimClosedDetails(); /* v8.4：既存セーブの閉じ�
   /* v3.5 移行：自動出走の海外遠征方針（積極的／普通／消極的）。既定は消極的＝自動では行かない
      （遠征費がかかるため、従来どおり手動が原則）。旧 autoOverseas（真偽）の true は「普通」へ読み替える */
   if(!["消極的", "普通", "積極的", "無制限"].includes(S.autoOverseasPolicy)) S.autoOverseasPolicy = (S.autoOverseas === true) ? "普通" : "消極的"; /* 項目260：4段目「無制限」を追加 */
+  if(![0, 3, 4, 5, 6].includes(S.ovFreezeLine)) S.ovFreezeLine = 4; /* 項目272：遠征凍結ライン（点） */
   for(const h of S.horses){ if(!["消極的", "普通", "積極的", "無制限"].includes(h.expPolicy)) h.expPolicy = null; } /* 項目260：馬別遠征方針（null＝おまかせ） */
   delete S.autoOverseas;
   for(const h of S.horses){ if(typeof h.autoRangePlus !== "boolean") h.autoRangePlus = null; }
@@ -2689,7 +2707,7 @@ function transportFatigue(h, race, atAbs){
   if(h.talent === "iron") base = Math.round(base / 2); /* v4.2：鉄馬は輸送の疲れも半分 */
   return base;
 }
-/* 海外遠征：レース前週＝出発・検疫週（レース・調教不可、疲労+10）、レース当日に輸送疲労+20（transportBase 経由：2歳は重め、輸送○・鉄馬で半減。POST_SIM 128）、翌週＝帰国・検疫週（レース・調教不可、休養同率で回復）。
+/* 海外遠征：レース前週＝出発・検疫週（レース・調教不可、疲労+10）、レース当日に輸送疲労+20（transportBase 経由：2歳は重め、輸送○・鉄馬で半減。POST_SIM 128）、翌週＝帰国・検疫週（レース・調教不可、休養同率で回復しつつ帰りの輸送疲労+10がかかる。項目270）。
    遠征費は1レース一律1,000万円（v0.51。従来の800万円は実際には未徴収だった） */
 const EXPEDITION_FEE = 1000;
 function hasOverseasEntryAt(h, a){ const e = h.entries && h.entries[a]; return !!(e && e.sector === "overseas"); }
@@ -3073,6 +3091,7 @@ function genAffinities(h){
   aff.jumpAff = rollMark(0.20, 0.15); // 障害適性（v5.0）：○20%／✕15%／−65%
   aff.euAff = rollMark(0.20, 0.15); // 欧州適性（v5.5）：○20%／✕15%／−65%
   aff.ovAff = rollMark(0.20, 0.15); // 海外適性（項目267）：○20%／✕15%／−65%。全海外レースで ○×1.005／✕×0.995（効果は象徴的・本体は判定材料）
+  aff.recAff = rollMark(0.20, 0.15); // 体質（項目270・オーナー決定）：○20%／✕15%／−65%。疲労回復の速さにだけ効く（○×1.2／✕×0.8）。予想なし・最初から確定表示
   return aff;
 }
 function predictMark(t){
@@ -3086,6 +3105,7 @@ function ensureAffinities(h, centre){
   if(!h.aff) h.aff = genAffinities(h);
   if(h.aff.euAff == null) h.aff.euAff = rollMark(0.20, 0.15); /* v5.5：旧セーブの馬にも欧州適性を割り当てる */
   if(h.aff.ovAff == null) h.aff.ovAff = rollMark(0.20, 0.15); /* 項目267：旧セーブの馬にも海外適性を割り当てる */
+  if(h.aff.recAff == null) h.aff.recAff = rollMark(0.20, 0.15); /* 項目270：旧セーブの馬にも体質を割り当てる（予想は付けない） */
   if(ageOf(h) >= 2 && !h.aff.pred){
     const a = h.aff;
     const pred = { root: predictMark(a.rootAff), nonRoot: predictMark(a.nonRoot), yuso: predictMark(a.yuso ? "○" : "-"), go: predictMark(a.goAff || "-"), jump: predictMark(a.jumpAff || "-"), eu: predictMark(a.euAff || "-"), ov: predictMark(a.ovAff || "-"), dist:{}, course:{} };
@@ -3256,7 +3276,7 @@ function affinitySection(h){
   if(!(h.status === "racehorse" || h.status === "yearling" || h.status === "foal")) return "";
   const a = h.aff;
   if(!a) return "";
-  if(ageOf(h) < 2 || !a.pred) return "<dt>相性</dt><dd><span class='sub'>2歳になるとスタッフの予測が出ます。実際に走った距離・競馬場から確定していきます</span></dd>";
+  if(ageOf(h) < 2 || !a.pred) return "<dt>相性</dt><dd><span class='sub'>2歳になるとスタッフの予測が出ます。実際に走った距離・競馬場から確定していきます</span><br>体質：<b>" + (a.recAff || "-") + "</b></dd>"; /* 項目270：体質だけは予想なしで最初から確定 */
   const p = a.pred;
   const distParts = [];
   for(const b of AFF_BANDS){
@@ -3276,6 +3296,7 @@ function affinitySection(h){
     + " ／ 障害：" + affShown(a.jumpAff || "-", p.jump, !!(a.known && a.known.jump)) /* v5.0 */
     + " ／ 欧州：" + affShown(a.euAff || "-", p.eu, !!(a.known && a.known.eu)) /* v5.5 */
     + " ／ 海外：" + affShown(a.ovAff || "-", p.ov, !!(a.known && a.known.ov)) /* 項目267 */
+    + " ／ 体質：<b>" + (a.recAff || "-") + "</b>" /* 項目270：予想なし・最初から確定 */
     + (distParts.length ? "<br>距離別：" + distParts.join("、") : "")
     + (courseParts.length ? "<br>競馬場別：" + courseParts.join("、") : "")
     + "</dd>";
@@ -3592,6 +3613,10 @@ function runRace(race, entries){
     if(finish === 1 && (recMarkC || recMarkR)){ rec.recMark = recMarkC ? "C" : "R"; rec.comment += recMarkC ? "。コースレコードで勝利。" : "。レースレコードで勝利。"; } /* v8.5 */
     const pay = prizePayout(prize); /* v0.56：記録は総額、資金に入るのは進上金・源泉徴収を引いた手取り */
     h.results.push(rec); _resVer++; h.earnings += prize; S.funds += pay.net;
+    /* 項目272：遠征凍結ポイント。海外は着順で加減点（下限0）。国内（地方含む）は
+       凍結中の馬が勝つか重賞・リステッド3着以内で再開＝ポイントを0に戻す */
+    if(race.sector === "overseas") h.ovPts = Math.max(0, (h.ovPts || 0) + ovFinishPoints(finish));
+    else if(overseasFormBlocked(h) && ovReproveOk(rec)) h.ovPts = 0;
     { const jj = jMap.get(h); if(jj){ jj.rides++; jj.yearRides++; jockeyGainXp(jj, 1); if(finish === 1){ jj.wins++; jj.yearWins++; jockeyGainXp(jj, 4); if(isG1ClassRace(race)){ jj.g1Wins++; jockeyGainXp(jj, 8); } } } } /* v7.0：騎手の成績／v7.0.4：XP */
     if(prize > 0 && finish!==1) topic(payoutText(h, pay)); /* v3.7：勝利時は勝利トピックに一本化（賞金の内訳は戦績・資金で確認できる）。2着以下の賞金は従来どおり（勝利系フィルタで落ちるため実質表示されない） */
     revealAffinities(h, race, tfMap.get(h) || 0); /* 相性は走って初めて確定する（v0.52） */
@@ -3663,13 +3688,13 @@ function advanceWeek(){
     if(h.retired) continue;
     if(h.expedReturnAbs != null && absWeek() > h.expedReturnAbs) h.expedReturnAbs = null;
     if(h.status==="racehorse"){
-      const rf = recoveryFactor(h) * traitRecoveryMul(h) * (1 + 0.05 * facilityLevel("onsen")); /* v7.0：温泉はレベル制 */ /* v0.50：ピーク後は疲労回復が衰える（-20%/-40%）。状態回復は不変／v6.0：疲労の抜け（早い×1.25／遅い×0.75）／v6.7：温泉・馬プールで+25% */
+      const rec = weeklyRecovery(h); /* 項目270：通常週の回復量（時期×体質で10〜20）。休養・故障・帰国は2倍、放牧は1.5倍 */
       if(isTravelWeek(h, absWeek())){ h.fatigue = clamp(h.fatigue+10,0,100); } /* v0.51：出発・検疫週（レース・調教不可） */
-      else if(isReturnWeek(h, absWeek())){ h.fatigue = clamp(h.fatigue-40,0,100); h.condition = clamp(h.condition+traitCondGain(h, 10),5,100); } /* v0.51：帰国・検疫週（休養同率） */
-      else if(isInjured(h)){ h.fatigue = clamp(h.fatigue-Math.round(40*rf),0,100); h.condition = clamp(h.condition+traitCondGain(h, 10),5,100); }
-      else if(h.policy==="pasture"){ const pm = h.traits && h.traits.pasture === "refresh" ? 1.25 : h.traits && h.traits.pasture === "lax" ? 0.75 : 1; h.fatigue = clamp(h.fatigue-Math.round(30*rf*pm),0,100); h.condition = clamp(h.condition+traitCondGain(h, h.traits && h.traits.pasture === "refresh" ? 18 : h.traits && h.traits.pasture === "lax" ? 8 : 12),5,100); } /* v6.0：放牧リフレッシュ型は放牧の回復が大きい／緩む型は小さい */
-      else if(h.policy==="rest"){ h.fatigue = clamp(h.fatigue-Math.round(40*rf),0,100); h.condition = clamp(h.condition+traitCondGain(h, 10),5,100); }
-      else { const am = h.aptActive ? 0.5 : 1; h.fatigue = clamp(h.fatigue-Math.round(20*rf*am),0,100); h.condition = clamp(h.condition+traitCondGain(h, 5),5,100); } /* v6.0：状態の波（上がりやすい）は状態の上昇が大きい／v7.2：適正調教中は疲労が溜まりやすい（回復半分） */
+      else if(isReturnWeek(h, absWeek())){ h.fatigue = clamp(h.fatigue-2*rec+10,0,100); h.condition = clamp(h.condition+traitCondGain(h, 10),5,100); } /* 項目270：帰国・検疫週は休養同率（2倍）だが、帰りの輸送疲労+10がかかる。一律-40は廃止 */
+      else if(isInjured(h)){ h.fatigue = clamp(h.fatigue-2*rec,0,100); h.condition = clamp(h.condition+traitCondGain(h, 10),5,100); }
+      else if(h.policy==="pasture"){ const pm = h.traits && h.traits.pasture === "refresh" ? 1.25 : h.traits && h.traits.pasture === "lax" ? 0.75 : 1; h.fatigue = clamp(h.fatigue-Math.round(1.5*rec*pm),0,100); h.condition = clamp(h.condition+traitCondGain(h, h.traits && h.traits.pasture === "refresh" ? 18 : h.traits && h.traits.pasture === "lax" ? 8 : 12),5,100); } /* v6.0：放牧リフレッシュ型は放牧の回復が大きい／緩む型は小さい */
+      else if(h.policy==="rest"){ h.fatigue = clamp(h.fatigue-2*rec,0,100); h.condition = clamp(h.condition+traitCondGain(h, 10),5,100); }
+      else { const am = h.aptActive ? 0.5 : 1; h.fatigue = clamp(h.fatigue-Math.round(rec*am),0,100); h.condition = clamp(h.condition+traitCondGain(h, 5),5,100); } /* v6.0：状態の波（上がりやすい）は状態の上昇が大きい／v7.2：適正調教中は疲労が溜まりやすい（回復半分） */
     }
   }
   /* 週の終わりの自動種付け（v7.0.2・オーナー 提案）：2月第1週／4月第1週を「終える」ときに一巡する。
@@ -3820,6 +3845,12 @@ function onNewYear(){
         for(const pv of [so, do_]){ if(pv === "○") pOo += 0.12; else if(pv === "✕") pXo += 0.10; }
         foal.aff.ovAff = rollMark(Math.min(pOo, 0.55), Math.min(pXo, 0.45));
       }
+      { /* 体質も父母から継承（項目270・海外適性と同じ寄せ。系統の色は付けない） */
+        const sr = (st.aff && st.aff.recAff) || "-", dr_ = (h.aff && h.aff.recAff) || "-";
+        let pOr = 0.20, pXr = 0.15;
+        for(const pv of [sr, dr_]){ if(pv === "○") pOr += 0.12; else if(pv === "✕") pXr += 0.10; }
+        foal.aff.recAff = rollMark(Math.min(pOr, 0.55), Math.min(pXr, 0.45));
+      }
       { /* 馬体重（v0.53・フレーバーのみ）：両親の成熟体重の平均±三角ブレ20kg */
         const sireHorseW = S.horses.find(x => x.status === "stallion" && x.name === st.name);
         const sw = sireHorseW && sireHorseW.matureWeight != null ? sireHorseW.matureWeight : (st.weight != null ? st.weight : 490);
@@ -3925,6 +3956,7 @@ function weeklyEvents(){
     if(h.status==="racehorse" && ageOf(h)>=7 && !h.retireNudged){ h.retireNudged = true; notice("引退を考え始める時期です："+h.name+"（"+ageOf(h)+"歳）。馬のページから引退させられます"); }
     if(h.status==="racehorse" && h.fatigue>=80) notice("⚠️ "+h.name+" の疲労がかなり溜まっています。放牧か休養がおすすめです");
     if(h.status==="racehorse" && growthStage(h)==="充実期" && !h.peakNoted){ h.peakNoted = true; notice("🌟 "+h.name+" が充実期に入りました（"+h.growth+"）"); }
+    if(h.status==="racehorse" && overseasFormBlocked(h) && h.lastOvProgress != null && progressOf(h) - h.lastOvProgress >= 0.10) h.ovPts = 0; /* 項目272：遠征凍結の成長再開（最後の遠征から成長度+10でポイント解除） */
     /* ピークアウト通知（v0.29）：成熟度がピークを過ぎて下降に転じたら1頭につき1回だけ知らせる。内部型は伏せたまま */
     if(h.status==="racehorse" && !h.peakOutNoted){
       const aF = ageOf(h) + (S.month-1)/12;
@@ -4109,6 +4141,25 @@ function autoAbilityLevel(h){
   for(const L of [2, 4, 6, 8, 10]) if(abil >= AUTO_ABILITY_LINE[L]) lv = L;
   return lv;
 }
+/* 項目272（オーナー設計）：実績フロア。勝ったことのある格に応じた下限——G1級勝ち→9／
+   G2級勝ち→8／G3級勝ち→6。G1勝ち馬が海外の大敗2回でフォーム8に落ち、国内G1まで
+   閉ざされる「谷」（2026-11-27 実プレイ観測：オグリライラック／ゴールドロード）を潰す。
+   G2番長（G1で勝ちきれないがG2では上位）とG3メインの主戦場も同じ形で守る */
+function careerFloorLevel(h){
+  let f = 0;
+  for(const r of (h.results || [])){
+    if(r.finish !== 1) continue;
+    const lv = raceLevelOf(r.grade);
+    if(lv >= 10) f = Math.max(f, 9);
+    else if(lv >= 8) f = Math.max(f, 8);
+    else if(lv >= 6) f = Math.max(f, 6);
+  }
+  return f;
+}
+/* フロアが効く期間：その馬のピーク（peakOf）＋1.3年まで＝growthStage の「充実期」の
+   終わりと一致。成長途中の若い馬（ダービー馬の3歳秋など）も勝った時点から守り、
+   円熟期以降は下限が外れてフォームどおりに落ちる（オーナーの「充実期なら止まる」設計） */
+function primeFloorActive(h){ return ageOf(h) - peakOf(h) <= 1.3; }
 function autoTargetLevel(h){
   const form = autoFormLevel(h);
   let ab = autoAbilityLevel(h);
@@ -4120,7 +4171,10 @@ function autoTargetLevel(h){
       if(last2.length === 2 && last2.every(r => r.finish >= 6)) ab = levelDown(ab); else break;
     }
   }
-  return Math.max(form, ab);
+  let t = Math.max(form, ab);
+  const fl = careerFloorLevel(h);
+  if(fl > t && primeFloorActive(h)) t = fl; /* 項目272：実績フロア（ピーク＋1.3年まで） */
+  return t;
 }
 function autoGenGradedOk(h, race){
   if(!h || h.wins < 1) return false;
@@ -4267,27 +4321,33 @@ function autoUpcomingOverseas(h){
   return best;
 }
 function overseasTripsThisYear(h){ return h.tripsYear === S.year ? (h.trips || 0) : 0; }
-/* 項目259（オーナー指示）：海外で2回続けて6着以下（掲示板外）になった馬は自動遠征を止める。
-   再開は2経路：①最後の遠征の後に国内で勝つか、重賞・リステッドで3着以内（国内で証明し直す）
-   ②成長度（progressOf）が最後の遠征時点から10ポイント伸びた（若い馬が育って別馬になる）。
-   手動登録・ローテーション指定は対象外（従来の自動限定ゲートと同じ） */
+/* 項目259（オーナー指示）→項目272でポイント制に改修（オーナー設計）：海外の着順で
+   ポイントが増減し、設定ライン（既定4点）に達すると自動遠征を凍結する。
+   加点：10着以下 +2／6〜9着 +1。減点：4〜5着 −1／3着以内 −2（下限0）。
+   大敗2回でも、6着以下4回でも、混ざっても凍結する。好走はリセットでなく減点
+   （オーナー指示）なので、大敗と好走を繰り返す馬はライン付近をうろうろする。
+   再開は従来どおり2経路：①凍結後に国内（地方含む）で勝つか重賞・リステッド3着以内
+   （runRace でポイントを0に戻す）②成長度が最後の遠征時点から10ポイント伸びた
+   （週次処理でポイントを0に戻す）。手動登録・ローテーション指定は対象外 */
+function ovFinishPoints(finish){
+  if(finish == null) return 2; /* 競走中止は大敗扱い（項目259の旧判定と同じ） */
+  if(finish >= 10) return 2;
+  if(finish >= 6) return 1;
+  if(finish >= 4) return -1;
+  return -2;
+}
+function ovFreezeLine(){ return [0, 3, 4, 5, 6].includes(S.ovFreezeLine) ? S.ovFreezeLine : 4; } /* 0＝凍結しない */
+function ovReproveOk(r){ return r.finish === 1 || ((GRADED_SET.includes(r.grade) || r.grade === "L") && r.finish != null && r.finish <= 3); }
 function overseasFormBlocked(h){
-  const res = h.results || [];
-  const ovIdx = [];
-  res.forEach((r, i) => { if(overseasRaceByName(r.race)) ovIdx.push(i); });
-  if(ovIdx.length < 2) return false;
-  const last2 = ovIdx.slice(-2).map(i => res[i]);
-  if(!last2.every(r => r.finish == null || r.finish >= 6)) return false;
-  const since = res.slice(ovIdx[ovIdx.length - 1] + 1).filter(r => !overseasRaceByName(r.race));
-  if(since.some(r => r.finish === 1 || ((GRADED_SET.includes(r.grade) || r.grade === "L") && r.finish != null && r.finish <= 3))) return false;
-  if(h.lastOvProgress != null && progressOf(h) - h.lastOvProgress >= 0.10) return false;
-  return true;
+  const line = ovFreezeLine();
+  return line > 0 && (h.ovPts || 0) >= line;
 }
 /* ================= 項目260：自動遠征の全面改修（設計相談chat確定・オーナー承認） =================
    方針は4段（消極的／普通／積極的／無制限）。行き先の土台は「日本馬が実際に行くレース」の
    56リスト。馬ごとに実効段を決める：プレイヤーの馬別設定（h.expPolicy）があれば牧場指定を
-   超えてもそのまま通る。設定のない馬は実績・レベルから段を自動導出（保存せず都度計算）し、
-   牧場指定（S.autoOverseasPolicy）がその天井になる。牧場が無制限なら導出馬も無制限扱い。
+   超えてもそのまま通る（ただし設定した段の資格を満たさない馬は行かない＝項目269）。設定の
+   ない馬は実績・レベルから段を自動導出（保存せず都度計算）し、牧場指定
+   （S.autoOverseasPolicy）がその天井になる。牧場が無制限なら導出馬も無制限扱い。
    年間の枠は G1 級の遠征だけを数える（G2 以下は枠を消費しない＝ニエル賞の穴の手当て）。
    資格の実績は国内・海外を問わず全戦績で数える（手動側 eligibility の関門は従来通り別に効く） */
 const OV_AUTO_LIST = new Set(["香港カップ","香港マイル","香港スプリント","香港ヴァーズ","クイーンエリザベス二世カップ","チェアマンズスプリントプライズ","ドバイワールドカップ","ドバイシーマクラシック","ドバイターフ","ドバイゴールデンシャヒーン","アルクォーツスプリント","ゴドルフィンマイル","ドバイゴールドカップ","UAEダービー","サウジカップ","ネオムターフカップ","1351ターフスプリント","レッドシーターフハンデキャップ","リヤドダートスプリント","サウジダービー","アルクドゥトリオンフ賞（凱旋門賞）","ジャックルマロワ賞","サンクルー大賞典","イスパーン賞","ニエル賞","フォワ賞","プリンスオブウェールズＳ","キングジョージ六世＆クイーンエリザベスＳ","ジュライカップＳ","アイリッシュチャンピオンＳ","ブリーダーズカップクラシック","ブリーダーズカップターフ","ブリーダーズカップマイル","ブリーダーズカップスプリント","ブリーダーズカップダートマイル","ブリーダーズカップディスタフ","ブリーダーズカップフィリーアンドメアターフ","ブリーダーズカップフィリーアンドメアスプリント","ブリーダーズカップターフスプリント","ブリーダーズカップジュヴェナイル","ブリーダーズカップジュヴェナイルターフ","ブリーダーズカップジュヴェナイルフィリーズ","ブリーダーズカップジュヴェナイルフィリーズターフ","ブリーダーズカップジュヴェナイルターフスプリント","ケンタッキーダービー","プリークネスＳ","ベルモントＳ","コックスプレート","コーフィールドカップ","メルボルンカップ","ジエベレスト","Ｔ・Ｊ・スミスＳ","ライトニングＳ","ニューマーケットＨ","マニカトＳ","チャンピオンズスプリント"]);
@@ -4312,9 +4372,10 @@ function derivedExpTier(h){
   if(expQualOk(h, "消極的")) return "消極的";
   return null;
 }
+function farmExpTier(){ return EXP_TIERS.includes(S.autoOverseasPolicy) ? S.autoOverseasPolicy : "消極的"; }
 function effectiveExpTier(h){
-  if(EXP_TIERS.includes(h.expPolicy)) return h.expPolicy; /* プレイヤーの馬別設定は天井を超えて通る */
-  const farm = EXP_TIERS.includes(S.autoOverseasPolicy) ? S.autoOverseasPolicy : "消極的";
+  if(EXP_TIERS.includes(h.expPolicy)) return expQualOk(h, h.expPolicy) ? h.expPolicy : null; /* 馬別設定は牧場指定を超えて通る。ただし設定した段の資格は必要（項目269：消極的設定が資格なしで通っていた不具合の修正） */
+  const farm = farmExpTier();
   if(farm === "無制限") return "無制限";
   const d = derivedExpTier(h);
   if(!d) return null;
@@ -4429,6 +4490,23 @@ function crownPlacedOvBlock(h, a){ /* 項目268：三冠の脚で3着以内に�
   }
   return false;
 }
+/* 項目271：帰国後の空白（自動出走だけ）。直近の出走が海外だった馬は、その海外レースから
+   5週以上空けないと国内戦を入れない。例外は1つだけ：間隔ちょうど4週・国内G1級・海外で
+   走ったレースと同じ距離のとき（BCターフ→ジャパンCの形）。海外転戦・手動・指定は対象外 */
+function returnGapBlocked(h, race, a){
+  let lo = null, loAbs = -1, lastAbs = -1;
+  for(const r of (h.results || [])){
+    if(!r || !r.race) continue;
+    const ra = resultAbsOf(r); if(ra > lastAbs) lastAbs = ra;
+    const ov = overseasRaceByName(r.race);
+    if(ov && ra > loAbs){ loAbs = ra; lo = ov; }
+  }
+  if(!lo || loAbs !== lastAbs) return false; /* 効くのは直近の出走が海外のときだけ */
+  const gap = a - loAbs;
+  if(gap >= 5) return false;
+  if(gap === 4 && isG1ClassRace(race) && race.distance_m === lo.distance_m) return false; /* 同距離G1の例外 */
+  return true;
+}
 function autoEntryPass(){
   if(!S || S.phase==="choose") return;
   const savedAhead = entryWeekAhead;
@@ -4470,7 +4548,7 @@ function autoEntryPass(){
           if(!expDestOk(tierForRace, race)) continue; /* 行き先：無制限以外は56リスト（普通は行きやすさ条件がG1のみ） */
           if(!ovCapOk(h, tierForRace, race)) continue; /* 年間の枠は G1 級の遠征だけを数える（G2以下は数えない） */
           if(ovPingPongBlocked(h, a)) continue; /* 例外側ガード：太平洋の往復（滞在が切れた後、最後の海外出走から10週は新規遠征なし） */
-          if(overseasFormBlocked(h)) continue; /* 項目259：海外2連敗（6着以下×2）で自動遠征を停止。国内実績か成長で再開 */
+          if(overseasFormBlocked(h)) continue; /* 項目259→272：遠征凍結ポイントがラインに達した馬は自動遠征を停止。国内実績か成長で再開 */
           if(crownPlacedOvBlock(h, a)) continue; /* 項目268：ダート三冠の脚で3着以内の馬は、次の脚が近い間は自動で海外に行かない */
           if(tierForRace !== "無制限" && expRaceLevelOf(race) > targetLv + 1) continue; /* 項目261：遠征にもレベル判定（国内と同じ+1まで）。項目262：ダービーロードは下げた格で見る。無制限は免除 */
         }
@@ -4490,6 +4568,7 @@ function autoEntryPass(){
         if(a < restUntil && !isG1ClassRace(race)) continue;    /* v6.5：休養中はG1以外を拾わない */
         if(legPend && a < legPend.abs && a >= legPend.abs - 5 && raceKeyOf(a, race) !== raceKeyOf(legPend.abs, legPend.race) && !crownRouteOf(legPend.race).legs.includes(race.name) && !(race.labels || []).includes("トライアル：" + legPend.race.name)) continue; /* v6.5：脚の直前5週は路線外を足さない（脚のトライアルは可）。v6.5.1：同じ路線の他の脚は路線内なので対象外（有馬指定でジャパンCが止まっていた） */
         if(derbyPend && DERBY_ROAD_LEVEL[race.name] == null && a < derbyPend.abs && a >= derbyPend.abs - 2) continue; /* 項目265：優先組はダービーの直前2週に他のレースを入れない（出走間隔の関門でダービーが閉ざされるのを防ぐ） */
+        if(race.sector !== "overseas" && returnGapBlocked(h, race, a)) continue; /* 項目271：帰国後の空白（海外から5週空けないと国内を入れない。同距離G1で4週のときだけ例外） */
         let eligReason = eligibility(h, race, a);              /* 関門は手動と完全同一（v5.6：その開催の抽選当選も見る） */
         if(eligReason && eligReason.startsWith("賞金不足") && rollLineLottery(h, race, a)) eligReason = eligibility(h, race, a); /* v5.6：ライン未達なら開催1回限りの抽選 */
         if(eligReason) continue;
@@ -5375,7 +5454,8 @@ function autoBulkHtml(){
     + "<button data-auto-allpolicy='積極'>全馬 積極</button> <button data-auto-allpolicy='慎重' class='ghost'>全馬 慎重</button> "
     + "<label>既定の適性±200：<select data-auto-defrangeplus><option value='on'"+(autoDefRangePlus()?" selected":"")+">許容する</option><option value='off'"+(!autoDefRangePlus()?" selected":"")+">適性内のみ</option></select></label> "
     + "<button data-auto-allrangeplus='on'>全馬 ±200許容</button> <button data-auto-allrangeplus='off' class='ghost'>全馬 適性内のみ</button> "
-    + "<label>海外遠征（自動）：<select data-auto-overseas>" + ["消極的","普通","積極的","無制限"].map(pol=>"<option value='" + pol + "'" + ((S.autoOverseasPolicy || "消極的")===pol ? " selected" : "") + ">" + pol + "</option>").join("") + "</select></label> <span class='sub'>この設定は「自動で判断される馬」の上限（天井）です。馬ごとに設定した遠征方針は、この上限を超えてもそのまま効きます。行き先は日本馬が実際に行く56レースが土台（無制限だけ全レース）。資格は段ごと：消極的＝G1を3勝以上した馬だけ年1回まで／普通＝G1勝ちか重賞2勝以上、行きやすさA以上のG1のみ、年2回まで／積極的＝G2以上の実績があり今の力（レベル5）も足りる馬、年3回まで／無制限＝資格・上限なしで、格の地板と国内G1リザーブも海外には適用しません。年間の回数はG1級の遠征だけを数えます（G2以下は数えません）。馬ごとの方針が「おまかせ」の馬は、実績とレベルから自動で段が決まります。いずれも国内重賞・リステッドで勝利か3着以内の実績（出走の関門）と、資金が遠征費（1,000万円）以上あることが前提で、検疫週の確保などは手動遠征と同一です。3歳馬はクラシック期（春はダービーまで、秋は菊花賞まで）遠征が後回しになります。海外で2回続けて6着以下になった馬は自動遠征が止まり、その後国内で勝つか重賞・リステッド3着以内、または成長度が遠征時点から10ポイント伸びると再開します（手動は常時可）</span> "
+    + "<label>海外遠征（自動）：<select data-auto-overseas>" + ["消極的","普通","積極的","無制限"].map(pol=>"<option value='" + pol + "'" + ((S.autoOverseasPolicy || "消極的")===pol ? " selected" : "") + ">" + pol + "</option>").join("") + "</select></label> <span class='sub'>この設定は「自動で判断される馬」の上限（天井）です。馬ごとに設定した遠征方針は、この上限を超えてもそのまま効きます（ただし、設定した段の資格を満たさない馬は行きません）。行き先は日本馬が実際に行く56レースが土台（無制限だけ全レース）。資格は段ごと：消極的＝G1を3勝以上した馬だけ年1回まで／普通＝G1勝ちか重賞2勝以上、行きやすさA以上のG1のみ、年2回まで／積極的＝G2以上の実績があり今の力（レベル5）も足りる馬、年3回まで／無制限＝資格・上限なしで、格の地板と国内G1リザーブも海外には適用しません。年間の回数はG1級の遠征だけを数えます（G2以下は数えません）。馬ごとの方針が「おまかせ」の馬は、実績とレベルから自動で段が決まります。いずれも国内重賞・リステッドで勝利か3着以内の実績（出走の関門）と、資金が遠征費（1,000万円）以上あることが前提で、検疫週の確保などは手動遠征と同一です。3歳馬はクラシック期（春はダービーまで、秋は菊花賞まで）遠征が後回しになります。海外の着順でポイントが付く馬は、ライン（既定4点）に達すると自動遠征が凍結されます（10着以下+2点／6〜9着+1点／4〜5着−1点／3着以内−2点）。その後国内（地方含む）で勝つか重賞・リステッド3着以内、または成長度が遠征時点から10ポイント伸びると再開します（手動は常時可）</span> "
+    + "<label>遠征凍結ライン：<select data-ov-freeze>" + [[3,"3点"],[4,"4点（既定）"],[5,"5点"],[6,"6点"],[0,"凍結しない"]].map(([v,lb])=>"<option value='" + v + "'" + (ovFreezeLine()===v ? " selected" : "") + ">" + lb + "</option>").join("") + "</select></label> <span class='sub'>海外で大敗が続く馬の自動遠征を止めるラインです。着順ポイント：10着以下+2／6〜9着+1／4〜5着−1／3着以内−2（下限0）。国内は凍結中も通常どおり出走できます</span> "
     + "<label>故障リスク高の馬（自動出走）：<select data-auto-fragilecare><option value='on'" + (S.fragileCare !== false ? " selected" : "") + ">間隔を広げる</option><option value='off'" + (S.fragileCare === false ? " selected" : "") + ">通常どおり</option></select></label> <span class='sub'>特性「故障しやすい」の馬は故障率が通常の約2倍。広げる＝一般レースは最低中8週・年間目標4戦（障害のみ自動も間隔+4週）。重賞の下限（中2週）は変わりません</span> "
     + "<span class='sub'>馬ごとのON/OFF・出走間隔・方針・適性±200は下の自動出走設定か、各馬のページで変更できます</span></div></details>";
 }
@@ -5434,6 +5514,7 @@ function bindAutoEntryControls(){
   document.querySelectorAll("[data-exp-policy]").forEach(sel=>sel.onchange=()=>{ const h = S.horses.find(x=>x.id===sel.getAttribute("data-exp-policy")); if(h){ h.expPolicy = sel.value==="" ? null : sel.value; save(); render(); } }); /* 項目260：馬別遠征方針 */
   document.querySelectorAll("[data-auto-defrangeplus]").forEach(sel=>sel.onchange=()=>{ S.autoRangePlusDefault = sel.value!=="off"; save(); render(); });
   document.querySelectorAll("[data-auto-overseas]").forEach(sel=>sel.onchange=()=>{ S.autoOverseasPolicy = sel.value; save(); render(); });
+  document.querySelectorAll("[data-ov-freeze]").forEach(sel=>sel.onchange=()=>{ S.ovFreezeLine = +sel.value; save(); render(); }); /* 項目272 */
   document.querySelectorAll("[data-auto-fragilecare]").forEach(sel=>sel.onchange=()=>{ S.fragileCare = sel.value === "on"; save(); render(); }); /* v6.0 */
   document.querySelectorAll("[data-auto-allrangeplus]").forEach(b=>b.onclick=()=>{ setAllAutoRangePlus(b.getAttribute("data-auto-allrangeplus")==="on"); save(); render(); });
   document.querySelectorAll("[data-auto-rangeplus]").forEach(sel=>sel.onchange=()=>{ const h = S.horses.find(x=>x.id===sel.getAttribute("data-auto-rangeplus")); if(h){ h.autoRangePlus = sel.value==="" ? null : sel.value==="on"; save(); render(); } });
@@ -6381,11 +6462,11 @@ function viewManual(){
   h += sec("🌱 成長型と仕上がり",
     "成長型は 早熟／普通／晩成／超晩成 の4表示で、ピーク（充実期）の来る時期が違います。早熟は2〜3歳でピークを迎え早めに衰え、晩成は5歳以降に充実します。デビューの時点ではどの成長型でも仕上がり具合は同じくらいで、差が出るのはその後の伸び方です（早熟はデビューから3歳春までが全盛、晩成は6〜8歳までの長いマラソン）。同じ型でも個体ごとに仕上がりの早さには差があり、配合（父母の仕上がり傾向）で子に伝わります。「持続」タイプの馬はピークを過ぎても衰えが緩やかです（晩成系には付きません）。馬ページの「成長」欄で現在地（充実期／円熟期／衰え始め）が分かります。");
   h += sec("🎯 適性（距離・競馬場など）",
-    "各馬には距離適性（◯◯〜◯◯m）と、隠れた適性（根幹距離・非根幹距離・競馬場・距離帯・長距離輸送）があります。隠れ適性はスタッフの予想（2歳から、約7割の精度）で当たりを付け、実際に走ると確定していきます。適性外の距離では力が割り引かれます。");
+    "各馬には距離適性（◯◯〜◯◯m）と、隠れた適性（根幹距離・非根幹距離・競馬場・距離帯・長距離輸送）があります。隠れ適性はスタッフの予想（2歳から、約7割の精度）で当たりを付け、実際に走ると確定していきます。適性外の距離では力が割り引かれます。<br>例外が「体質」です。体質は疲労の回復の速さを決める適性（○／−／✕）で、予想はなく、生まれた時から確定で表示されます。週の回復量は時期（ピークに近いほど大きく、高齢で小さく）と体質で決まり、通常週で10〜20、休養・故障の週はその2倍、放牧は1.5倍です。海外遠征の帰国週は休養と同じ回復ですが、帰りの輸送疲労（+10）がかかります。体質は父母から受け継ぎます。");
   h += sec("🌧 馬場状態（良・稍重・重・不良）",
     "馬場状態は週ごと・競馬場ごとに変わります（芝とダートで別々）。出走登録タブでは、その週のレースに実況の馬場状態が付き、来週のレースには予想（約4回に3回は当たりますが、外れることもあります）が付きます。再来週以降は分かりません。<br>馬場が悪くなると全馬に低下がかかります（稍重 ×0.98／重 ×0.95／不良 ×0.92）。重・不良ではスタミナのある馬が相対的に有利になります。<br>各馬には隠れた「重馬場適性」があります（相性欄にスタッフ予想が出ます）。○の馬は低下を受けず、✕の馬は低下が深くなります（稍重 ×0.96／重 ×0.90／不良 ×0.84）。稍重以上の馬場で走ると適性が確定します。重馬場✕が確定した馬は、自動出走では重・不良のレースを避けます。");
   h += sec("🏟 馬場適性（芝／ダート）",
-    "馬場適性は芝とダート別々のマークで、<b>生まれた時から表示</b>されます（例：芝○ ダート✕）。係数は <b>○ 1.00／− 0.90／✕ 0.78</b> で、✕の馬場では勝負になりません。−の馬場では重賞級は苦しく、条件戦〜OPが主戦場になります。<br>受け継がれ方：両刀（○○）が配合に入ると、産駒はもう片方の適性に引っ張られます。確率の目安は次の通りです（どの結果も最低5%）。<br>・芝×芝 → 芝90%／両刀5%／ダート5%<br>・ダート×ダート → ダート90%／両刀5%／芝5%<br>・芝×ダート → 父側45%／母側45%／両刀約10%（系統の寄りで父側が最大±25%ずれる）<br>・両刀×芝 → 芝85%／両刀10%／ダート5%<br>・両刀×ダート → ダート85%／両刀10%／芝5%<br>・両刀×両刀 → 芝45%／ダート45%／両刀10%<br>両刀が絡んだ配合で生まれた専門型は、裏側のマークが − になります（○−型）。自動出走は ✕ の馬場のレースを避けます（手動登録は可能です）。また重賞については、その馬の「いい方の馬場」のレースが自動の対象です（ベストが − の馬は − の馬場の重賞に出ます。条件戦では ○ の馬場を優先しつつ − の馬場も使います）。さらに自動出走には「今のレベル」があり、近走の結果（その格で勝てば1つ上、大敗が続けば1つ下）と今の能力で決まります。充実して能力が届いた馬は実績を飛び越えて上の格に挑戦できますが、その格で大敗が続けば挑戦は止まります。レベルを超える古馬重賞には自動で入らないため、力の足りない馬が G1 に出続けることはありません（世代限定重賞と手動登録・指定は従来どおりです）。<br><b>適正調教</b>：方針で「適正調教（距離を伸ばす）」を選ぶと、能力ではなく距離適性が広がります。半年で1段階ずつ、長い方へ +100m ずつ（合計 +400m まで）。馬場の適性は、調教メニューの芝／ダートを続けることで、その馬場に少しずつ慣れていきます（半年で1段階）。ただし既に片方に ○ がある馬は − までで、後から両刀にはなりません（両刀は生まれつきだけ）。距離は1歳9月からピークを迎えるまで、馬場は3歳いっぱいまでです。距離の適正調教の間は通常の調教が止まり、疲労が溜まりやすくなります。調教で広げた適性は後天的なものなので、産駒には引き継がれません。");
+    "馬場適性は芝とダート別々のマークで、<b>生まれた時から表示</b>されます（例：芝○ ダート✕）。係数は <b>○ 1.00／− 0.90／✕ 0.78</b> で、✕の馬場では勝負になりません。−の馬場では重賞級は苦しく、条件戦〜OPが主戦場になります。<br>受け継がれ方：両刀（○○）が配合に入ると、産駒はもう片方の適性に引っ張られます。確率の目安は次の通りです（どの結果も最低5%）。<br>・芝×芝 → 芝90%／両刀5%／ダート5%<br>・ダート×ダート → ダート90%／両刀5%／芝5%<br>・芝×ダート → 父側45%／母側45%／両刀約10%（系統の寄りで父側が最大±25%ずれる）<br>・両刀×芝 → 芝85%／両刀10%／ダート5%<br>・両刀×ダート → ダート85%／両刀10%／芝5%<br>・両刀×両刀 → 芝45%／ダート45%／両刀10%<br>両刀が絡んだ配合で生まれた専門型は、裏側のマークが − になります（○−型）。自動出走は ✕ の馬場のレースを避けます（手動登録は可能です）。また重賞については、その馬の「いい方の馬場」のレースが自動の対象です（ベストが − の馬は − の馬場の重賞に出ます。条件戦では ○ の馬場を優先しつつ − の馬場も使います）。さらに自動出走には「今のレベル」があり、近走の結果（その格で勝てば1つ上、大敗が続けば1つ下）と今の能力で決まります。充実して能力が届いた馬は実績を飛び越えて上の格に挑戦できますが、その格で大敗が続けば挑戦は止まります。レベルを超える古馬重賞には自動で入らないため、力の足りない馬が G1 に出続けることはありません（世代限定重賞と手動登録・指定は従来どおりです）。ただし実績の下限があり、ピークを過ぎるまでは、G1を勝った馬はレベル9、G2を勝った馬は8、G3を勝った馬は6を割りません。大敗が続いても自分の主戦場は閉ざされないため、G2で勝ってG1に挑戦し、戻ってくる往復も成立します。<br><b>適正調教</b>：方針で「適正調教（距離を伸ばす）」を選ぶと、能力ではなく距離適性が広がります。半年で1段階ずつ、長い方へ +100m ずつ（合計 +400m まで）。馬場の適性は、調教メニューの芝／ダートを続けることで、その馬場に少しずつ慣れていきます（半年で1段階）。ただし既に片方に ○ がある馬は − までで、後から両刀にはなりません（両刀は生まれつきだけ）。距離は1歳9月からピークを迎えるまで、馬場は3歳いっぱいまでです。距離の適正調教の間は通常の調教が止まり、疲労が溜まりやすくなります。調教で広げた適性は後天的なものなので、産駒には引き継がれません。");
   h += sec("🐎 レースと出走登録",
     "レースは中央（JRA）・地方（Jpn重賞のみ）・海外（G1〜G3）があります。出走登録は3週先まで先行登録できます。<br>・未勝利の馬は新馬・未勝利戦だけに出られます<br>・海外の重賞に出るには、国内の重賞かリステッドで勝つか3着以内に入る必要があります<br>・クラスは勝ち数で上がり、4勝以上か重賞勝ちでオープン入りです<br>・レースでは毎回、故障の判定があります。基礎の確率は疲労で大きく変わり（30以下で0.4%、65で2.5%、85で15%、95超で28%）、調子が悪い（40以下）と1.5倍、斤量が重いと少し上がります。インブリードの濃い馬は疲労が低くても故障しやすく、最も濃い配合では1戦ごとに+8%されます。故障には名前があり（軽症：球節炎・蹄挫傷・フレグモーネ・鼻出血／重症：屈腱炎・骨折・蹄葉炎・繋靭帯炎）、名前ごとに休養期間と能力への影響が違います。故障歴は馬のページに残ります<br>・輸送でも疲労します。遠くの競馬場ほど大きく、2歳馬は1.5倍です<br>・カレンダータブでは、過去に勝ったことのある重賞に「🏆制覇」の印が付きます（勝ち数と、最近勝った年・馬名も表示）。まだ勝っていない重賞探しに使えます<br>・馬の選択は、名前検索と絞り込み（⭐お気に入り／登録済みの馬だけ／出走できる馬だけ）と並び替え（年齢順・クラス順・名前順）ができます。⭐はお気に入りの印で、馬ごとに付け外しできます<br>・三冠路線（クラシック三冠・牝馬三冠・秋古馬三冠・ダート三冠・春古馬三冠）は、脚を勝つと残りの脚に優先候補が付き、その直前は路線外のレースを自動で足さなくなります<br>・3歳の牝馬は自動出走では牝馬限定戦に寄せて使います。オークス（2400m）に出られる牝馬は自動ではNHKマイルCに入らず、NHKマイルCに出た牝馬がその年にオークスへ回るローテも組みません。日本ダービーは、3歳で牡馬混合戦に勝ったことのある馬だけが進めます（手動登録とプレイヤーの指定はいつも通り出走できます）。4歳以上の牝馬は牝馬限定戦の路線を優先し、G1を勝った馬やトップレベルの馬は牡馬路線にも挑戦します<br>・3歳馬は自動出走では宝塚記念を使わず、自動指定でも避けます（手動登録とプレイヤーの指定では出走できます）<br>・JBC（クラシック／スプリント／レディスクラシック）とブリーダーズカップは開催地が毎年持ち回りになります（JBC2歳優駿は門別固定）<br>・G1級のレースを走った馬は8週間「休養」になり、その間は自動出走・自動指定がG1以外のレースを拾いません（手動登録とプレイヤーの指定はいつも通り出走できます）<br>・自動出走・自動指定では、見込み斤量が基準より3kg以上重くなるレース（ハンデ・別定）には入らない<br>・国内の平地レースには勝ち時計が付き、成績欄で上がり3Fも見られます。上がりは脚質と末脚の強さで決まります<br>・コースレコード（競馬場×馬場×距離）とレースレコード（レースごと）はカレンダータブの「⏱ レコード」で見られます。更新の履歴は牧場年表タブの一番下に残ります<br>・レースレコード（レースごとの歴代最速、対象は国内の名前付きレース）は勝ち時計で更新され、馬の戦歴ではレコードのタイムが赤字＋Rで表示され、寸評にも残ります<br>・名馬列伝タブでは、G1級5勝以上かつ生涯賞金10億円以上の名馬の列伝が読めます。牧場初の重賞・G1勝ち馬は条件を問わず対象で、殿堂馬は馬のページから任意で追加もできます。列伝は現役を終えた時に自動で書かれ、繁殖・種牡馬を終えると産駒編が追記されます。馬のページではメモも書けます。一覧から除外すると列伝文は削除されます");
   h += sec("🐴 障害競走",
@@ -6393,7 +6474,7 @@ function viewManual(){
   h += sec("💰 国内G1の出走ライン",
     "国内のG1（2歳G1と障害G1を除く）には「出走ライン」があります。本物の収得賞金の仕組みを読み替えたもので、各馬の「出走ライン賞金」＝全戦績の本賞金×0.5＋直近1年の分×0.5上乗せ＋直近2年のG1級の分×0.5上乗せ、で測ります。通算ではなく近況で「今の格」を表す数字で、馬のページの成績欄に表示されます。ラインは古馬G1が1億円、3歳限定G1（クラシックなど）が1,000万円。届かない馬は手動・自動・ローテーションのどれでも登録できず、理由は「賞金不足」と表示されます（ローテーション指定が見送られた場合は通知でも知らされます）。ライン未達の馬はG2・G3などの前哨戦で稼ぐのが仕事になり、ラインを超えた実績馬はG1へ直行する、という本物に近い振る舞いになります。海外のG1にはラインはなく、従来どおり国内重賞での勝利か3着以内が関門です。ラインに届かない馬にも、その開催1回限りの「抽選」があります（当選率20%）。当選すると通知が出て、その開催に限り出走できます。外れた開催には再挑戦できません。手動登録では出走登録タブの「🎲 抽選に申し込む」ボタンから、自動出走とローテーションでは登録判定のときに自動で抽選します。");
   h += sec("✈️ 海外遠征の行きやすさと欧州適性",
-    "海外のG1には「行きやすさ」が付いています（S／A／B／C／D）。日本馬の参戦・好走の実績が軸で、香港国際競走やドバイワールドカップデー、凱旋門賞などがS、ほとんど日本馬の行かないレースがC・Dです。出走登録タブとローテーション指定のリストに表示されます。自動遠征は馬ごとの「遠征方針」で決まります（おまかせの馬は実績とレベルから自動判定され、牧場全体の設定が上限になります）。行き先は日本馬が実際に行く56レースが土台で、普通は56レース全体（行きやすさA以上の条件はG1だけに付きます）、無制限だけが全レース対象です。サウジダービーとUAEダービーは前哨戦として格が下げてあり、重賞・リステッドで3着以内（OPは勝利）に入った馬のうち、海外適性○か輸送○のある馬（どちらも未確定の場合はスタッフ予想が○でも可）が自動遠征の対象になります。そのうち海外適性○の馬と、無敗の馬、リステッド・Jpn重賞を勝った馬は優先組として、ダービーの直前2週は他のレースを自動で入れずに送ります。サウジダービーを勝った馬は、そのままUAEダービーへ直行します。ダート三冠の脚（羽田盃・東京ダービー）で3着以内に入った馬は、次の脚が近い間（6週以内）は自動で海外に行きません。<br>各馬には隠れた「欧州適性」があります（相性欄にスタッフ予想が出ます）。欧州（イギリス・フランス・アイルランド・ドイツ・イタリア）の芝でだけ効き、○は割り引かれず、−は×0.95、✕は×0.85になります。欧州の芝を走ると確定し、✕が確定した馬は自動出走では欧州の芝を避けます。重馬場適性や障害適性と同じく、父母から受け継ぎます。<br>また各馬には「海外適性」もあります（相性欄にスタッフ予想が出ます）。海外の全レースで効き、○は×1.005、✕は×0.995と、影響はごくわずかです。海外を走ると確定し、✕が確定した馬は自動出走では遠征を避けます。父母から受け継ぎます。");
+    "海外のG1には「行きやすさ」が付いています（S／A／B／C／D）。日本馬の参戦・好走の実績が軸で、香港国際競走やドバイワールドカップデー、凱旋門賞などがS、ほとんど日本馬の行かないレースがC・Dです。出走登録タブとローテーション指定のリストに表示されます。自動遠征は馬ごとの「遠征方針」で決まります（おまかせの馬は実績とレベルから自動判定され、牧場全体の設定が上限になります）。行き先は日本馬が実際に行く56レースが土台で、普通は56レース全体（行きやすさA以上の条件はG1だけに付きます）、無制限だけが全レース対象です。サウジダービーとUAEダービーは前哨戦として格が下げてあり、重賞・リステッドで3着以内（OPは勝利）に入った馬のうち、海外適性○か輸送○のある馬（どちらも未確定の場合はスタッフ予想が○でも可）が自動遠征の対象になります。そのうち海外適性○の馬と、無敗の馬、リステッド・Jpn重賞を勝った馬は優先組として、ダービーの直前2週は他のレースを自動で入れずに送ります。サウジダービーを勝った馬は、そのままUAEダービーへ直行します。ダート三冠の脚（羽田盃・東京ダービー）で3着以内に入った馬は、次の脚が近い間（6週以内）は自動で海外に行きません。海外を走った馬は、帰国後の国内戦まで自動出走では5週空けます（海外で走ったレースと同じ距離の国内G1で、ちょうど4週空く場合だけ例外です）。<br>各馬には隠れた「欧州適性」があります（相性欄にスタッフ予想が出ます）。欧州（イギリス・フランス・アイルランド・ドイツ・イタリア）の芝でだけ効き、○は割り引かれず、−は×0.95、✕は×0.85になります。欧州の芝を走ると確定し、✕が確定した馬は自動出走では欧州の芝を避けます。重馬場適性や障害適性と同じく、父母から受け継ぎます。<br>また各馬には「海外適性」もあります（相性欄にスタッフ予想が出ます）。海外の全レースで効き、○は×1.005、✕は×0.995と、影響はごくわずかです。海外を走ると確定し、✕が確定した馬は自動出走では遠征を避けます。父母から受け継ぎます。");
   h += sec("🤖 自動出走とローテーション",
     "自動出走をONにした馬は、適性・クラス・体調を見て毎週自動でレースに登録されます（年間6戦ペース目標・上限7戦）。方針は「積極／慎重」、適性距離の±200m許容のON/OFFも選べます。海外遠征は馬ごとの遠征方針（消極的／普通／積極的／無制限、おまかせは自動判定）で自動化の範囲が変わり、既定では手動のみです。<br>ローテーションは「どのレースに出すか」の指定です。指定した馬は指定レースにだけ自動登録され、毎年繰り返されます（各馬のページから設定）。指定がある馬は自動出走の対象外になりますが、手動登録はいつでも可能で、指定以外のレースにも出走できます。<br>指定には「1回限り」も選べます（直近の開催1回だけで、終わると自動で外れます）。<br>重賞を勝つと、翌年の同じレース・三冠の残りの脚・トライアルの本番などに「優先候補」が付きます。候補は固定の指定ではなく、開催週にその時の適性（調教で伸びた分も含みます）・レベル・間隔・疲労で改めて判断され、自動出走の中で優先されます。週を過ぎると消えます。トライアル（弥生賞→皐月賞、青葉賞→日本ダービー、ヒヤシンスS→UAEダービーなど）を勝つと本番の優先候補が付きます。海外の本番は適性内に加えて通算賞金1億円以上の馬だけが対象ですが、サウジダービーとUAEダービーは OP・リステッド・Jpn重賞の勝ちで候補が付きます。<br>G1については、残っている適性内のG1全部のぶんの出走枠を確保するように前哨戦を間引きます（G1自身は枠の確保では止まらず、年間上限だけが効きます）。馬場については、重賞は ○ の馬場のレースだけが自動の対象です（−の馬場の重賞は構想に入りません）。重賞を勝ったことのある馬場がある馬は、その馬場の重賞が候補にある週はそちらを優先します（両馬場で勝っていれば縛りません）。条件戦では ○ の馬場を優先しつつ、− の馬場も代替として使います。また、前走と違う馬場のレースは少し後回しになるので、芝・ダートを行き来するローテにはなりにくくなっています。");
   h += sec("💕 繁殖と配合",
@@ -8254,6 +8335,6 @@ $("#importFile").onchange = (ev) => {
 $("#horseModal").onclick = e => { if(e.target.id==="horseModal") e.target.style.display="none"; };
 boot();
 </script>
-<footer>競馬シミュレーター（趣味） v8.10</footer>
+<footer>競馬シミュレーター（趣味） v8.11</footer>
 </body>
 </html>
